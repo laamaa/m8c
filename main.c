@@ -27,10 +27,6 @@ int main(int argc, char *argv[]) {
   // allocate memory for serial buffer
   uint8_t serial_buf[serial_read_size];
 
-  // allocate memory for draw command queues
-  struct command_queues *queues;
-  queues = (struct command_queues *)malloc(sizeof(struct command_queues));
-
   static uint8_t slip_buffer[1024]; // SLIP command buffer
 
   // settings for the slip packet handler
@@ -81,7 +77,7 @@ int main(int argc, char *argv[]) {
       for (int i = 0; i < bytes_read; i++) {
         uint8_t rx = serial_buf[i];
         // process the incoming bytes into commands and draw them
-        int n = slip_read_byte(&slip, rx, queues);
+        int n = slip_read_byte(&slip, rx);
         if (n != SLIP_NO_ERROR) {
           fprintf(stderr, "SLIP error %d\n", n);
         }
@@ -114,7 +110,6 @@ int main(int argc, char *argv[]) {
   close_renderer();
   disconnect(port);
   close(port);
-  free(queues);
 
   return 0;
 }
