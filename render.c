@@ -1,9 +1,11 @@
 #include "render.h"
 
-#include "command.h"
-
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_rwops.h>
 #include <SDL2/SDL_ttf.h>
+
+#include "command.h"
+#include "stealth57_ttf.h"
 
 SDL_Window *win;
 SDL_Renderer *rend;
@@ -45,7 +47,7 @@ int initialize_sdl() {
 
   rend = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 
-  font = TTF_OpenFont("stealth57.ttf", font_size);
+  font = TTF_OpenFontRW(SDL_RWFromMem(stealth57_ttf, stealth57_ttf_len), 1, font_size);
 
   surface =
       SDL_CreateRGBSurfaceWithFormat(0, 320, 240, 8, SDL_PIXELFORMAT_ARGB8888);

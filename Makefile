@@ -1,11 +1,8 @@
-#Change output_file_name.a below to your desired executible filename
-
 #Set all your object files (the object files of all the .c files in your project, e.g. main.o my_sub_functions.o )
-#OBJ = modbuddy.o launchpad.o soft_lcd.o soft_i2c.o
 OBJ = main.o serial.o slip.o command.o write.o render.o input.o
 
 #Set any dependant header files so that if they are edited they cause a complete re-compile (e.g. main.h some_subfunctions.h some_definitions_file.h ), or leave blank
-DEPS = serial.h slip.h command.h write.h render.h input.h
+DEPS = serial.h slip.h command.h write.h render.h input.h stealth57_ttf.h
 
 #Any special libraries you are using in your project (e.g. -lbcm2835 -lrt `pkg-config --libs gtk+-3.0` ), or leave blank
 INCLUDES = -lSDL2_ttf
@@ -32,4 +29,13 @@ m8c: $(OBJ)
 .PHONY: clean
 
 clean:
-	rm -f *.o *~ core *~ 
+	rm -f *.o *~ m8c *~ 
+
+# PREFIX is environment variable, but if it is not set, then set default value
+ifeq ($(PREFIX),)
+    PREFIX := /usr/local
+endif
+
+install: m8c
+	install -d $(DESTDIR)$(PREFIX)/bin/
+	install -m 755 m8c $(DESTDIR)$(PREFIX)/bin/
