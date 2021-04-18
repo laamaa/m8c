@@ -24,8 +24,8 @@ int initialize_sdl() {
 
   ticks = SDL_GetTicks();
 
-  const int windowWidth = 640;  // SDL window width
-  const int windowHeight = 480; // SDL window height
+  const int window_width = 640;  // SDL window width
+  const int window_height = 480; // SDL window height
 
   // retutns zero on success else non-zero
   if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
@@ -39,7 +39,7 @@ int initialize_sdl() {
   }
 
   win = SDL_CreateWindow("m8c", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                         windowWidth, windowHeight,
+                         window_width, window_height,
                          SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL |
                              SDL_WINDOW_RESIZABLE);
 

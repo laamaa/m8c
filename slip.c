@@ -44,8 +44,7 @@ static slip_error_t put_byte_to_buffer(slip_handler_s *slip, uint8_t byte) {
   return error;
 }
 
-slip_error_t slip_read_byte(slip_handler_s *slip, uint8_t byte,
-                            struct command_queues *command_queues) {
+slip_error_t slip_read_byte(slip_handler_s *slip, uint8_t byte) {
   slip_error_t error = SLIP_NO_ERROR;
 
   assert(slip != NULL);
@@ -54,8 +53,7 @@ slip_error_t slip_read_byte(slip_handler_s *slip, uint8_t byte,
   case SLIP_STATE_NORMAL:
     switch (byte) {
     case SLIP_SPECIAL_BYTE_END:
-      slip->descriptor->recv_message(slip->descriptor->buf, slip->size,
-                                     command_queues);
+      slip->descriptor->recv_message(slip->descriptor->buf, slip->size);
       reset_rx(slip);
       break;
     case SLIP_SPECIAL_BYTE_ESC:

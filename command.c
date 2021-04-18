@@ -31,8 +31,7 @@ static inline void dump_packet(uint32_t size, uint8_t *recv_buf) {
   fprintf(stderr, "\n");
 }
 
-void process_command(uint8_t *data, uint32_t size,
-                     struct command_queues *command_queues) {
+void process_command(uint8_t *data, uint32_t size) {
 
   uint8_t recv_buf[size + 1];
 

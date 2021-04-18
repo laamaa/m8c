@@ -19,7 +19,7 @@ typedef struct {
         uint8_t *buf;
         uint32_t buf_size;
         //struct command_queues *command_queues;
-        void (*recv_message)(uint8_t *data, uint32_t size, struct command_queues *command_queues);
+        void (*recv_message)(uint8_t *data, uint32_t size);
 } slip_descriptor_s;
 
 typedef struct {
@@ -36,6 +36,6 @@ typedef enum {
 } slip_error_t;
 
 slip_error_t slip_init(slip_handler_s *slip, const slip_descriptor_s *descriptor);
-slip_error_t slip_read_byte(slip_handler_s *slip, uint8_t byte, struct command_queues *command_queues);
+slip_error_t slip_read_byte(slip_handler_s *slip, uint8_t byte);
 
 #endif
