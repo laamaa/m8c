@@ -5,6 +5,13 @@
 #include <termios.h>
 #include <unistd.h>
 
+#include "serial.h"
+
+/* This code is originally by wallyk,
+https://stackoverflow.com/questions/6947413/how-to-open-read-and-write-from-serial-port-in-c
+with small tweaks to the blocking settings. Big thanks to the
+original author. */
+
 static int set_interface_attribs(int fd, int speed, int parity) {
   struct termios tty;
   if (tcgetattr(fd, &tty) != 0) {
@@ -50,6 +57,7 @@ static void set_blocking(int fd, int should_block) {
     return;
   }
 
+  // non-blocking VMIN and VTIME should both be 0
   tty.c_cc[VMIN] = should_block ? 1 : 0;
   tty.c_cc[VTIME] = should_block ? 5 : 0;
 

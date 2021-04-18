@@ -3,7 +3,6 @@
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -76,6 +75,7 @@ int main(int argc, char *argv[]) {
     size_t bytes_read = read(port, &serial_buf, sizeof(serial_buf));
     if (bytes_read == -1) {
       fprintf(stderr, "Error %d reading serial: %s\n", errno, strerror(errno));
+      run = 0;
     }
     if (bytes_read > 0) {
       for (int i = 0; i < bytes_read; i++) {
