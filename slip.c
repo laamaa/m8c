@@ -4,6 +4,10 @@
 #include <assert.h>
 #include <stddef.h>
 
+/* This code is originally by marcinbor85, https://github.com/marcinbor85/slip
+It has been simplified a bit as CRC checking etc. is not required in this
+program. */
+
 static void reset_rx(slip_handler_s *slip) {
   assert(slip != NULL);
 
@@ -40,7 +44,8 @@ static slip_error_t put_byte_to_buffer(slip_handler_s *slip, uint8_t byte) {
   return error;
 }
 
-slip_error_t slip_read_byte(slip_handler_s *slip, uint8_t byte, struct command_queues *command_queues) {
+slip_error_t slip_read_byte(slip_handler_s *slip, uint8_t byte,
+                            struct command_queues *command_queues) {
   slip_error_t error = SLIP_NO_ERROR;
 
   assert(slip != NULL);
@@ -49,7 +54,8 @@ slip_error_t slip_read_byte(slip_handler_s *slip, uint8_t byte, struct command_q
   case SLIP_STATE_NORMAL:
     switch (byte) {
     case SLIP_SPECIAL_BYTE_END:
-      slip->descriptor->recv_message(slip->descriptor->buf, slip->size, command_queues);
+      slip->descriptor->recv_message(slip->descriptor->buf, slip->size,
+                                     command_queues);
       reset_rx(slip);
       break;
     case SLIP_SPECIAL_BYTE_ESC:
