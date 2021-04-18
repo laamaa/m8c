@@ -25,21 +25,23 @@ sudo apt update && sudo apt install -y git gcc make libsdl2-dev libsdl2-ttf-dev
 
 ### Download source code
 >
- ```
+```
 mkdir code && cd code
 git clone https://github.com/laamaa/m8c.git
  ```
 
 ### Build the program
->```
+>
+```
 cd m8c
 make && sudo make install
-```
+ ```
 
 ### Find out the correct device name
 
 Connect the Teensy to your computer and look up the device name:
->```
+>
+```
 sudo dmesg | grep ttyACM
 ```
 
@@ -81,6 +83,8 @@ You can toggle full screen mode with ALT+Enter and quit the program with CTRL+q.
 There is also a so-called gamepad support, currently it's working only if there's only one pad connected and it's a Retrobit NES-style controller, since the settings are hardcoded.
 
 Enjoy making some nice music!
+
+-----------
 
 ### Bonus: improve performance on the Raspberry Pi
 Enabling the experimental GL Driver with Full KMS can boost the program's performance a bit.
