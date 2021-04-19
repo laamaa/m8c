@@ -63,8 +63,6 @@ Take note of the card number you wish to use. In my case, I want to use card  3:
 
 After these steps have been taken care of, we can try to route some audio.
 
-## Stop pulseaudio backend
-
 ## Start JACK server and route audio
 ```
 jackd -d alsa -d hw:M8 -r44100 -p512 &
