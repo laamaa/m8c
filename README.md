@@ -2,7 +2,7 @@
 
 m8c is a Linux client for Dirtywave M8 tracker's headless mode. It is intended for use with lower end systems like RPi zero.
 
-Please note that routing the headless M8 USB audio isn't in the scope of this program -- if this is needed, it can be achieved with tools like jackd, alsa\_in and alsa\_out for example.
+Please note that routing the headless M8 USB audio isn't in the scope of this program -- if this is needed, it can be achieved with tools like jackd, alsa\_in and alsa\_out for example. Check out the guide in file AUDIOGUIDE.md for some instructions on routing the audio.
 
 Many thanks to turbolent for the great Golang-based g0m8 application, which I used as reference on how the M8 serial protocol works.
 
@@ -18,20 +18,19 @@ Open Terminal and run the following commands:
 
 ### Install required packages
 
->
 ```
 sudo apt update && sudo apt install -y git gcc make libsdl2-dev libsdl2-ttf-dev
 ```
 
 ### Download source code
->
+
 ```
 mkdir code && cd code
 git clone https://github.com/laamaa/m8c.git
  ```
 
 ### Build the program
->
+
 ```
 cd m8c
 make && sudo make install
@@ -40,7 +39,7 @@ make && sudo make install
 ### Find out the correct device name
 
 Connect the Teensy to your computer and look up the device name:
->
+
 ```
 sudo dmesg | grep ttyACM
 ```
