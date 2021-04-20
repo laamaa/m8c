@@ -30,14 +30,12 @@ int enable_and_reset_display(int port) {
 }
 
 int disconnect(int port) {
-  char buf[20];
-  size_t nbytes;
+  char buf[1] = {'D'};
+  size_t nbytes = 1;
   ssize_t bytes_written;
 
   fprintf(stderr, "Disconnecting M8\n");
 
-  strcpy(buf, "D");
-  nbytes = strlen(buf);
   bytes_written = write(port, buf, nbytes);
   if (bytes_written != nbytes) {
     fprintf(stderr,
@@ -52,14 +50,35 @@ int disconnect(int port) {
   return 1;
 }
 
-int send_input(int port, uint8_t input) {
+int send_msg_controller(int port, uint8_t input) {
   char buf[2] = {'C',input};
   size_t nbytes = 2;
   ssize_t bytes_written;
   bytes_written = write(port, buf, nbytes);
   if (bytes_written != nbytes) {
     fprintf(stderr,
-            "Error sending input, expected to write %zu bytes, %zd written\n",
+            "Error sending controller message, expected to write %zu bytes, %zd written\n",
+            nbytes, bytes_written);
+
+    if (bytes_written == -1) {
+      fprintf(stderr, "Error code %d: %s\n", errno, strerror(errno));
+    }
+    return -1;
+  }
+  return 1;
+
+}
+
+int send_msg_keyjazz(int port, uint8_t note, uint8_t velocity) {
+  if (velocity > 64)
+    velocity = 64;
+  char buf[3] = {'K',note,velocity};
+  size_t nbytes = 3;
+  ssize_t bytes_written;
+  bytes_written = write(port, buf, nbytes);
+  if (bytes_written != nbytes) {
+    fprintf(stderr,
+            "Error sending keyjazz message, expected to write %zu bytes, %zd written\n",
             nbytes, bytes_written);
 
     if (bytes_written == -1) {

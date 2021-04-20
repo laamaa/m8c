@@ -66,18 +66,29 @@ m8c /dev/ttyACM0
 
 If the stars are aligned correctly, you should see the M8 screen.
 
+-----------
+
+## Keyboard mappings
+
 Keys for controlling the progam:
 
-* Up arrow / i = up
-* Down arrow / k = down
-* Left arrow / j = left
-* Right arrow / l = right
-* a = select
-* s = start
-* z = opt
-* x = edit
+* Up arrow = up
+* Down arrow = down
+* Left arrow = left
+* Right arrow = right
+* a / left shift = select
+* s / space = start
+* z / left alt = opt
+* x / left ctrl = edit
 
-You can toggle full screen mode with ALT+Enter and quit the program with CTRL+q.
+Additional controls:
+* Alt + enter = toggle full screen / windowed
+* Alt + F4 = quit program
+* Delete = opt+edit (deletes a row)
+* Esc = toggle keyjazz on/off 
+
+Keyjazz allows to enter notes with keyboard, oldschool tracker-style. The layout is two octaves, starting from keys Z and Q.
+When keyjazz is active, regular a/s/z/x keys are disabled.
 
 There is also a so-called gamepad support, currently it's working only if there's only one pad connected and it's a Retrobit NES-style controller, since the settings are hardcoded.
 
