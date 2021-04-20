@@ -4,9 +4,8 @@
 #include <stdint.h>
 int enable_and_reset_display(int port);
 int disconnect(int port);
-int send_input(int port, uint8_t input);
-
-void draw_rectangle(struct draw_rectangle_command *command);
+int send_msg_controller(int port, uint8_t input);
+int send_msg_keyjazz(int port, uint8_t note, uint8_t velocity);
 
 
 #endif

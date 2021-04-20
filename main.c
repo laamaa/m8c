@@ -33,7 +33,8 @@ int main(int argc, char *argv[]) {
   static const slip_descriptor_s slip_descriptor = {
       .buf = slip_buffer,
       .buf_size = sizeof(slip_buffer),
-      .recv_message = process_command,  //the function where complete slip packets are processed further
+      .recv_message = process_command, // the function where complete slip
+                                       // packets are processed further
   };
 
   static slip_handler_s slip;
@@ -47,7 +48,7 @@ int main(int argc, char *argv[]) {
   if (argc > 1) {
     portname = argv[1];
   } else {
-    portname = "/dev/ttyACM1";
+    portname = "/dev/ttyACM0";
   }
   int port = init_serial(portname);
   if (port == -1)
@@ -62,7 +63,7 @@ int main(int argc, char *argv[]) {
   // initialize joystick etc.
   initialize_input();
 
-  static uint8_t prev_input = 0;
+  uint8_t prev_input = 0;
 
   // main loop
   while (run) {
@@ -84,23 +85,36 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    uint8_t input = process_input();
+    input_msg_s input = get_input_msg();
 
-    if (input != prev_input) {
-      prev_input = input;
-      switch (input) {
-      case 21: // arbitary quit code
+    switch (input.type) {
+    case normal:
+      if (input.value != prev_input) {
+        prev_input = input.value;
+        send_msg_controller(port, input.value);
+      }
+      break;
+    case keyjazz:
+      if (input.value != prev_input) {
+        prev_input = input.value;
+        if (input.value != 0) {
+          send_msg_keyjazz(port, input.value, 64);
+        } else {
+          send_msg_keyjazz(port, 0, 0);
+        }
+      }
+      break;
+    case special:
+      switch (input.value) {
+      case msg_quit:
         run = 0;
         break;
-      default:
-        send_input(port, input);
-        break;
       }
-    } else {
+      break;
     }
 
     render_screen();
-    
+
     usleep(10);
   }
 
