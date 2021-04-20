@@ -47,7 +47,8 @@ int initialize_sdl() {
 
   rend = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 
-  font = TTF_OpenFontRW(SDL_RWFromMem(stealth57_ttf, stealth57_ttf_len), 1, font_size);
+  font = TTF_OpenFontRW(SDL_RWFromMem(stealth57_ttf, stealth57_ttf_len), 1,
+                        font_size);
 
   surface =
       SDL_CreateRGBSurfaceWithFormat(0, 320, 240, 8, SDL_PIXELFORMAT_ARGB8888);
@@ -153,6 +154,38 @@ void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
       command->waveform[i] = 20;
     // draw the pixels directly to the surface
     set_pixel(surface, i, command->waveform[i], color);
+  }
+}
+
+void display_keyjazz_overlay(uint8_t show, uint8_t base_octave) {
+  if (show) {
+    struct draw_rectangle_command drc;
+    drc.color = (struct color){255, 0, 0};
+    drc.pos.x = 310;
+    drc.pos.y = 230;
+    drc.size.width = 5;
+    drc.size.height = 5;
+
+    draw_rectangle(&drc);
+
+    struct draw_character_command dcc;
+    dcc.background = (struct color){0, 0, 0};
+    dcc.foreground = (struct color){200, 200, 200};
+    dcc.c = base_octave+48;
+    dcc.pos.x = 300;
+    dcc.pos.y = 226;
+
+    draw_character(&dcc);
+    
+  } else {
+    struct draw_rectangle_command drc;
+    drc.color = (struct color){0, 0, 0};
+    drc.pos.x = 300;
+    drc.pos.y = 226;
+    drc.size.width = 20;
+    drc.size.height = 14;
+
+    draw_rectangle(&drc);
   }
 }
 
