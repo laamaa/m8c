@@ -1,91 +1,70 @@
-#include <errno.h>
+#include <libserialport.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <string.h>
 #include <unistd.h>
 
-int enable_and_reset_display(int port) {
+int enable_and_reset_display(struct sp_port *port) {
   uint8_t buf[2];
-  ssize_t bytes_written;
+  int result;
 
   fprintf(stderr, "Enabling and resetting M8 display\n");
 
   buf[0] = 0x44;
-  bytes_written = write(port, buf, 1);
-  if (bytes_written == -1) {
-    fprintf(stderr, "Error code %d: %s\n", errno, strerror(errno));
-    return -1;
+  result = sp_blocking_write(port, buf, 1, 5);
+  if (result != 1) {
+    fprintf(stderr, "Error enabling M8 display, code %d", result);
   }
+
   usleep(500);
   buf[0] = 0x45;
   buf[1] = 0x52;
-  bytes_written = write(port, buf, 2);
-  if (bytes_written == -1) {
-    fprintf(stderr, "Error code %d: %s\n", errno, strerror(errno));
-    return -1;
+  result = sp_blocking_write(port, buf, 2, 5);
+  if (result != 2) {
+    fprintf(stderr, "Error resetting M8 display, code %d", result);
   }
   sleep(1);
 
   return 1;
 }
 
-int disconnect(int port) {
+int disconnect(struct sp_port *port) {
   char buf[1] = {'D'};
-  size_t nbytes = 1;
-  ssize_t bytes_written;
+  int result;
 
   fprintf(stderr, "Disconnecting M8\n");
 
-  bytes_written = write(port, buf, nbytes);
-  if (bytes_written != nbytes) {
-    fprintf(stderr,
-            "Error disconnecting, expected to write %zu bytes, %zd written\n",
-            nbytes, bytes_written);
-
-    if (bytes_written == -1) {
-      fprintf(stderr, "Error code %d: %s\n", errno, strerror(errno));
-    }
+  result = sp_blocking_write(port, buf, 1, 5);
+  if (result != 1) {
+    fprintf(stderr, "Error sending disconnect, code %d", result);
     return -1;
   }
   return 1;
 }
 
-int send_msg_controller(int port, uint8_t input) {
+int send_msg_controller(struct sp_port *port, uint8_t input) {
   char buf[2] = {'C',input};
   size_t nbytes = 2;
-  ssize_t bytes_written;
-  bytes_written = write(port, buf, nbytes);
-  if (bytes_written != nbytes) {
-    fprintf(stderr,
-            "Error sending controller message, expected to write %zu bytes, %zd written\n",
-            nbytes, bytes_written);
-
-    if (bytes_written == -1) {
-      fprintf(stderr, "Error code %d: %s\n", errno, strerror(errno));
-    }
+  int result;
+  result = sp_blocking_write(port, buf, nbytes, 5);
+  if (result != nbytes) {
+    fprintf(stderr, "Error sending input, code %d", result);
     return -1;
   }
   return 1;
 
 }
 
-int send_msg_keyjazz(int port, uint8_t note, uint8_t velocity) {
+int send_msg_keyjazz(struct sp_port *port, uint8_t note, uint8_t velocity) {
   if (velocity > 64)
     velocity = 64;
   char buf[3] = {'K',note,velocity};
   size_t nbytes = 3;
-  ssize_t bytes_written;
-  bytes_written = write(port, buf, nbytes);
-  if (bytes_written != nbytes) {
-    fprintf(stderr,
-            "Error sending keyjazz message, expected to write %zu bytes, %zd written\n",
-            nbytes, bytes_written);
-
-    if (bytes_written == -1) {
-      fprintf(stderr, "Error code %d: %s\n", errno, strerror(errno));
-    }
+  int result;
+  result = sp_blocking_write(port, buf, nbytes,5);
+  if (result != nbytes) {
+    fprintf(stderr, "Error sending keyjazz, code %d", result);
     return -1;
   }
-  return 1;
 
+  return 1;
 }

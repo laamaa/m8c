@@ -5,7 +5,7 @@ OBJ = main.o serial.o slip.o command.o write.o render.o input.o
 DEPS = serial.h slip.h command.h write.h render.h input.h stealth57_ttf.h
 
 #Any special libraries you are using in your project (e.g. -lbcm2835 -lrt `pkg-config --libs gtk+-3.0` ), or leave blank
-INCLUDES = -lSDL2_ttf
+INCLUDES = -lSDL2_ttf -lserialport
 
 #Set any compiler flags you want to use (e.g. -I/usr/include/somefolder `pkg-config --cflags gtk+-3.0` ), or leave blank
 CFLAGS = `sdl2-config --libs --cflags` -march=native -Wall -O2 -pipe -I.
