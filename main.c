@@ -1,11 +1,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_timer.h>
-#include <errno.h>
 #include <libserialport.h>
 #include <signal.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
 
 #include "serial.h"
 
@@ -65,6 +61,7 @@ int main(int argc, char *argv[]) {
   // main loop
   while (run) {
 
+    //read serial port
     size_t bytes_read =
         sp_nonblocking_read(port, serial_buf, serial_read_size);
     if (bytes_read < 0) {
@@ -82,6 +79,7 @@ int main(int argc, char *argv[]) {
       }
     }
 
+    //get current inputs
     input_msg_s input = get_input_msg();
 
     switch (input.type) {
@@ -112,7 +110,8 @@ int main(int argc, char *argv[]) {
 
     render_screen();
 
-    usleep(10);
+    SDL_Delay(1);
+    
   }
 
   // exit, clean up
