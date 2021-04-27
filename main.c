@@ -1,6 +1,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_timer.h>
 #include <errno.h>
+#include <libserialport.h>
 #include <signal.h>
 #include <stdio.h>
 #include <string.h>
@@ -14,6 +15,9 @@
 #include "slip.h"
 #include "write.h"
 
+// maximum amount of bytes to read from the serial in one read()
+#define serial_read_size 1024
+
 uint8_t run = 1;
 
 // Handles CTRL+C / SIGINT
@@ -21,13 +25,10 @@ void intHandler(int dummy) { run = 0; }
 
 int main(int argc, char *argv[]) {
 
-  // maximum amount of bytes to read from the serial in one read()
-  const int serial_read_size = 1024;
-
   // allocate memory for serial buffer
-  uint8_t serial_buf[serial_read_size];
+  uint8_t *serial_buf = malloc(serial_read_size);
 
-  static uint8_t slip_buffer[1024]; // SLIP command buffer
+  static uint8_t slip_buffer[serial_read_size]; // SLIP command buffer
 
   // settings for the slip packet handler
   static const slip_descriptor_s slip_descriptor = {
@@ -40,18 +41,14 @@ int main(int argc, char *argv[]) {
   static slip_handler_s slip;
 
   signal(SIGINT, intHandler);
+  signal(SIGTERM, intHandler);
 
   slip_init(&slip, &slip_descriptor);
 
-  // open device
-  char *portname;
-  if (argc > 1) {
-    portname = argv[1];
-  } else {
-    portname = "/dev/ttyACM0";
-  }
-  int port = init_serial(portname);
-  if (port == -1)
+  struct sp_port *port;
+
+  port = init_serial();
+  if (port == NULL)
     return -1;
 
   if (enable_and_reset_display(port) == -1)
@@ -68,10 +65,10 @@ int main(int argc, char *argv[]) {
   // main loop
   while (run) {
 
-    // read data from serial port
-    size_t bytes_read = read(port, &serial_buf, sizeof(serial_buf));
-    if (bytes_read == -1) {
-      fprintf(stderr, "Error %d reading serial: %s\n", errno, strerror(errno));
+    size_t bytes_read =
+        sp_nonblocking_read(port, serial_buf, serial_read_size);
+    if (bytes_read < 0) {
+      fprintf(stderr, "Error %zu reading serial. \n", bytes_read);
       run = 0;
     }
     if (bytes_read > 0) {
@@ -98,7 +95,7 @@ int main(int argc, char *argv[]) {
       if (input.value != prev_input) {
         prev_input = input.value;
         if (input.value != 0) {
-          send_msg_keyjazz(port, input.value, 64);
+          send_msg_keyjazz(port, input.value, 0xFF);
         } else {
           send_msg_keyjazz(port, 0, 0);
         }
@@ -123,7 +120,9 @@ int main(int argc, char *argv[]) {
   close_input();
   close_renderer();
   disconnect(port);
-  close(port);
+  sp_close(port);
+  sp_free_port(port);
+  free(serial_buf);
 
   return 0;
 }
