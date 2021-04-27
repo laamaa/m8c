@@ -1,7 +1,9 @@
+#include <stdio.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_timer.h>
 #include <libserialport.h>
 #include <signal.h>
+
 
 #include "serial.h"
 
