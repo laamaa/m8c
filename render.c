@@ -3,6 +3,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_rwops.h>
 #include <SDL2/SDL_ttf.h>
+#include <stdio.h>
+
 
 #include "command.h"
 #include "stealth57_ttf.h"
