@@ -1,6 +1,6 @@
 # m8c
 
-m8c is a Linux client for Dirtywave M8 tracker's headless mode. It is intended for use with lower end systems like RPi zero.
+m8c is a Linux client for Dirtywave M8 tracker's headless mode. It is intended for use with lower end systems like RPi zero. The application should be cross-platform ready and can be built in Mac OS and Windows (with MSYS2/MINGW64).
 
 Please note that routing the headless M8 USB audio isn't in the scope of this program -- if this is needed, it can be achieved with tools like jackd, alsa\_in and alsa\_out for example. Check out the guide in file AUDIOGUIDE.md for some instructions on routing the audio.
 
@@ -19,7 +19,7 @@ Open Terminal and run the following commands:
 ### Install required packages
 
 ```
-sudo apt update && sudo apt install -y git gcc make libsdl2-dev libsdl2-ttf-dev
+sudo apt update && sudo apt install -y git gcc make libsdl2-dev libsdl2-ttf-dev libserialport-dev
 ```
 
 ### Download source code
