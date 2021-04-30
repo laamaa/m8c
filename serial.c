@@ -1,83 +1,98 @@
-#include <errno.h>
-#include <fcntl.h>
+#include <libserialport.h>
 #include <stdio.h>
-#include <string.h>
-#include <termios.h>
-#include <unistd.h>
+#include <stdlib.h>
 
 #include "serial.h"
 
-/* This code is originally by wallyk,
-https://stackoverflow.com/questions/6947413/how-to-open-read-and-write-from-serial-port-in-c
-with small tweaks to the blocking settings. Big thanks to the
-original author. */
 
-static int set_interface_attribs(int fd, int speed, int parity) {
-  struct termios tty;
-  if (tcgetattr(fd, &tty) != 0) {
-    fprintf(stderr, "error %d from tcgetattr", errno);
-    return -1;
+// Helper function for error handling
+static int check(enum sp_return result);
+
+static int detect_m8_serial_device(struct sp_port *port) {
+  // Check the connection method - we want USB serial devices
+  enum sp_transport transport = sp_get_port_transport(port);
+
+  if (transport == SP_TRANSPORT_USB) {
+    // Get the USB vendor and product IDs.
+    int usb_vid, usb_pid;
+    sp_get_port_usb_vid_pid(port, &usb_vid, &usb_pid);
+
+    if (usb_vid == 0x16C0 && usb_pid == 0x048A)
+      return 1;
   }
 
-  cfsetospeed(&tty, speed);
-  cfsetispeed(&tty, speed);
-
-  tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8; // 8-bit chars
-  // disable IGNBRK for mismatched speed tests; otherwise receive break
-  // as \000 chars
-  tty.c_iflag &= ~IGNBRK; // disable break processing
-  tty.c_lflag = 0;        // no signaling chars, no echo,
-                          // no canonical processing
-  tty.c_oflag = 0;        // no remapping, no delays
-  tty.c_cc[VMIN] = 0;     // read doesn't block
-  tty.c_cc[VTIME] = 5;    // 0.5 seconds read timeout
-
-  tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
-
-  tty.c_cflag |= (CLOCAL | CREAD);   // ignore modem controls,
-                                     // enable reading
-  tty.c_cflag &= ~(PARENB | PARODD); // shut off parity
-  tty.c_cflag |= parity;
-  tty.c_cflag &= ~CSTOPB;
-  tty.c_cflag &= ~CRTSCTS;
-
-  if (tcsetattr(fd, TCSANOW, &tty) != 0) {
-    fprintf(stderr, "Error %d from tcsetattr\n", errno);
-    return -1;
-  }
   return 0;
 }
 
-static void set_blocking(int fd, int should_block) {
+struct sp_port *init_serial() {
+  /* A pointer to a null-terminated array of pointers to
+   * struct sp_port, which will contain the ports found.*/
+  struct sp_port *m8_port = NULL;
+  struct sp_port **port_list;
 
-  struct termios tty;
-  memset(&tty, 0, sizeof tty);
-  if (tcgetattr(fd, &tty) != 0) {
-    fprintf(stderr, "Error %d from tggetattr\n", errno);
-    return;
+  fprintf(stderr, "Looking for USB serial devices.\n");
+
+  /* Call sp_list_ports() to get the ports. The port_list
+   * pointer will be updated to refer to the array created. */
+  enum sp_return result = sp_list_ports(&port_list);
+
+  if (result != SP_OK) {
+    fprintf(stderr, "sp_list_ports() failed!\n");
+    abort();
   }
 
-  // non-blocking VMIN and VTIME should both be 0
-  tty.c_cc[VMIN] = should_block ? 1 : 0;
-  tty.c_cc[VTIME] = should_block ? 5 : 0;
+  /* Iterate through the ports. When port_list[i] is NULL
+   * this indicates the end of the list. */
+  for (int i = 0; port_list[i] != NULL; i++) {
+    struct sp_port *port = port_list[i];
 
-  if (tcsetattr(fd, TCSANOW, &tty) != 0)
-    fprintf(stderr, "Error %d setting term attributes\n", errno);
+    if (detect_m8_serial_device(port)) {
+      fprintf(stderr, "Found M8 in %s.\n", sp_get_port_name(port));
+      sp_copy_port(port, &m8_port);
+    }
+  }
+
+  sp_free_port_list(port_list);
+
+  if (m8_port != NULL) {
+    // Open the serial port and configure it
+    fprintf(stderr, "Opening port.\n");
+    check(sp_open(m8_port, SP_MODE_READ_WRITE));
+
+    check(sp_set_baudrate(m8_port, 115200));
+    check(sp_set_bits(m8_port, 8));
+    check(sp_set_parity(m8_port, SP_PARITY_NONE));
+    check(sp_set_stopbits(m8_port, 1));
+    check(sp_set_flowcontrol(m8_port, SP_FLOWCONTROL_NONE));
+  } else {
+    fprintf(stderr, "Cannot find a M8.\n");
+  }
+
+  return (m8_port);
 }
 
-int init_serial(char *portname) {
+// Helper function for error handling.
+static int check(enum sp_return result) {
+  
+  char *error_message;
 
-  int fd = open(portname, O_RDWR);
-
-  if (fd < 0) {
-    fprintf(stderr, "Error %d opening %s: %s\n", errno, portname,
-            strerror(errno));
-    return -1;
+  switch (result) {
+  case SP_ERR_ARG:
+    fprintf(stderr,"Error: Invalid argument.\n");
+    abort();
+  case SP_ERR_FAIL:
+    error_message = sp_last_error_message();
+    fprintf(stderr,"Error: Failed: %s\n", error_message);
+    sp_free_error_message(error_message);
+    abort();
+  case SP_ERR_SUPP:
+    fprintf(stderr,"Error: Not supported.\n");
+    abort();
+  case SP_ERR_MEM:
+    fprintf(stderr,"Error: Couldn't allocate memory.\n");
+    abort();
+  case SP_OK:
+  default:
+    return result;
   }
-
-  set_interface_attribs(fd, __MAX_BAUD,
-                        0); // set speed to max bps, 8n1 (no parity)
-  set_blocking(fd, 0);      // set no blocking
-
-  return fd;
 }
