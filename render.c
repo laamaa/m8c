@@ -1,20 +1,21 @@
 #include "render.h"
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_pixels.h>
+#include <SDL2/SDL_render.h>
 #include <SDL2/SDL_rwops.h>
+#include <SDL2/SDL_surface.h>
 #include <SDL2/SDL_ttf.h>
 #include <stdio.h>
 
+#include "SDL2_inprint.h"
 
 #include "command.h"
-#include "stealth57_ttf.h"
 
 SDL_Window *win;
 SDL_Renderer *rend;
-TTF_Font *font;
-SDL_Texture *glyph_texture;
-SDL_Texture *background;
-SDL_Surface *surface;
+SDL_Texture *maintexture;
+
 static uint32_t ticks;
 #ifdef SHOW_FPS
 static uint32_t ticks_fps;
@@ -37,11 +38,6 @@ int initialize_sdl() {
     return -1;
   }
 
-  if (TTF_Init() == -1) {
-    printf("TTF_Init: %s\n", TTF_GetError());
-    return -1;
-  }
-
   win = SDL_CreateWindow("m8c", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                          window_width, window_height,
                          SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL |
@@ -49,27 +45,22 @@ int initialize_sdl() {
 
   rend = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 
-  font = TTF_OpenFontRW(SDL_RWFromMem(stealth57_ttf, stealth57_ttf_len), 1,
-                        font_size);
+  maintexture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888,
+                                  SDL_TEXTUREACCESS_TARGET, 320, 240);
 
-  surface =
-      SDL_CreateRGBSurfaceWithFormat(0, 320, 240, 8, SDL_PIXELFORMAT_ARGB8888);
-  if (surface == NULL) {
-    SDL_Log("SDL_CreateRGBSurfaceWithFormat() failed: %s", SDL_GetError());
-    exit(1);
-  }
+  SDL_SetRenderTarget(rend, maintexture);
 
-  SDL_SetRenderTarget(rend, background);
+  SDL_SetRenderDrawColor(rend, 0x00, 0x00, 0x00, 0x00);
+  SDL_RenderClear(rend);
+
+  inrenderer(rend);
+  prepare_inline_font();
 
   return 1;
 }
 
 void close_renderer() {
-
-  SDL_FreeSurface(surface);
-  SDL_DestroyTexture(glyph_texture);
-  SDL_DestroyTexture(background);
-  TTF_CloseFont(font);
+  SDL_DestroyTexture(maintexture);
   SDL_DestroyRenderer(rend);
   SDL_DestroyWindow(win);
 }
@@ -84,35 +75,19 @@ void toggle_fullscreen() {
 
 int draw_character(struct draw_character_command *command) {
 
-  SDL_Color fgcolor = {command->foreground.r, command->foreground.g,
-                       command->foreground.b};
+  uint32_t fgcolor = (command->foreground.r << 16) |
+                     (command->foreground.g << 8) | command->foreground.b;
+  uint32_t bgcolor = (command->background.r << 16) |
+                     (command->background.g << 8) | command->background.b;
 
-  SDL_Color bgcolor = {command->background.r, command->background.g,
-                       command->background.b};
-
-  SDL_Surface *char_surface;
-
-  // Trash80: yeah I think I did something silly that if both are the same color
-  // it means transparent background or something
-  if (fgcolor.r == bgcolor.r && fgcolor.g == bgcolor.g &&
-      fgcolor.b == bgcolor.b)
-    char_surface = TTF_RenderUTF8_Solid(font, (char *)&command->c, fgcolor);
-  else
-    char_surface =
-        TTF_RenderUTF8_Shaded(font, (char *)&command->c, fgcolor, bgcolor);
-
-  if (!char_surface) {
-    fprintf(stderr, "TTF_RenderUTF8_Solid error %s\n", TTF_GetError());
-    return -1;
+  if (bgcolor == fgcolor) {
+    // when bgcolor and fgcolor are the same, do not render a background
+    inprint(rend, (char *)&command->c, command->pos.x, command->pos.y + 3,
+            fgcolor, -1);
+  } else {
+    inprint(rend, (char *)&command->c, command->pos.x, command->pos.y + 3,
+            fgcolor, bgcolor);
   }
-
-  int texW, texH = 0;
-  TTF_SizeUTF8(font, (char *)&command->c, &texW, &texH);
-  SDL_Rect dstrect = {command->pos.x, command->pos.y + 3, texW, texH};
-
-  SDL_BlitSurface(char_surface, NULL, surface, &dstrect);
-
-  SDL_FreeSurface(char_surface);
 
   return 1;
 }
@@ -126,36 +101,26 @@ void draw_rectangle(struct draw_rectangle_command *command) {
   render_rect.h = command->size.height;
   render_rect.w = command->size.width;
 
-  uint32_t color = SDL_MapRGBA(surface->format, command->color.r,
-                               command->color.g, command->color.b, 255);
-
-  SDL_FillRect(surface, &render_rect, color);
-}
-
-// Direct pixel writing function by unwind, https://stackoverflow.com/a/20070273
-void set_pixel(SDL_Surface *surface, int x, int y, Uint32 pixel) {
-
-  Uint32 *const target_pixel =
-      (Uint32 *)((Uint8 *)surface->pixels + y * surface->pitch +
-                 x * surface->format->BytesPerPixel);
-  *target_pixel = pixel;
+  SDL_SetRenderDrawColor(rend, command->color.r, command->color.g,
+                         command->color.b, 0xFF);
+  SDL_RenderFillRect(rend, &render_rect);
 }
 
 void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
 
-  // clear the oscilloscope area
-  memset(surface->pixels, 0, surface->w * 21 * surface->format->BytesPerPixel);
+  const SDL_Rect wf_rect = {0,0,320,20};
 
-  // set oscilloscope color
-  uint32_t color = SDL_MapRGBA(surface->format, command->color.r,
-                               command->color.g, command->color.b, 255);
+  SDL_SetRenderDrawColor(rend, 0, 0, 0, 0xFF);
+  SDL_RenderFillRect(rend, &wf_rect);
+
+  SDL_SetRenderDrawColor(rend, command->color.r, command->color.g,
+                         command->color.b, 255);
 
   for (int i = 0; i < command->waveform_size; i++) {
     // limit value because the oscilloscope commands seem to glitch occasionally
     if (command->waveform[i] > 20)
       command->waveform[i] = 20;
-    // draw the pixels directly to the surface
-    set_pixel(surface, i, command->waveform[i], color);
+    SDL_RenderDrawPoint(rend, i, command->waveform[i]);
   }
 }
 
@@ -173,12 +138,12 @@ void display_keyjazz_overlay(uint8_t show, uint8_t base_octave) {
     struct draw_character_command dcc;
     dcc.background = (struct color){0, 0, 0};
     dcc.foreground = (struct color){200, 200, 200};
-    dcc.c = base_octave+48;
+    dcc.c = base_octave + 48;
     dcc.pos.x = 300;
     dcc.pos.y = 226;
 
     draw_character(&dcc);
-    
+
   } else {
     struct draw_rectangle_command drc;
     drc.color = (struct color){0, 0, 0};
@@ -197,13 +162,12 @@ void render_screen() {
   if (SDL_GetTicks() - ticks > 16) {
 
     ticks = SDL_GetTicks();
-
-    SDL_RenderClear(rend);
-
-    background = SDL_CreateTextureFromSurface(rend, surface);
-    SDL_RenderCopy(rend, background, NULL, NULL);
+    SDL_SetRenderTarget(rend, NULL);
+    // SDL_SetRenderDrawColor(rend, 0, 0, 0, 0);
+    // SDL_RenderClear(rend);
+    SDL_RenderCopy(rend, maintexture, NULL, NULL);
     SDL_RenderPresent(rend);
-    SDL_DestroyTexture(background);
+    SDL_SetRenderTarget(rend, maintexture);
 
 #ifdef SHOW_FPS
     fps++;

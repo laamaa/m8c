@@ -1,14 +1,14 @@
 #Set all your object files (the object files of all the .c files in your project, e.g. main.o my_sub_functions.o )
-OBJ = main.o serial.o slip.o command.o write.o render.o input.o
+OBJ = main.o serial.o slip.o command.o write.o render.o input.o font.o
 
 #Set any dependant header files so that if they are edited they cause a complete re-compile (e.g. main.h some_subfunctions.h some_definitions_file.h ), or leave blank
-DEPS = serial.h slip.h command.h write.h render.h input.h stealth57_ttf.h
+DEPS = serial.h slip.h command.h write.h render.h input.h
 
 #Any special libraries you are using in your project (e.g. -lbcm2835 -lrt `pkg-config --libs gtk+-3.0` ), or leave blank
-INCLUDES = -lSDL2_ttf -lserialport
+INCLUDES = -lserialport
 
 #Set any compiler flags you want to use (e.g. -I/usr/include/somefolder `pkg-config --cflags gtk+-3.0` ), or leave blank
-CFLAGS = `sdl2-config --libs --cflags` -march=native -Wall -O2 -pipe -I.
+CFLAGS = `sdl2-config --libs --cflags` -march=native -Wall  -pipe -I. -g
 
 #Set the compiler you are using ( gcc for C or g++ for C++ )
 CC = gcc
@@ -25,11 +25,21 @@ EXTENSION = .c
 m8c: $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS) $(INCLUDES)
 
+font.c: inline_font.h
+	@echo "#include <SDL2/SDL.h>" > $@-tmp1
+	@cat inline_font.h >> $@-tmp1
+	@cat inprint2.c > $@-tmp2
+	@sed '/#include/d' $@-tmp2 >> $@-tmp1
+	@rm $@-tmp2
+	@mv $@-tmp1 $@
+	@echo "[~cat] inline_font.h inprint2.c > font.c"
+#	$(CC) -c -o font.o font.c $(CFLAGS)
+
 #Cleanup
 .PHONY: clean
 
 clean:
-	rm -f *.o *~ m8c *~ 
+	rm -f *.o *~ m8c *~ font.c
 
 # PREFIX is environment variable, but if it is not set, then set default value
 ifeq ($(PREFIX),)
