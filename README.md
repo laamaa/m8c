@@ -19,7 +19,7 @@ Open Terminal and run the following commands:
 ### Install required packages
 
 ```
-sudo apt update && sudo apt install -y git gcc make libsdl2-dev libsdl2-ttf-dev libserialport-dev
+sudo apt update && sudo apt install -y git gcc make libsdl2-dev libserialport-dev
 ```
 
 ### Download source code
@@ -36,32 +36,12 @@ cd m8c
 make && sudo make install
  ```
 
-### Find out the correct device name
-
-Connect the Teensy to your computer and look up the device name:
-
-```
-sudo dmesg | grep ttyACM
-```
-
-This should output something like:
-
-```
-pi@raspberrypi:~/code/m8c $ sudo dmesg | grep ttyACM
-[    8.129649] cdc_acm 1-1.2:1.0: ttyACM0: USB ACM device
-```
-Note the ttyACM0 part -- this is the device name.
-
 ### Start the program
-```
-m8c /dev/<YOUR DEVICE NAME>
-```
 
-
-for example:
+Connect the Teensy to your computer and start the program. It should automatically detect your device.
 
 ```
-m8c /dev/ttyACM0
+m8c
 ```
 
 If the stars are aligned correctly, you should see the M8 screen.
@@ -102,3 +82,5 @@ Enabling the experimental GL Driver with Full KMS can boost the program's perfor
 The driver can be enabled with ```sudo raspi-config``` and selecting "Advanced options" -> "GL Driver" -> "GL (Full KMS)" and rebooting.
 
 Please note that with some configurations (for example, composite video) this can lead to not getting video output at all. If that happens, you can delete the row ```dtoverlay=vc4-kms-v3d``` in bottom of /boot/config.txt.
+
+Further performance improvement can be achieved by not using X11 and running the program directly in framebuffer console, but this might require doing a custom build of SDL.
