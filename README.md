@@ -5,10 +5,14 @@ m8c is a Linux client for Dirtywave M8 tracker's headless mode. It is intended f
 Please note that routing the headless M8 USB audio isn't in the scope of this program -- if this is needed, it can be achieved with tools like jackd, alsa\_in and alsa\_out for example. Check out the guide in file AUDIOGUIDE.md for some instructions on routing the audio.
 
 Many thanks to:
+
 driedfruit for a wonderful little routine to blit inline bitmap fonts (https://github.com/driedfruit/SDL_inprint/)
+
 turbolent for the great Golang-based g0m8 application, which I used as reference on how the M8 serial protocol works.
 
 Disclaimer: I'm not a coder and hardly understand C, use at your own risk :)
+
+-------
 
 ## Installation
 
