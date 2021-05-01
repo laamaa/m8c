@@ -8,7 +8,7 @@ DEPS = serial.h slip.h command.h write.h render.h input.h
 INCLUDES = -lserialport
 
 #Set any compiler flags you want to use (e.g. -I/usr/include/somefolder `pkg-config --cflags gtk+-3.0` ), or leave blank
-CFLAGS = `sdl2-config --libs --cflags` -march=native -Wall  -pipe -I. -g
+CFLAGS = `sdl2-config --libs --cflags` -march=native -Wall -O2 -pipe -I.
 
 #Set the compiler you are using ( gcc for C or g++ for C++ )
 CC = gcc
