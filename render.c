@@ -101,7 +101,7 @@ void draw_rectangle(struct draw_rectangle_command *command) {
 
 void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
 
-  const SDL_Rect wf_rect = {0, 0, 320, 20};
+  const SDL_Rect wf_rect = {0, 0, 320, 21};
 
   SDL_SetRenderDrawColor(rend, 0, 0, 0, 0xFF);
   SDL_RenderFillRect(rend, &wf_rect);
