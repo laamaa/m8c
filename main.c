@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_timer.h>
 #include <libserialport.h>
 #include <signal.h>
+#include <unistd.h>
 
 #include "serial.h"
 #include "command.h"
@@ -77,7 +77,8 @@ int main(int argc, char *argv[]) {
         }
       }
     } else {
-      SDL_Delay(1);
+      render_screen();
+      usleep(100);
     }
 
     // get current inputs
@@ -109,7 +110,6 @@ int main(int argc, char *argv[]) {
       break;
     }
 
-    render_screen();
   }
 
   // exit, clean up

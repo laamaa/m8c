@@ -1,15 +1,9 @@
 #include "render.h"
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_pixels.h>
-#include <SDL2/SDL_render.h>
-#include <SDL2/SDL_rwops.h>
-#include <SDL2/SDL_surface.h>
-#include <SDL2/SDL_ttf.h>
 #include <stdio.h>
 
 #include "SDL2_inprint.h"
-
 #include "command.h"
 
 SDL_Window *win;
@@ -21,7 +15,6 @@ static uint32_t ticks;
 static uint32_t ticks_fps;
 static int fps;
 #endif
-const int font_size = 8;
 uint8_t fullscreen = 0;
 
 // Initializes SDL and creates a renderer and required surfaces
@@ -81,7 +74,7 @@ int draw_character(struct draw_character_command *command) {
                      (command->background.g << 8) | command->background.b;
 
   if (bgcolor == fgcolor) {
-    // when bgcolor and fgcolor are the same, do not render a background
+    // When bgcolor and fgcolor are the same, do not render a background
     inprint(rend, (char *)&command->c, command->pos.x, command->pos.y + 3,
             fgcolor, -1);
   } else {
@@ -108,7 +101,7 @@ void draw_rectangle(struct draw_rectangle_command *command) {
 
 void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
 
-  const SDL_Rect wf_rect = {0,0,320,20};
+  const SDL_Rect wf_rect = {0, 0, 320, 20};
 
   SDL_SetRenderDrawColor(rend, 0, 0, 0, 0xFF);
   SDL_RenderFillRect(rend, &wf_rect);
@@ -116,15 +109,22 @@ void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
   SDL_SetRenderDrawColor(rend, command->color.r, command->color.g,
                          command->color.b, 255);
 
+  // Create a SDL_Point array of the waveform pixels for batch drawing
+  SDL_Point waveform_points[command->waveform_size];
+
   for (int i = 0; i < command->waveform_size; i++) {
-    // limit value because the oscilloscope commands seem to glitch occasionally
+    // Limit value because the oscilloscope commands seem to glitch occasionally
     if (command->waveform[i] > 20)
       command->waveform[i] = 20;
-    SDL_RenderDrawPoint(rend, i, command->waveform[i]);
+    waveform_points[i].x = i;
+    waveform_points[i].y = command->waveform[i];
   }
+
+  SDL_RenderDrawPoints(rend, waveform_points, command->waveform_size);
 }
 
 void display_keyjazz_overlay(uint8_t show, uint8_t base_octave) {
+
   if (show) {
     struct draw_rectangle_command drc;
     drc.color = (struct color){255, 0, 0};
@@ -160,11 +160,10 @@ void render_screen() {
 
   // process every 16ms (roughly 60fps)
   if (SDL_GetTicks() - ticks > 16) {
-
     ticks = SDL_GetTicks();
     SDL_SetRenderTarget(rend, NULL);
-    // SDL_SetRenderDrawColor(rend, 0, 0, 0, 0);
-    // SDL_RenderClear(rend);
+    SDL_SetRenderDrawColor(rend, 0, 0, 0, 0);
+    SDL_RenderClear(rend);
     SDL_RenderCopy(rend, maintexture, NULL, NULL);
     SDL_RenderPresent(rend);
     SDL_SetRenderTarget(rend, maintexture);
