@@ -1,13 +1,13 @@
-#include <stdio.h>
 #include <SDL2/SDL.h>
 #include <libserialport.h>
 #include <signal.h>
+#include <stdio.h>
 #include <unistd.h>
 
-#include "serial.h"
 #include "command.h"
 #include "input.h"
 #include "render.h"
+#include "serial.h"
 #include "slip.h"
 #include "write.h"
 
@@ -109,7 +109,6 @@ int main(int argc, char *argv[]) {
       }
       break;
     }
-
   }
 
   // exit, clean up
