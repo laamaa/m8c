@@ -6,7 +6,9 @@ Please note that routing the headless M8 USB audio isn't in the scope of this pr
 
 Many thanks to:
 
-driedfruit for a wonderful little routine to blit inline bitmap fonts (https://github.com/driedfruit/SDL_inprint/)
+driedfruit for a wonderful little routine to blit inline bitmap fonts, https://github.com/driedfruit/SDL_inprint/
+
+marcinbor85 for the slip handling routine, https://github.com/marcinbor85/slip
 
 turbolent for the great Golang-based g0m8 application, which I used as reference on how the M8 serial protocol works.
 

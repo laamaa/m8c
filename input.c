@@ -1,7 +1,4 @@
-#include <SDL2/SDL_events.h>
-#include <SDL2/SDL_joystick.h>
-#include <SDL2/SDL_keycode.h>
-#include <SDL2/SDL_scancode.h>
+#include <SDL2/SDL.h>
 #include <stdio.h>
 
 #include "input.h"

@@ -1,8 +1,4 @@
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_blendmode.h>
-#include <SDL2/SDL_rect.h>
-#include <SDL2/SDL_render.h>
-#include <SDL2/SDL_surface.h>
 
 #include "inline_font.h" /* Actual font data */
 
@@ -94,7 +90,9 @@ void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y,
              Uint32 fgcolor, Uint32 bgcolor) {
   SDL_Rect s_rect;
   SDL_Rect d_rect;
-	SDL_Rect bg_rect;
+  SDL_Rect bg_rect;
+
+  static uint32_t previous_fgcolor;
 
   d_rect.x = x;
   d_rect.y = y;
@@ -122,14 +120,17 @@ void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y,
       d_rect.y += s_rect.h;
       continue;
     }
-    incolor(fgcolor, 0);
+    if (fgcolor != previous_fgcolor) {
+      incolor(fgcolor, 0);
+      previous_fgcolor = fgcolor;
+    }
     if (bgcolor != -1) {
       SDL_SetRenderDrawColor(selected_renderer,
                              (Uint8)((bgcolor & 0x00FF0000) >> 16),
                              (Uint8)((bgcolor & 0x0000FF00) >> 8),
                              (Uint8)((bgcolor & 0x000000FF)), 0xFF);
-			bg_rect = d_rect;
-			bg_rect.w = 6;
+      bg_rect = d_rect;
+      bg_rect.w = 6;
       SDL_RenderFillRect(dst, &bg_rect);
     }
     SDL_RenderCopy(dst, selected_font, &s_rect, &d_rect);
