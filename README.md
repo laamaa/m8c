@@ -6,6 +6,8 @@ Please note that routing the headless M8 USB audio isn't in the scope of this pr
 
 Many thanks to:
 
+Trash80 for the great M8 hardware and the original font (stealth57.ttf) that was converted to a bitmap for use in the progam.
+
 driedfruit for a wonderful little routine to blit inline bitmap fonts, https://github.com/driedfruit/SDL_inprint/
 
 marcinbor85 for the slip handling routine, https://github.com/marcinbor85/slip
