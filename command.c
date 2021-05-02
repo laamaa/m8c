@@ -105,7 +105,7 @@ void process_command(uint8_t *data, uint32_t size) {
     break;
 
   case joypad_keypressedstate_command:
-
+    /*
     if (size != joypad_keypressedstate_command_datalength) {
       fprintf(stderr,
               "Invalid joypad keypressed state packet: expected length %d, "
@@ -113,10 +113,10 @@ void process_command(uint8_t *data, uint32_t size) {
               joypad_keypressedstate_command_datalength, size);
       dump_packet(size, recv_buf);
       break;
-    }
+    } */
 
     // nothing is done with joypad key pressed packets for now
-
+    
     break;
 
   default:
