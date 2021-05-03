@@ -1,3 +1,8 @@
+// Copyright 2021 Jonne Kokkonen
+// Released under the MIT licence, https://opensource.org/licenses/MIT
+
+// Contains portions of code from libserialport's examples released to the public domain
+
 #include <libserialport.h>
 #include <stdio.h>
 #include <stdlib.h>

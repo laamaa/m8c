@@ -1,11 +1,11 @@
+// Copyright 2021 Jonne Kokkonen
+// Released under the MIT licence, https://opensource.org/licenses/MIT
 
 #include <stdio.h>
 #include <string.h>
 
 #include "command.h"
 #include "render.h"
-
-#define DEBUG 1
 
 // Convert 2 little-endian 8bit bytes to a 16bit integer
 static uint16_t decodeInt16(uint8_t *data, uint8_t start) {

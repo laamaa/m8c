@@ -1,3 +1,11 @@
+/* 
+This file contains a bitmap render of the font stealth57.ttf by Trash80.
+Original font available at https://fontstruct.com/fontstructions/show/413734/stealth57 
+Originally licensed under a Creative Commons Attribution Share Alike license, https://creativecommons.org/licenses/by-sa/3.0/ 
+
+Used with a permission from the author. 
+*/
+
 #define inline_font_width 128
 #define inline_font_height 64
 static unsigned char inline_font_bits[] = {
