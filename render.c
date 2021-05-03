@@ -1,3 +1,6 @@
+// Copyright 2021 Jonne Kokkonen
+// Released under the MIT licence, https://opensource.org/licenses/MIT
+
 #include "render.h"
 
 #include <SDL2/SDL.h>

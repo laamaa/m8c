@@ -1,3 +1,7 @@
+// Bitmap font routine originally by driedfruit, https://github.com/driedfruit/SDL_inprint
+// Released into public domain.
+// Modified to support adding a background to text.
+
 #include <SDL2/SDL.h>
 
 #include "inline_font.h" /* Actual font data */

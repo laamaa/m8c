@@ -1,3 +1,6 @@
+// Copyright 2021 Jonne Kokkonen
+// Released under the MIT licence, https://opensource.org/licenses/MIT
+
 #include <libserialport.h>
 #include <stdint.h>
 #include <stdio.h>

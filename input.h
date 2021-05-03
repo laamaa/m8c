@@ -1,3 +1,6 @@
+// Copyright 2021 Jonne Kokkonen
+// Released under the MIT licence, https://opensource.org/licenses/MIT
+
 #ifndef INPUT_H_
 #define INPUT_H_
 
