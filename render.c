@@ -4,6 +4,7 @@
 #include "render.h"
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_log.h>
 #include <stdio.h>
 
 #include "SDL2_inprint.h"
@@ -28,9 +29,8 @@ int initialize_sdl() {
   const int window_width = 640;  // SDL window width
   const int window_height = 480; // SDL window height
 
-  // retutns zero on success else non-zero
   if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-    fprintf(stderr, "SDL_Init: %s\n", SDL_GetError());
+    SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "SDL_Init: %s\n", SDL_GetError());
     return -1;
   }
 
@@ -49,6 +49,7 @@ int initialize_sdl() {
   SDL_SetRenderDrawColor(rend, 0x00, 0x00, 0x00, 0x00);
   SDL_RenderClear(rend);
 
+  // Initialize a texture for the font and read the inline font bitmap
   inrenderer(rend);
   prepare_inline_font();
 
@@ -176,7 +177,7 @@ void render_screen() {
 
     if (SDL_GetTicks() - ticks_fps > 5000) {
       ticks_fps = SDL_GetTicks();
-      fprintf(stderr, "%d fps\n", fps / 5);
+      SDL_LogDebug(SDL_LOG_CATEGORY_VIDEO, "%d fps\n", fps / 5);
       fps = 0;
     }
 #endif
