@@ -1,8 +1,7 @@
 // Copyright 2021 Jonne Kokkonen
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
-#include <stdio.h>
-#include <string.h>
+#include <SDL2/SDL_log.h>
 
 #include "command.h"
 #include "render.h"
@@ -26,9 +25,9 @@ enum m8_command_bytes {
 
 static inline void dump_packet(uint32_t size, uint8_t *recv_buf) {
   for (uint16_t a = 0; a < size; a++) {
-    fprintf(stderr, "0x%02X ", recv_buf[a]);
+    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "0x%02X ", recv_buf[a]);
   }
-  fprintf(stderr, "\n");
+  SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "\n");
 }
 
 void process_command(uint8_t *data, uint32_t size) {
@@ -43,9 +42,10 @@ void process_command(uint8_t *data, uint32_t size) {
   case draw_rectangle_command:
 
     if (size != draw_rectangle_command_datalength) {
-      fprintf(stderr,
-              "Invalid draw rectangle packet: expected length %d, got %d\n",
-              draw_rectangle_command_datalength, size);
+      SDL_LogError(
+          SDL_LOG_CATEGORY_ERROR,
+          "Invalid draw rectangle packet: expected length %d, got %d\n",
+          draw_rectangle_command_datalength, size);
       dump_packet(size, recv_buf);
       break;
     }
@@ -62,9 +62,10 @@ void process_command(uint8_t *data, uint32_t size) {
   case draw_character_command:
 
     if (size != draw_character_command_datalength) {
-      fprintf(stderr,
-              "Invalid draw character packet: expected length %d, got %d\n",
-              draw_character_command_datalength, size);
+      SDL_LogError(
+          SDL_LOG_CATEGORY_ERROR,
+          "Invalid draw character packet: expected length %d, got %d\n",
+          draw_character_command_datalength, size);
       dump_packet(size, recv_buf);
       break;
     }
@@ -82,12 +83,13 @@ void process_command(uint8_t *data, uint32_t size) {
 
     if (size < draw_oscilloscope_waveform_command_mindatalength ||
         size > draw_oscilloscope_waveform_command_maxdatalength) {
-      fprintf(stderr,
-              "Invalid draw oscilloscope packet: expected length between %d "
-              "and %d, got "
-              "%d\n",
-              draw_oscilloscope_waveform_command_mindatalength,
-              draw_oscilloscope_waveform_command_maxdatalength, size);
+      SDL_LogError(
+          SDL_LOG_CATEGORY_ERROR,
+          "Invalid draw oscilloscope packet: expected length between %d "
+          "and %d, got "
+          "%d\n",
+          draw_oscilloscope_waveform_command_mindatalength,
+          draw_oscilloscope_waveform_command_maxdatalength, size);
       dump_packet(size, recv_buf);
       break;
     }
@@ -107,7 +109,7 @@ void process_command(uint8_t *data, uint32_t size) {
   case joypad_keypressedstate_command:
     /*
     if (size != joypad_keypressedstate_command_datalength) {
-      fprintf(stderr,
+      SDL_LogError(SDL_LOG_CATEGORY_ERROR,
               "Invalid joypad keypressed state packet: expected length %d, "
               "got %d\n",
               joypad_keypressedstate_command_datalength, size);
@@ -116,12 +118,12 @@ void process_command(uint8_t *data, uint32_t size) {
     } */
 
     // nothing is done with joypad key pressed packets for now
-    
+
     break;
 
   default:
 
-    fprintf(stderr, "Invalid packet\n");
+    SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Invalid packet\n");
     dump_packet(size, recv_buf);
 
     break;
