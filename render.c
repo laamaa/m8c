@@ -44,6 +44,8 @@ int initialize_sdl() {
 
   rend = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 
+  SDL_RenderSetLogicalSize(rend, 320, 240);
+
   maintexture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888,
                                   SDL_TEXTUREACCESS_TARGET, 320, 240);
 
