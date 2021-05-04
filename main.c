@@ -60,28 +60,6 @@ int main(int argc, char *argv[]) {
   // main loop
   while (run) {
 
-    // read serial port
-    size_t bytes_read = sp_nonblocking_read(port, serial_buf, serial_read_size);
-    if (bytes_read < 0) {
-      SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %zu reading serial. \n",
-                      bytes_read);
-      run = 0;
-    }
-    if (bytes_read > 0) {
-      for (int i = 0; i < bytes_read; i++) {
-        uint8_t rx = serial_buf[i];
-        // process the incoming bytes into commands and draw them
-        int n = slip_read_byte(&slip, rx);
-        if (n != SLIP_NO_ERROR) {
-          SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SLIP error %d\n", n);
-        }
-      }
-      usleep(10);
-    } else {
-      render_screen();
-      usleep(100);
-    }
-
     // get current inputs
     input_msg_s input = get_input_msg();
 
@@ -109,11 +87,32 @@ int main(int argc, char *argv[]) {
         break;
       }
       break;
+    }    
+
+    // read serial port
+    size_t bytes_read = sp_nonblocking_read(port, serial_buf, serial_read_size);
+    if (bytes_read < 0) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %zu reading serial. \n",
+                      bytes_read);
+      run = 0;
     }
+    if (bytes_read > 0) {
+      for (int i = 0; i < bytes_read; i++) {
+        uint8_t rx = serial_buf[i];
+        // process the incoming bytes into commands and draw them
+        int n = slip_read_byte(&slip, rx);
+        if (n != SLIP_NO_ERROR) {
+          SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SLIP error %d\n", n);
+        }
+      }
+    } else {
+      render_screen();
+    }
+    usleep(100);
   }
 
   // exit, clean up
-  SDL_Log("\nShutting down\n");
+  SDL_Log("Shutting down\n");
   close_game_controllers();
   close_renderer();
   disconnect(port);
