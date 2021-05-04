@@ -44,6 +44,7 @@ int initialize_game_controllers() {
   int controller_index = 0;
 
   SDL_Log("Looking for game controllers\n");
+  SDL_Delay(1); // Some controllers like XBone wired need a little while to get ready
   // Open all available game controllers
   for (int i = 0; i < num_joysticks; i++) {
     if (!SDL_IsGameController(i))
