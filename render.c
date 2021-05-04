@@ -5,6 +5,8 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_log.h>
+#include <SDL2/SDL_pixels.h>
+#include <SDL2/SDL_render.h>
 #include <stdio.h>
 
 #include "SDL2_inprint.h"
@@ -13,6 +15,7 @@
 SDL_Window *win;
 SDL_Renderer *rend;
 SDL_Texture *maintexture;
+SDL_Color background_color = (SDL_Color){0, 0, 0, 0};
 
 static uint32_t ticks;
 #ifdef SHOW_FPS
@@ -98,6 +101,15 @@ void draw_rectangle(struct draw_rectangle_command *command) {
   render_rect.h = command->size.height;
   render_rect.w = command->size.width;
 
+  // Background color changed
+  if (render_rect.x == 0 && render_rect.y == 0 && render_rect.w == 320 &&
+      render_rect.h == 240) {
+    background_color.r = command->color.r;
+    background_color.g = command->color.g;
+    background_color.b = command->color.b;
+    background_color.a = 0xFF;
+  }
+
   SDL_SetRenderDrawColor(rend, command->color.r, command->color.g,
                          command->color.b, 0xFF);
   SDL_RenderFillRect(rend, &render_rect);
@@ -107,7 +119,8 @@ void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
 
   const SDL_Rect wf_rect = {0, 0, 320, 21};
 
-  SDL_SetRenderDrawColor(rend, 0, 0, 0, 0xFF);
+  SDL_SetRenderDrawColor(rend, background_color.r, background_color.g,
+                         background_color.b, background_color.a);
   SDL_RenderFillRect(rend, &wf_rect);
 
   SDL_SetRenderDrawColor(rend, command->color.r, command->color.g,
@@ -163,7 +176,7 @@ void display_keyjazz_overlay(uint8_t show, uint8_t base_octave) {
 void render_screen() {
 
   // process every 16ms (roughly 60fps)
-  if (SDL_GetTicks() - ticks > 16) {
+  if (SDL_GetTicks() - ticks > 15) {
     ticks = SDL_GetTicks();
     SDL_SetRenderTarget(rend, NULL);
     SDL_SetRenderDrawColor(rend, 0, 0, 0, 0);
