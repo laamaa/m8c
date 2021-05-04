@@ -21,8 +21,7 @@ typedef struct input_msg_s {
   uint8_t value;
 } input_msg_s;
 
-int initialize_input();
-void close_input();
+void close_game_controllers();
 input_msg_s get_input_msg();
 
 #endif
