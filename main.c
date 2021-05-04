@@ -4,7 +4,6 @@
 #include <SDL2/SDL.h>
 #include <libserialport.h>
 #include <signal.h>
-#include <stdio.h>
 #include <unistd.h>
 
 #include "command.h"
@@ -64,7 +63,8 @@ int main(int argc, char *argv[]) {
     // read serial port
     size_t bytes_read = sp_nonblocking_read(port, serial_buf, serial_read_size);
     if (bytes_read < 0) {
-      fprintf(stderr, "Error %zu reading serial. \n", bytes_read);
+      SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %zu reading serial. \n",
+                      bytes_read);
       run = 0;
     }
     if (bytes_read > 0) {
@@ -73,9 +73,10 @@ int main(int argc, char *argv[]) {
         // process the incoming bytes into commands and draw them
         int n = slip_read_byte(&slip, rx);
         if (n != SLIP_NO_ERROR) {
-          fprintf(stderr, "SLIP error %d\n", n);
+          SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SLIP error %d\n", n);
         }
       }
+      usleep(10);
     } else {
       render_screen();
       usleep(100);
@@ -112,7 +113,7 @@ int main(int argc, char *argv[]) {
   }
 
   // exit, clean up
-  fprintf(stderr, "\nShutting down\n");
+  SDL_Log("\nShutting down\n");
   close_game_controllers();
   close_renderer();
   disconnect(port);
