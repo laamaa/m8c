@@ -56,9 +56,6 @@ int main(int argc, char *argv[]) {
   if (initialize_sdl() == -1)
     run = 0;
 
-  // initialize joystick etc.
-  initialize_input();
-
   uint8_t prev_input = 0;
 
   // main loop
@@ -116,7 +113,7 @@ int main(int argc, char *argv[]) {
 
   // exit, clean up
   fprintf(stderr, "\nShutting down\n");
-  close_input();
+  close_game_controllers();
   close_renderer();
   disconnect(port);
   sp_close(port);
