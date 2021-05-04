@@ -92,8 +92,8 @@ int main(int argc, char *argv[]) {
     // read serial port
     size_t bytes_read = sp_nonblocking_read(port, serial_buf, serial_read_size);
     if (bytes_read < 0) {
-      SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %zu reading serial. \n",
-                      bytes_read);
+      SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %d reading serial. \n",
+                      (int)bytes_read);
       run = 0;
     }
     if (bytes_read > 0) {
@@ -105,10 +105,12 @@ int main(int argc, char *argv[]) {
           SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SLIP error %d\n", n);
         }
       }
+      usleep(10);
     } else {
       render_screen();
+      usleep(100);
     }
-    usleep(100);
+    
   }
 
   // exit, clean up
