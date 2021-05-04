@@ -1,14 +1,15 @@
 // Copyright 2021 Jonne Kokkonen
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
-// Contains portions of code from libserialport's examples released to the public domain
+// Contains portions of code from libserialport's examples released to the
+// public domain
 
+#include <SDL2/SDL_log.h>
 #include <libserialport.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "serial.h"
-
 
 // Helper function for error handling
 static int check(enum sp_return result);
@@ -35,14 +36,14 @@ struct sp_port *init_serial() {
   struct sp_port *m8_port = NULL;
   struct sp_port **port_list;
 
-  fprintf(stderr, "Looking for USB serial devices.\n");
+  SDL_Log("Looking for USB serial devices.\n");
 
   /* Call sp_list_ports() to get the ports. The port_list
    * pointer will be updated to refer to the array created. */
   enum sp_return result = sp_list_ports(&port_list);
 
   if (result != SP_OK) {
-    fprintf(stderr, "sp_list_ports() failed!\n");
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "sp_list_ports() failed!\n");
     abort();
   }
 
@@ -52,7 +53,7 @@ struct sp_port *init_serial() {
     struct sp_port *port = port_list[i];
 
     if (detect_m8_serial_device(port)) {
-      fprintf(stderr, "Found M8 in %s.\n", sp_get_port_name(port));
+      SDL_Log("Found M8 in %s.\n", sp_get_port_name(port));
       sp_copy_port(port, &m8_port);
     }
   }
@@ -61,7 +62,7 @@ struct sp_port *init_serial() {
 
   if (m8_port != NULL) {
     // Open the serial port and configure it
-    fprintf(stderr, "Opening port.\n");
+    SDL_Log("Opening port.\n");
     check(sp_open(m8_port, SP_MODE_READ_WRITE));
 
     check(sp_set_baudrate(m8_port, 115200));
@@ -70,7 +71,7 @@ struct sp_port *init_serial() {
     check(sp_set_stopbits(m8_port, 1));
     check(sp_set_flowcontrol(m8_port, SP_FLOWCONTROL_NONE));
   } else {
-    fprintf(stderr, "Cannot find a M8.\n");
+    SDL_LogCritical(SDL_LOG_CATEGORY_SYSTEM, "Cannot find a M8.\n");
   }
 
   return (m8_port);
@@ -78,23 +79,23 @@ struct sp_port *init_serial() {
 
 // Helper function for error handling.
 static int check(enum sp_return result) {
-  
+
   char *error_message;
 
   switch (result) {
   case SP_ERR_ARG:
-    fprintf(stderr,"Error: Invalid argument.\n");
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error: Invalid argument.\n");
     abort();
   case SP_ERR_FAIL:
     error_message = sp_last_error_message();
-    fprintf(stderr,"Error: Failed: %s\n", error_message);
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error: Failed: %s\n", error_message);
     sp_free_error_message(error_message);
     abort();
   case SP_ERR_SUPP:
-    fprintf(stderr,"Error: Not supported.\n");
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error: Not supported.\n");
     abort();
   case SP_ERR_MEM:
-    fprintf(stderr,"Error: Couldn't allocate memory.\n");
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error: Couldn't allocate memory.\n");
     abort();
   case SP_OK:
   default:
