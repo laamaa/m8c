@@ -1,4 +1,6 @@
 *.o
+*.exe
 m8c
 .vscode
 font.c
+build/
