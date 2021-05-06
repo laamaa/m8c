@@ -1,4 +1,16 @@
-# Audio setup for M8 headless and Raspberry Pi
+# Audio setup for M8 headless 
+
+## Windows
+
+* Right click Sound in Taskbar
+* Open Sound Settings
+* Select M8 (or whatever your Teensy Interface is named) as Input
+* Select Device properties 
+* Select Additional Device Properties 
+* Select Listen tab 
+* Check Listen to this device and then select output of your choice (whatever source plays your speakers/headphone uses)
+
+## Linux / Raspberry Pi
 
 It is possible to route the M8 USB audio to another audio interface in Linux without a DAW, using JACK Audio Connection kit and a few other command line tools.
 
