@@ -31,7 +31,7 @@ Open Terminal and run the following commands:
 ```
 sudo apt update && sudo apt install -y git gcc make libsdl2-dev libserialport-dev
 ```
-### Install required packages (OSX
+### Install required packages (OSX)
 
 This assumes you have [installed brew](https://docs.brew.sh/Installation)
 
