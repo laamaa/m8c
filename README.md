@@ -20,19 +20,25 @@ Disclaimer: I'm not a coder and hardly understand C, use at your own risk :)
 
 ## Installation
 
-These instructions are tested with Raspberry Pi 3 B+ and Raspberry Pi OS with desktop (March 4 2021 release), but should apply for other Debian/Ubuntu flavors as well.
+These instructions are tested with Raspberry Pi 3 B+ and Raspberry Pi OS with desktop (March 4 2021 release), but should apply for other Debian/Ubuntu flavors as well. The begining on the build process on OSX is slightly different at the start, and then the same once packages are installed.
 
 The instructions assume that you already have a working Linux desktop installation with an internet connection.
 
 Open Terminal and run the following commands:
 
-### Install required packages
+### Install required packages (Raspberry Pi, Linux)
 
 ```
 sudo apt update && sudo apt install -y git gcc make libsdl2-dev libserialport-dev
 ```
+### Install required packages (OSX
 
-### Download source code
+This assumes you have [installed brew](https://docs.brew.sh/Installation)
+
+```
+brew update && brew install -y git gcc make libsdl2 libserialport
+```
+### Download source code (All)
 
 ```
 mkdir code && cd code
