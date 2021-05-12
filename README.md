@@ -36,7 +36,7 @@ sudo apt update && sudo apt install -y git gcc make libsdl2-dev libserialport-de
 This assumes you have [installed brew](https://docs.brew.sh/Installation)
 
 ```
-brew update && brew install -y git gcc make libsdl2 libserialport
+brew update && brew install -y git gcc make sdl2 libserialport
 ```
 ### Download source code (All)
 
