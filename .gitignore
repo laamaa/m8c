@@ -4,3 +4,5 @@ m8c
 .vscode
 font.c
 build/
+compile_commands.json
+.clangd

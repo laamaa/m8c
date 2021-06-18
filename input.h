@@ -13,7 +13,8 @@ typedef enum input_type_t {
 } input_type_t;
 
 typedef enum special_messages_t {
-  msg_quit
+  msg_quit = 1,
+  msg_reset_display = 2
 } special_messages_t;
 
 typedef struct input_msg_s {
