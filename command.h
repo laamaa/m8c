@@ -51,6 +51,6 @@ struct command_queues {
 };
 
 
-void process_command(uint8_t *data, uint32_t size);
+int process_command(uint8_t *data, uint32_t size);
 
 #endif

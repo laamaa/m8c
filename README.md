@@ -82,6 +82,7 @@ Additional controls:
 * Alt + F4 = quit program
 * Delete = opt+edit (deletes a row)
 * Esc = toggle keyjazz on/off 
+* r / select+start+opt+edit = reset display (if glitches appear on the screen, use this)
 
 Keyjazz allows to enter notes with keyboard, oldschool tracker-style. The layout is two octaves, starting from keys Z and Q.
 When keyjazz is active, regular a/s/z/x keys are disabled.
