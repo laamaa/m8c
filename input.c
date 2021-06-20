@@ -2,8 +2,6 @@
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_events.h>
-#include <SDL2/SDL_gamecontroller.h>
 #include <stdio.h>
 
 #include "input.h"
@@ -44,7 +42,8 @@ int initialize_game_controllers() {
   int controller_index = 0;
 
   SDL_Log("Looking for game controllers\n");
-  SDL_Delay(1); // Some controllers like XBone wired need a little while to get ready
+  SDL_Delay(
+      1); // Some controllers like XBone wired need a little while to get ready
   // Open all available game controllers
   for (int i = 0; i < num_joysticks; i++) {
     if (!SDL_IsGameController(i))
@@ -52,7 +51,8 @@ int initialize_game_controllers() {
     if (controller_index >= MAX_CONTROLLERS)
       break;
     game_controllers[controller_index] = SDL_GameControllerOpen(i);
-    SDL_Log("Controller %d: %s",controller_index+1,SDL_GameControllerName(game_controllers[controller_index]));
+    SDL_Log("Controller %d: %s", controller_index + 1,
+            SDL_GameControllerName(game_controllers[controller_index]));
     controller_index++;
   }
 
@@ -227,6 +227,10 @@ static input_msg_s handle_normal_keys(SDL_Event *event, uint8_t keyvalue) {
     key.value = key_opt | key_edit;
     break;
 
+  case SDL_SCANCODE_R:
+    key = (input_msg_s){special, msg_reset_display};
+    break;
+
   default:
     key.value = 0;
     break;
@@ -287,6 +291,10 @@ void handle_sdl_events() {
   SDL_PollEvent(&event);
 
   switch (event.type) {
+
+  case SDL_WINDOWEVENT_RESIZED:
+    key = (input_msg_s){special, msg_reset_display};
+    break;
 
   // Reinitialize game controllers on controller add/remove/remap
   case SDL_CONTROLLERDEVICEADDED:
@@ -360,5 +368,16 @@ input_msg_s get_input_msg() {
   // Query for SDL events
   handle_sdl_events();
 
-  return (input_msg_s){key.type, keycode};
+  if (keycode == (key_start|key_select|key_opt|key_edit)){
+    key = (input_msg_s){special,msg_reset_display};
+  }
+
+  if (key.type == normal) {
+    /* Normal input keys go through some event-based manipulation in
+       handle_sdl_events(), the value is stored in keycode variable */
+    return (input_msg_s){key.type, keycode};
+  } else {
+    // Special event keys already have the correct keycode baked in
+    return key;
+  }
 }

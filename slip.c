@@ -77,7 +77,9 @@ slip_error_t slip_read_byte(slip_handler_s *slip, uint8_t byte) {
   case SLIP_STATE_NORMAL:
     switch (byte) {
     case SLIP_SPECIAL_BYTE_END:
-      slip->descriptor->recv_message(slip->descriptor->buf, slip->size);
+      if (!slip->descriptor->recv_message(slip->descriptor->buf, slip->size)){
+        error = SLIP_ERROR_INVALID_PACKET;
+      }
       reset_rx(slip);
       break;
     case SLIP_SPECIAL_BYTE_ESC:

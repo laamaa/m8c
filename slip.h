@@ -46,14 +46,12 @@ typedef enum {
 typedef struct {
         uint8_t *buf;
         uint32_t buf_size;
-        //struct command_queues *command_queues;
-        void (*recv_message)(uint8_t *data, uint32_t size);
+        int (*recv_message)(uint8_t *data, uint32_t size);
 } slip_descriptor_s;
 
 typedef struct {
         slip_state_t state;
         uint32_t size;
-        uint16_t crc;
         const slip_descriptor_s *descriptor;
 } slip_handler_s;
 
@@ -61,6 +59,7 @@ typedef enum {
         SLIP_NO_ERROR = 0x00,
         SLIP_ERROR_BUFFER_OVERFLOW,
         SLIP_ERROR_UNKNOWN_ESCAPED_BYTE,
+        SLIP_ERROR_INVALID_PACKET
 } slip_error_t;
 
 slip_error_t slip_init(slip_handler_s *slip, const slip_descriptor_s *descriptor);
