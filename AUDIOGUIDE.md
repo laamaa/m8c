@@ -12,6 +12,28 @@
 
 ## Linux / Raspberry Pi
 
+### Pulseaudio
+
+If you have a desktop installation, chances are you're using Pulseaudio which has a module for making an internal loopback.
+
+run the following command in terminal:
+
+```
+pacmd load-module module-loopback latency_msec=1
+```
+
+after that, you should hear audio through your default input device. If not, check Input devices in Pulseaudio Volume Control
+```
+pavucontrol
+```
+
+If the tools are missing, install pavucontrol (Debian based systems):
+```
+apt install pavucontrol
+```
+
+### JACK
+
 It is possible to route the M8 USB audio to another audio interface in Linux without a DAW, using JACK Audio Connection kit and a few other command line tools.
 
 Please note that this is not an optimal solution for getting audio from the headless M8, but as far as I know the easiest way to use the USB audio feature on Linux. The best parameters for running the applications can vary a lot depending on your configuration, and however you do it, there will be some latency.
