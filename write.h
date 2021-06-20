@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <libserialport.h>
 
+int reset_display(struct sp_port *port);
 int enable_and_reset_display(struct sp_port *port);
 int disconnect(struct sp_port *port);
 int send_msg_controller(struct sp_port *port, uint8_t input);

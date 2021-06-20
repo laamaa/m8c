@@ -30,7 +30,7 @@ static inline void dump_packet(uint32_t size, uint8_t *recv_buf) {
   SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "\n");
 }
 
-void process_command(uint8_t *data, uint32_t size) {
+int process_command(uint8_t *data, uint32_t size) {
 
   uint8_t recv_buf[size + 1];
 
@@ -47,15 +47,18 @@ void process_command(uint8_t *data, uint32_t size) {
           "Invalid draw rectangle packet: expected length %d, got %d\n",
           draw_rectangle_command_datalength, size);
       dump_packet(size, recv_buf);
+      return 0;
       break;
+    } else {
+
+      struct draw_rectangle_command rectcmd = {
+          {decodeInt16(recv_buf, 1), decodeInt16(recv_buf, 3)}, // position x/y
+          {decodeInt16(recv_buf, 5), decodeInt16(recv_buf, 7)}, // size w/h
+          {recv_buf[9], recv_buf[10], recv_buf[11]}};           // color r/g/b
+
+      draw_rectangle(&rectcmd);
+      return 1;
     }
-
-    struct draw_rectangle_command rectcmd = {
-        {decodeInt16(recv_buf, 1), decodeInt16(recv_buf, 3)}, // position x/y
-        {decodeInt16(recv_buf, 5), decodeInt16(recv_buf, 7)}, // size w/h
-        {recv_buf[9], recv_buf[10], recv_buf[11]}};           // color r/g/b
-
-    draw_rectangle(&rectcmd);
 
     break;
 
@@ -67,15 +70,18 @@ void process_command(uint8_t *data, uint32_t size) {
           "Invalid draw character packet: expected length %d, got %d\n",
           draw_character_command_datalength, size);
       dump_packet(size, recv_buf);
+      return 0;
       break;
-    }
+    } else {
 
-    struct draw_character_command charcmd = {
-        recv_buf[1],                                          // char
-        {decodeInt16(recv_buf, 2), decodeInt16(recv_buf, 4)}, // position x/y
-        {recv_buf[6], recv_buf[7], recv_buf[8]},    // foreground r/g/b
-        {recv_buf[9], recv_buf[10], recv_buf[11]}}; // background r/g/b
-    draw_character(&charcmd);
+      struct draw_character_command charcmd = {
+          recv_buf[1],                                          // char
+          {decodeInt16(recv_buf, 2), decodeInt16(recv_buf, 4)}, // position x/y
+          {recv_buf[6], recv_buf[7], recv_buf[8]},    // foreground r/g/b
+          {recv_buf[9], recv_buf[10], recv_buf[11]}}; // background r/g/b
+      draw_character(&charcmd);
+      return 1;
+    }
 
     break;
 
@@ -91,18 +97,21 @@ void process_command(uint8_t *data, uint32_t size) {
           draw_oscilloscope_waveform_command_mindatalength,
           draw_oscilloscope_waveform_command_maxdatalength, size);
       dump_packet(size, recv_buf);
+      return 0;
       break;
+    } else {
+
+      struct draw_oscilloscope_waveform_command osccmd;
+
+      osccmd.color =
+          (struct color){recv_buf[1], recv_buf[2], recv_buf[3]}; // color r/g/b
+      memcpy(osccmd.waveform, &recv_buf[4], size - 4);
+
+      osccmd.waveform_size = size - 4;
+
+      draw_waveform(&osccmd);
+      return 1;
     }
-
-    struct draw_oscilloscope_waveform_command osccmd;
-
-    osccmd.color =
-        (struct color){recv_buf[1], recv_buf[2], recv_buf[3]}; // color r/g/b
-    memcpy(osccmd.waveform, &recv_buf[4], size - 4);
-
-    osccmd.waveform_size = size - 4;
-
-    draw_waveform(&osccmd);
 
     break;
 
@@ -118,14 +127,14 @@ void process_command(uint8_t *data, uint32_t size) {
     } */
 
     // nothing is done with joypad key pressed packets for now
-
+    return 1;
     break;
 
   default:
 
     SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Invalid packet\n");
     dump_packet(size, recv_buf);
-
+    return 1;
     break;
   }
 }
