@@ -292,10 +292,6 @@ void handle_sdl_events() {
 
   switch (event.type) {
 
-  case SDL_WINDOWEVENT_RESIZED:
-    key = (input_msg_s){special, msg_reset_display};
-    break;
-
   // Reinitialize game controllers on controller add/remove/remap
   case SDL_CONTROLLERDEVICEADDED:
   case SDL_CONTROLLERDEVICEREMOVED:
