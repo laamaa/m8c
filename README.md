@@ -38,6 +38,14 @@ This assumes you have [installed brew](https://docs.brew.sh/Installation)
 ```
 brew update && brew install -y git gcc make sdl2 libserialport
 ```
+### Install required packages dependencies with nix (OSX, Linux)
+
+If you have the nix package manager installed (https://nixos.org/download.html),
+a nix development shell will all needed dependencies is provided. Simply enter:
+
+``` sh
+nix-shell
+```
 ### Download source code (All)
 
 ```
@@ -103,3 +111,9 @@ The driver can be enabled with ```sudo raspi-config``` and selecting "Advanced o
 Please note that with some configurations (for example, composite video) this can lead to not getting video output at all. If that happens, you can delete the row ```dtoverlay=vc4-kms-v3d``` in bottom of /boot/config.txt.
 
 Further performance improvement can be achieved by not using X11 and running the program directly in framebuffer console, but this might require doing a custom build of SDL.
+
+### Bonus: quickly install m8c locally with nix
+
+``` sh
+nix-env -iA m8c-stable -f https://github.com/laamaa/m8c/archive/refs/heads/main.tar.gz
+```
