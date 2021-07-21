@@ -38,14 +38,6 @@ This assumes you have [installed brew](https://docs.brew.sh/Installation)
 ```
 brew update && brew install -y git gcc make sdl2 libserialport
 ```
-### Install required packages dependencies with nix (OSX, Linux)
-
-If you have the nix package manager installed (https://nixos.org/download.html),
-a nix development shell will all needed dependencies is provided. Simply enter:
-
-``` sh
-nix-shell
-```
 ### Download source code (All)
 
 ```
