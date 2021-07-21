@@ -2,6 +2,18 @@
 
 with pkgs;
 
+# HOWTO keep this package definition up-to-date:
+#
+# 1. NEW VERSION:
+# After the new version is tagged and pushed, update the `version` var to the
+# proper value and update the hash. You can use the following command to find
+# out the sha256, for example, with version 1.0.3:
+# `nix-prefetch-github --rev v1.0.3 laamaa m8c`
+#
+# 2. NEW DEPENDENCIES:
+# Make sure new dependencies are added. Runtime deps go to buildInputs and
+# compile-time deps go to nativeBuildInputs. Use the nixpkgs manual for help
+#
 let m8c-package =
   { stdenv
   , gnumake
