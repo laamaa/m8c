@@ -1,11 +1,11 @@
 #Set all your object files (the object files of all the .c files in your project, e.g. main.o my_sub_functions.o )
-OBJ = main.o serial.o slip.o command.o write.o render.o input.o font.o
+OBJ = main.o serial.o slip.o command.o write.o render.o input.o font.o fx_fire.o fx_tunnel.o
 
 #Set any dependant header files so that if they are edited they cause a complete re-compile (e.g. main.h some_subfunctions.h some_definitions_file.h ), or leave blank
-DEPS = serial.h slip.h command.h write.h render.h input.h
+DEPS = serial.h slip.h command.h write.h render.h input.h fx_fire.h fx_tunnel.h
 
 #Any special libraries you are using in your project (e.g. -lbcm2835 -lrt `pkg-config --libs gtk+-3.0` ), or leave blank
-INCLUDES = -lserialport
+INCLUDES = -lserialport -lm
 
 #Set any compiler flags you want to use (e.g. -I/usr/include/somefolder `pkg-config --cflags gtk+-3.0` ), or leave blank
 CFLAGS = `sdl2-config --libs --cflags` -march=native -Wall -O2 -pipe -I.

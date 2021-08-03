@@ -10,11 +10,15 @@
 #include <stdio.h>
 
 #include "SDL2_inprint.h"
+#include "SDL_blendmode.h"
 #include "command.h"
+#include "fx_fire.h"
+#include "fx_tunnel.h"
 
 SDL_Window *win;
 SDL_Renderer *rend;
 SDL_Texture *maintexture;
+SDL_Texture *fxtexture;
 SDL_Color background_color = (SDL_Color){0, 0, 0, 0};
 
 static uint32_t ticks;
@@ -23,6 +27,7 @@ static uint32_t ticks_fps;
 static int fps;
 #endif
 uint8_t fullscreen = 0;
+uint8_t special_fx = 0;
 
 // Initializes SDL and creates a renderer and required surfaces
 int initialize_sdl() {
@@ -49,9 +54,18 @@ int initialize_sdl() {
   maintexture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888,
                                   SDL_TEXTUREACCESS_TARGET, 320, 240);
 
-  SDL_SetRenderTarget(rend, maintexture);
+  fxtexture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888,
+                                SDL_TEXTUREACCESS_STREAMING, 320, 240);
 
-  SDL_SetRenderDrawColor(rend, 0x00, 0x00, 0x00, 0x00);
+  SDL_SetTextureBlendMode(maintexture, SDL_BLENDMODE_BLEND);
+  SDL_SetTextureBlendMode(fxtexture, SDL_BLENDMODE_BLEND);
+
+  SDL_SetRenderTarget(rend, fxtexture);
+  SDL_SetRenderDrawColor(rend, 0x00, 0x00, 0x00, SDL_ALPHA_OPAQUE);
+  SDL_RenderClear(rend);
+
+  SDL_SetRenderTarget(rend, maintexture);
+  SDL_SetRenderDrawColor(rend, 0x00, 0x00, 0x00, SDL_ALPHA_OPAQUE);
   SDL_RenderClear(rend);
 
   // Initialize a texture for the font and read the inline font bitmap
@@ -73,6 +87,43 @@ void toggle_fullscreen() {
 
   SDL_SetWindowFullscreen(win, fullscreen_state ? 0 : SDL_WINDOW_FULLSCREEN);
   SDL_ShowCursor(fullscreen_state);
+}
+
+int toggle_special_fx() {
+  special_fx++;
+  switch (special_fx) {
+  case 1:
+    fx_fire_init(fxtexture);
+    break;
+  case 2:
+    fx_fire_destroy();
+    fx_tunnel_init(fxtexture);
+    break;
+  case 3:
+    fx_tunnel_toggle_glitch();
+    break;
+  case 4:
+    fx_tunnel_destroy();
+    special_fx = 0;
+    break;
+  default:
+    break;
+  }
+  return special_fx;
+}
+
+void render_special_fx() {
+  switch (special_fx) {
+  case 1:
+    fx_fire_render();
+    break;
+  case 2:
+  case 3:
+    fx_tunnel_update();
+    break;
+  default:
+    break;
+  }
 }
 
 int draw_character(struct draw_character_command *command) {
@@ -109,11 +160,11 @@ void draw_rectangle(struct draw_rectangle_command *command) {
     background_color.r = command->color.r;
     background_color.g = command->color.g;
     background_color.b = command->color.b;
-    background_color.a = 0xFF;
+    background_color.a = SDL_ALPHA_OPAQUE;
   }
 
   SDL_SetRenderDrawColor(rend, command->color.r, command->color.g,
-                         command->color.b, 0xFF);
+                         command->color.b, SDL_ALPHA_OPAQUE);
   SDL_RenderFillRect(rend, &render_rect);
 }
 
@@ -126,7 +177,7 @@ void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
   SDL_RenderFillRect(rend, &wf_rect);
 
   SDL_SetRenderDrawColor(rend, command->color.r, command->color.g,
-                         command->color.b, 255);
+                         command->color.b, SDL_ALPHA_OPAQUE);
 
   // Create a SDL_Point array of the waveform pixels for batch drawing
   SDL_Point waveform_points[command->waveform_size];
@@ -155,7 +206,8 @@ void display_keyjazz_overlay(uint8_t show, uint8_t base_octave) {
     draw_rectangle(&drc);
 
     struct draw_character_command dcc;
-    dcc.background = (struct color){background_color.r,background_color.g,background_color.b};
+    dcc.background = (struct color){background_color.r, background_color.g,
+                                    background_color.b};
     dcc.foreground = (struct color){200, 200, 200};
     dcc.c = base_octave + 48;
     dcc.pos.x = 300;
@@ -165,7 +217,8 @@ void display_keyjazz_overlay(uint8_t show, uint8_t base_octave) {
 
   } else {
     struct draw_rectangle_command drc;
-    drc.color = (struct color){background_color.r,background_color.g,background_color.b};
+    drc.color = (struct color){background_color.r, background_color.g,
+                               background_color.b};
     drc.pos.x = 300;
     drc.pos.y = 226;
     drc.size.width = 20;
@@ -184,6 +237,11 @@ void render_screen() {
     SDL_SetRenderDrawColor(rend, 0, 0, 0, 0);
     SDL_RenderClear(rend);
     SDL_RenderCopy(rend, maintexture, NULL, NULL);
+    if (special_fx) {
+      render_special_fx();
+      SDL_RenderCopy(rend, fxtexture, NULL, NULL);
+    }
+
     SDL_RenderPresent(rend);
     SDL_SetRenderTarget(rend, maintexture);
 

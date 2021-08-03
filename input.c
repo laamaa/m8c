@@ -4,6 +4,7 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
 
+#include "SDL_scancode.h"
 #include "input.h"
 #include "render.h"
 #include "write.h"
@@ -229,6 +230,10 @@ static input_msg_s handle_normal_keys(SDL_Event *event, uint8_t keyvalue) {
 
   case SDL_SCANCODE_R:
     key = (input_msg_s){special, msg_reset_display};
+    break;
+
+  case SDL_SCANCODE_F12:
+    key = (input_msg_s){special, msg_toggle_special_fx};
     break;
 
   default:

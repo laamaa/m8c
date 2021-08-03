@@ -91,6 +91,9 @@ int main(int argc, char *argv[]) {
         case msg_reset_display:
           reset_display(port);
           break;
+        case msg_toggle_special_fx:
+          toggle_special_fx();
+          break;
         default:
           break;
         }
@@ -112,8 +115,9 @@ int main(int argc, char *argv[]) {
         int n = slip_read_byte(&slip, rx);
         if (n != SLIP_NO_ERROR) {
           if (n == SLIP_ERROR_INVALID_PACKET) {
-            // Reset display on invalid packets. On current firmwares this can cause a softlock in effect list so this is commented out for now.
-            //reset_display(port);
+            // Reset display on invalid packets. On current firmwares this can
+            // cause a softlock in effect list so this is commented out for now.
+            // reset_display(port);
           } else {
             SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SLIP error %d\n", n);
           }
