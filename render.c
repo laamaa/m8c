@@ -3,7 +3,6 @@
 
 #include "render.h"
 
-#include <SDL2/SDL.h>
 #include <SDL2/SDL_log.h>
 #include <SDL2/SDL_pixels.h>
 #include <SDL2/SDL_render.h>
@@ -13,13 +12,18 @@
 #include "SDL_blendmode.h"
 #include "command.h"
 #include "fx_fire.h"
+#include "fx_piano.h"
 #include "fx_tunnel.h"
 
 SDL_Window *win;
 SDL_Renderer *rend;
 SDL_Texture *maintexture;
 SDL_Texture *fxtexture;
+
+// Device state information
 SDL_Color background_color = (SDL_Color){0, 0, 0, 0};
+struct active_notes active_notes[8] = {0};
+int vu_meter[2] = {0};
 
 static uint32_t ticks;
 #ifdef SHOW_FPS
@@ -76,7 +80,23 @@ int initialize_sdl() {
 }
 
 void close_renderer() {
+  // destroy special fx if running
+  switch (special_fx) {
+  case 1:
+    // fx_fire_destroy();
+    fx_piano_destroy();
+    break;
+  case 2:
+  case 3:
+    fx_tunnel_destroy();
+    break;
+  default:
+    break;
+  }
+  special_fx = 0;
+  // destroy sdl stuff
   SDL_DestroyTexture(maintexture);
+  SDL_DestroyTexture(fxtexture);
   SDL_DestroyRenderer(rend);
   SDL_DestroyWindow(win);
 }
@@ -89,11 +109,19 @@ void toggle_fullscreen() {
   SDL_ShowCursor(fullscreen_state);
 }
 
+int get_active_note_from_channel(int ch) {
+  if (ch < 8)
+    return active_notes[ch].note + active_notes[ch].sharp +
+           active_notes[ch].octave;
+  else
+    return 0;
+}
+
 int toggle_special_fx() {
   special_fx++;
   switch (special_fx) {
   case 1:
-    fx_fire_init(fxtexture);
+    fx_piano_init(fxtexture);
     break;
   case 2:
     fx_fire_destroy();
@@ -115,7 +143,8 @@ int toggle_special_fx() {
 void render_special_fx() {
   switch (special_fx) {
   case 1:
-    fx_fire_render();
+    // fx_fire_render();
+    fx_piano_update();
     break;
   case 2:
   case 3:
@@ -126,12 +155,74 @@ void render_special_fx() {
   }
 }
 
+int note_to_hex(int note_char) {
+  switch (note_char) {
+  case 45: // - = note off
+    return 0x00;
+  case 67: // C
+    return 0x01;
+  case 68: // D
+    return 0x03;
+  case 69: // E
+    return 0x05;
+  case 70: // F
+    return 0x06;
+  case 71: // G
+    return 0x08;
+  case 65: // A
+    return 0x0A;
+  case 66: // B
+    return 0x0C;
+  default:
+    return 0x00;
+  }
+}
+
+// Updates the active notes information array with the current command's data
+void update_active_notes_data(struct draw_character_command *command) {
+
+  // Channels are 10 pixels apart, starting from y=70
+  int channel_number = command->pos.y / 10 - 7;
+
+  // Note playback information starts from X=288
+  if (command->pos.x == 288) {
+    active_notes[channel_number].note = note_to_hex(command->c);
+  }
+
+  // Sharp notes live at x = 296
+  if (command->pos.x == 296 && !strcmp((char *)&command->c, "#"))
+    active_notes[channel_number].sharp = 1;
+  else
+    active_notes[channel_number].sharp = 0;
+
+  // Note octave, x = 304
+  if (command->pos.x == 304) {
+    int8_t octave = command->c - 48;
+
+    // Octaves A-B
+    if (octave == 17 || octave == 18)
+      octave -= 7;
+
+    // If octave hasn't been applied to the note yet, do it
+    if (octave > 0)
+      active_notes[channel_number].octave = octave * 0x0C;
+    else
+      active_notes[channel_number].octave = 0;
+  }
+}
+
 int draw_character(struct draw_character_command *command) {
 
   uint32_t fgcolor = (command->foreground.r << 16) |
                      (command->foreground.g << 8) | command->foreground.b;
   uint32_t bgcolor = (command->background.r << 16) |
                      (command->background.g << 8) | command->background.b;
+
+  // Note characters appear between y=70 and y=140, update the active notes
+  // array
+  if (command->pos.y >= 70 && command->pos.y <= 140) {
+    update_active_notes_data(command);
+  }
 
   if (bgcolor == fgcolor) {
     // When bgcolor and fgcolor are the same, do not render a background
@@ -143,6 +234,22 @@ int draw_character(struct draw_character_command *command) {
   }
 
   return 1;
+}
+
+void update_vu_meter_data(struct draw_rectangle_command *command) {
+  int level = command->pos.x - 271;
+  if (command->pos.y == 30) {
+    vu_meter[0] = level;
+  } else {
+    vu_meter[1] = level;
+  }
+}
+
+int get_vu_meter_data(int ch) {
+  if (ch < 2)
+    return vu_meter[ch];
+  else
+    return 0;
 }
 
 void draw_rectangle(struct draw_rectangle_command *command) {
@@ -162,6 +269,13 @@ void draw_rectangle(struct draw_rectangle_command *command) {
     background_color.b = command->color.b;
     background_color.a = SDL_ALPHA_OPAQUE;
   }
+
+  if ((render_rect.y == 30 || render_rect.y == 35) && render_rect.h == 4) {
+    update_vu_meter_data(command);
+  }
+
+  // SDL_Log("x: %d y: %d h: %d w: %d", render_rect.x, render_rect.y,
+  //         render_rect.h, render_rect.w);
 
   SDL_SetRenderDrawColor(rend, command->color.r, command->color.g,
                          command->color.b, SDL_ALPHA_OPAQUE);
