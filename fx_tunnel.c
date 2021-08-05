@@ -1,20 +1,21 @@
 #include "fx_tunnel.h"
 #include "SDL_pixels.h"
 #include "SDL_render.h"
+#include "render.h"
 #include <SDL2/SDL.h>
 
 #define target_width 320
 #define target_height 240
-#define TEXTURE_SIZE 256
+#define TEXTURE_SIZE 320
 #define BIG_NUMBER 8388608
 
-int *texture;
-int *angle_table;
-int *depth_table;
-int *shade_table;
-uint8_t glitch = 0;
-uint32_t *framebuffer;
+static int *texture;
+static int *angle_table;
+static int *depth_table;
+static int *shade_table;
+static uint32_t *framebuffer;
 SDL_Texture *fx_texture;
+
 
 void initialize_texture() {
   // Generate a texture simple square pattern
@@ -82,7 +83,6 @@ void fx_tunnel_init(SDL_Texture *output_texture) {
   fx_texture = output_texture;
   // SDL_QueryTexture(fx_texture, NULL, NULL, &target_width, &target_height);
   framebuffer = malloc(sizeof(uint32_t) * target_width * target_height);
-  glitch = 0;
   initialize_texture();
   initialize_lookup_tables();
 }
@@ -93,23 +93,18 @@ void fx_tunnel_destroy() {
   free(shade_table);
   free(texture);
   free(framebuffer);
-  glitch = 0;
-}
-
-void fx_tunnel_toggle_glitch(){
-  glitch = !glitch;
 }
 
 void fx_tunnel_update() {
-  static uint8_t rotation, zoom;
+  static uint16_t rotation, zoom;
   int fb_array_pos = 0;
   int table_array_pos = 0;
-  rotation += 4;
+  rotation += 3;
   zoom++;
 
   for (int y = 0; y < target_height; y++) {
 
-    table_array_pos = y * target_width * (glitch ? SDL_sin(SDL_GetTicks()/100) : 1);
+    table_array_pos = y * target_width;
     for (int x = 0; x < target_width; x++) {
       int texture_x = angle_table[table_array_pos] + rotation;
       int texture_y = depth_table[table_array_pos] + zoom;
@@ -122,12 +117,14 @@ void fx_tunnel_update() {
         texture_x -= TEXTURE_SIZE;
       while (texture_y > TEXTURE_SIZE)
         texture_y -= TEXTURE_SIZE;
-
-      int color =
+     
+      uint32_t color =
           texture[(unsigned int)texture_x + (texture_y * TEXTURE_SIZE)] *
           shade_table[table_array_pos] / 255;
 
-      framebuffer[fb_array_pos] = (((0x30+color/4) << 24) | (color/2 << 16) | (color/2 << 8) | color);
+      color = (((0x30+color/4) << 24) | (color/2 << 16) | (color/2 << 8) | color);
+
+      framebuffer[fb_array_pos] = color;
 
       table_array_pos++;
       fb_array_pos++;

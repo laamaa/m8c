@@ -11,7 +11,6 @@
 #include "SDL2_inprint.h"
 #include "SDL_blendmode.h"
 #include "command.h"
-#include "fx_fire.h"
 #include "fx_piano.h"
 #include "fx_tunnel.h"
 
@@ -80,21 +79,20 @@ int initialize_sdl() {
 }
 
 void close_renderer() {
-  // destroy special fx if running
+  // Destroy special fx if running
   switch (special_fx) {
   case 1:
-    // fx_fire_destroy();
     fx_piano_destroy();
     break;
   case 2:
-  case 3:
     fx_tunnel_destroy();
     break;
   default:
     break;
   }
   special_fx = 0;
-  // destroy sdl stuff
+
+  // Destroy sdl stuff
   SDL_DestroyTexture(maintexture);
   SDL_DestroyTexture(fxtexture);
   SDL_DestroyRenderer(rend);
@@ -110,7 +108,7 @@ void toggle_fullscreen() {
 }
 
 int get_active_note_from_channel(int ch) {
-  if (ch < 8)
+  if (ch >= 0 && ch < 8)
     return active_notes[ch].note + active_notes[ch].sharp +
            active_notes[ch].octave;
   else
@@ -124,13 +122,10 @@ int toggle_special_fx() {
     fx_piano_init(fxtexture);
     break;
   case 2:
-    fx_fire_destroy();
+    fx_piano_destroy();
     fx_tunnel_init(fxtexture);
     break;
   case 3:
-    fx_tunnel_toggle_glitch();
-    break;
-  case 4:
     fx_tunnel_destroy();
     special_fx = 0;
     break;
@@ -143,11 +138,9 @@ int toggle_special_fx() {
 void render_special_fx() {
   switch (special_fx) {
   case 1:
-    // fx_fire_render();
     fx_piano_update();
     break;
   case 2:
-  case 3:
     fx_tunnel_update();
     break;
   default:
