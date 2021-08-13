@@ -88,6 +88,10 @@ void fx_tunnel_init(SDL_Texture *output_texture) {
 }
 
 void fx_tunnel_destroy() {
+  //Clear the effect texture
+  memset(framebuffer,0,sizeof(uint32_t) * target_width * target_height);
+  SDL_UpdateTexture(fx_texture, NULL, framebuffer,
+                    target_width * sizeof(framebuffer[0]));
   free(depth_table);
   free(angle_table);
   free(shade_table);
@@ -122,7 +126,7 @@ void fx_tunnel_update() {
           texture[(unsigned int)texture_x + (texture_y * TEXTURE_SIZE)] *
           shade_table[table_array_pos] / 255;
 
-      color = (((0x30+color/4) << 24) | (color/2 << 16) | (color/2 << 8) | color);
+      color = (((0x30+color/4) << 24) | (color << 16) | (color/2 << 8) | color);
 
       framebuffer[fb_array_pos] = color;
 

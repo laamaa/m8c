@@ -11,6 +11,7 @@
 #include "SDL2_inprint.h"
 #include "SDL_blendmode.h"
 #include "command.h"
+#include "fx_cube.h"
 #include "fx_piano.h"
 #include "fx_tunnel.h"
 
@@ -21,6 +22,7 @@ SDL_Texture *fxtexture;
 
 // Device state information
 SDL_Color background_color = (SDL_Color){0, 0, 0, 0};
+SDL_Color foreground_color = (SDL_Color){0, 0, 0, 0};
 struct active_notes active_notes[8] = {0};
 int vu_meter[2] = {0};
 
@@ -87,6 +89,8 @@ void close_renderer() {
   case 2:
     fx_tunnel_destroy();
     break;
+  case 3:
+    fx_cube_destroy();
   default:
     break;
   }
@@ -127,8 +131,11 @@ int toggle_special_fx() {
     break;
   case 3:
     fx_tunnel_destroy();
-    special_fx = 0;
+    fx_cube_init(rend, foreground_color);
     break;
+  case 4:
+    fx_cube_destroy();
+    special_fx = 0;
   default:
     break;
   }
@@ -143,6 +150,8 @@ void render_special_fx() {
   case 2:
     fx_tunnel_update();
     break;
+  case 3:
+    fx_cube_update();
   default:
     break;
   }
@@ -211,10 +220,18 @@ int draw_character(struct draw_character_command *command) {
   uint32_t bgcolor = (command->background.r << 16) |
                      (command->background.g << 8) | command->background.b;
 
-  // Note characters appear between y=70 and y=140, update the active notes
-  // array
+  //SDL_Log("%s: %d %d", (char *)&command->c, command->pos.x, command->pos.y);
+
+  /* Note characters appear between y=70 and y=140, update the active notes
+    array */
   if (command->pos.y >= 70 && command->pos.y <= 140) {
     update_active_notes_data(command);
+  }
+
+  /* Get the foreground color from tempo text, that should be pretty much always visible */
+  if (command->pos.x == 272 && command->pos.y == 50) {
+    foreground_color = (SDL_Color){command->foreground.r, command->foreground.g,
+                                   command->foreground.b, SDL_ALPHA_OPAQUE};
   }
 
   if (bgcolor == fgcolor) {
