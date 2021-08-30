@@ -5,12 +5,10 @@
 #include "SDL_render.h"
 #include "SDL_timer.h"
 
-int width = 320;
-int height = 240;
-SDL_Texture *fx_texture;
-uint32_t *framebuffer;
-uint32_t *prev_buffer;
-uint32_t last_ticks;
+static int width = 320;
+static int height = 240;
+static SDL_Texture *fx_texture;
+static uint32_t *framebuffer;
 #define bgcolor 0xA0000000
 
 uint32_t palette[8] = {0xEFFF0000,0xEF00FF00,0xEF0000FF,0xEFFFFF00,0xEFFF00FF,0xEF00FFFF,0xEFFFFFFF,0xEFFFFFFF};
@@ -19,7 +17,6 @@ void fx_piano_init(SDL_Texture *output_texture) {
   fx_texture = output_texture;
   SDL_QueryTexture(fx_texture, NULL, NULL, &width, &height);
   framebuffer = malloc(sizeof(uint32_t) * width * height);
-  prev_buffer = malloc(sizeof(uint32_t) * width * height);
   SDL_memset4(framebuffer, bgcolor, width*height);
 }
 

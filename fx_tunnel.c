@@ -14,8 +14,8 @@ static int *angle_table;
 static int *depth_table;
 static int *shade_table;
 static uint32_t *framebuffer;
-SDL_Texture *fx_texture;
-
+static SDL_Texture *fx_texture;
+static SDL_Color shade;
 
 void initialize_texture() {
   // Generate a texture simple square pattern
@@ -79,17 +79,20 @@ void initialize_lookup_tables() {
   }
 }
 
-void fx_tunnel_init(SDL_Texture *output_texture) {
+void fx_tunnel_init(SDL_Texture *output_texture, SDL_Color tunnel_color) {
   fx_texture = output_texture;
+  shade = tunnel_color;
   // SDL_QueryTexture(fx_texture, NULL, NULL, &target_width, &target_height);
   framebuffer = malloc(sizeof(uint32_t) * target_width * target_height);
   initialize_texture();
   initialize_lookup_tables();
+  SDL_SetTextureColorMod(fx_texture, shade.r, shade.g, shade.b);
 }
 
 void fx_tunnel_destroy() {
-  //Clear the effect texture
-  memset(framebuffer,0,sizeof(uint32_t) * target_width * target_height);
+  // Clear the effect texture
+  memset(framebuffer, 0, sizeof(uint32_t) * target_width * target_height);
+  SDL_SetTextureColorMod(fx_texture, 0xFF, 0xFF, 0xFF);
   SDL_UpdateTexture(fx_texture, NULL, framebuffer,
                     target_width * sizeof(framebuffer[0]));
   free(depth_table);
@@ -121,12 +124,13 @@ void fx_tunnel_update() {
         texture_x -= TEXTURE_SIZE;
       while (texture_y > TEXTURE_SIZE)
         texture_y -= TEXTURE_SIZE;
-     
+
       uint32_t color =
           texture[(unsigned int)texture_x + (texture_y * TEXTURE_SIZE)] *
           shade_table[table_array_pos] / 255;
 
-      color = (((0x30+color/4) << 24) | (color << 16) | (color/2 << 8) | color);
+      color =
+          (((0x30 + color / 4) << 24) | (color << 16) | (color << 8) | color);
 
       framebuffer[fb_array_pos] = color;
 

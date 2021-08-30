@@ -26,7 +26,7 @@ static int edges[12][2] = {{0, 1}, {1, 3}, {3, 2}, {2, 0}, {4, 5}, {5, 7},
 
 static float nodes[8][3];
 
-void scale(float factor0, float factor1, float factor2) {
+static void scale(float factor0, float factor1, float factor2) {
   for (int i = 0; i < 8; i++) {
     nodes[i][0] *= factor0;
     nodes[i][1] *= factor1;
@@ -34,7 +34,7 @@ void scale(float factor0, float factor1, float factor2) {
   }
 }
 
-void rotate_cube(float angle_x, float angle_y) {
+static void rotate_cube(float angle_x, float angle_y) {
   float sin_x = SDL_sin(angle_x);
   float cos_x = SDL_cos(angle_x);
   float sin_y = SDL_sin(angle_y);
@@ -74,7 +74,7 @@ void fx_cube_init(SDL_Renderer *target_renderer, SDL_Color foreground_color) {
 
   SDL_SetRenderTarget(fx_renderer, gradient_texture);
   SDL_RenderClear(fx_renderer);
-  SDL_SetRenderDrawColor(fx_renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+  SDL_SetRenderDrawColor(fx_renderer, 0, 0, 0, 200);
   SDL_RenderDrawPoint(fx_renderer, 0, 1);
   SDL_SetRenderDrawColor(fx_renderer, 0, 0, 0, SDL_ALPHA_TRANSPARENT);
   SDL_RenderDrawPoint(fx_renderer, 0, 0);

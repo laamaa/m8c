@@ -12,6 +12,7 @@
 #include "SDL_blendmode.h"
 #include "command.h"
 #include "fx_cube.h"
+#include "fx_gradient.h"
 #include "fx_piano.h"
 #include "fx_tunnel.h"
 
@@ -23,6 +24,7 @@ SDL_Texture *fxtexture;
 // Device state information
 SDL_Color background_color = (SDL_Color){0, 0, 0, 0};
 SDL_Color foreground_color = (SDL_Color){0, 0, 0, 0};
+SDL_Color title_color = (SDL_Color){0, 0, 0, 0};
 struct active_notes active_notes[8] = {0};
 int vu_meter[2] = {0};
 
@@ -91,6 +93,10 @@ void close_renderer() {
     break;
   case 3:
     fx_cube_destroy();
+    break;
+  case 4:
+    fx_gradient_destroy();
+    break;
   default:
     break;
   }
@@ -127,15 +133,20 @@ int toggle_special_fx() {
     break;
   case 2:
     fx_piano_destroy();
-    fx_tunnel_init(fxtexture);
+    fx_tunnel_init(fxtexture, title_color);
     break;
   case 3:
     fx_tunnel_destroy();
-    fx_cube_init(rend, foreground_color);
+    fx_cube_init(rend, title_color);
     break;
   case 4:
     fx_cube_destroy();
+    fx_gradient_init(fxtexture,title_color);
+    break;
+  case 5:
+    fx_gradient_destroy();
     special_fx = 0;
+    break;
   default:
     break;
   }
@@ -152,6 +163,10 @@ void render_special_fx() {
     break;
   case 3:
     fx_cube_update();
+    break;
+  case 4:
+    fx_gradient_update();
+    break;
   default:
     break;
   }
@@ -220,7 +235,7 @@ int draw_character(struct draw_character_command *command) {
   uint32_t bgcolor = (command->background.r << 16) |
                      (command->background.g << 8) | command->background.b;
 
-  //SDL_Log("%s: %d %d", (char *)&command->c, command->pos.x, command->pos.y);
+  // SDL_Log("%s: %d %d", (char *)&command->c, command->pos.x, command->pos.y);
 
   /* Note characters appear between y=70 and y=140, update the active notes
     array */
@@ -228,10 +243,16 @@ int draw_character(struct draw_character_command *command) {
     update_active_notes_data(command);
   }
 
-  /* Get the foreground color from tempo text, that should be pretty much always visible */
+  /* Get the default color from tempo text, that should be pretty much always
+   * visible */
   if (command->pos.x == 272 && command->pos.y == 50) {
     foreground_color = (SDL_Color){command->foreground.r, command->foreground.g,
                                    command->foreground.b, SDL_ALPHA_OPAQUE};
+  }
+
+  if (command->pos.x == 8 && command->pos.y == 30) {
+    title_color = (SDL_Color){command->foreground.r, command->foreground.g,
+                              command->foreground.b, SDL_ALPHA_OPAQUE};
   }
 
   if (bgcolor == fgcolor) {

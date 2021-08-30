@@ -3,7 +3,7 @@
 
 #include "SDL_render.h"
 
-void fx_tunnel_init(SDL_Texture *output_texture);
+void fx_tunnel_init(SDL_Texture *output_texture, SDL_Color tunnel_color);
 void fx_tunnel_destroy();
 void fx_tunnel_update();
 
