@@ -6,12 +6,11 @@
 #include <SDL2/SDL_log.h>
 #include <SDL2/SDL_pixels.h>
 #include <SDL2/SDL_render.h>
-//#include <SDL2/_real_SDL_config.h>
+#include <SDL2/SDL.h>
 #include <SDL_opengl.h>
 #include <SDL_opengl_glext.h>
 
 #include "SDL2_inprint.h"
-#include "SDL_blendmode.h"
 #include "command.h"
 #include "fx_cube.h"
 #include "fx_gradient.h"

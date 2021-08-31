@@ -4,7 +4,6 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
 
-#include "SDL_scancode.h"
 #include "input.h"
 #include "render.h"
 #include "write.h"

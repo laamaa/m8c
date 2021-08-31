@@ -1,10 +1,9 @@
 #include "fx_gradient.h"
-#include "SDL_pixels.h"
+
+#include <SDL2/SDL.h>
+
 #include "render.h"
 
-#include "SDL_render.h"
-#include "SDL_stdinc.h"
-#include "SDL_timer.h"
 #include <math.h>
 
 static int width = 320;
@@ -37,11 +36,11 @@ void fx_gradient_update() {
         float pos = (float)x / (float)width + (1.0 - (float)y / (float)height);
 
         r = roundf((0.5 + 0.5 * SDL_cosf(t + pos)) * ((float)mask.r / 255) *
-                  255);
+                   255);
         g = roundf((0.5 + 0.5 * SDL_cosf(t + pos + 2.0)) *
-                  ((float)mask.g / 255) * 255);
+                   ((float)mask.g / 255) * 255);
         b = roundf((0.5 + 0.5 * SDL_cosf(t + pos + 4.0)) *
-                  ((float)mask.b / 255) * 255);
+                   ((float)mask.b / 255) * 255);
 
         framebuffer[y * width + x] = (0x30 << 24) | (r << 16) | ((g << 8) | b);
       }
@@ -53,6 +52,4 @@ void fx_gradient_update() {
   }
 };
 
-void fx_gradient_destroy() {
-  SDL_free(framebuffer);
-}
+void fx_gradient_destroy() { SDL_free(framebuffer); }
