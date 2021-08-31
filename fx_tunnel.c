@@ -1,6 +1,4 @@
 #include "fx_tunnel.h"
-#include "SDL_pixels.h"
-#include "SDL_render.h"
 #include "render.h"
 #include <SDL2/SDL.h>
 

@@ -1,9 +1,7 @@
 #include "fx_piano.h"
-#include "SDL_stdinc.h"
 #include "render.h"
-#include "SDL2/SDL.h"
-#include "SDL_render.h"
-#include "SDL_timer.h"
+#include <SDL2/SDL.h>
+
 
 static int width = 320;
 static int height = 240;
