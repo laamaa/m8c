@@ -232,6 +232,10 @@ static input_msg_s handle_normal_keys(SDL_Event *event, uint8_t keyvalue) {
     key = (input_msg_s){special, msg_reset_display};
     break;
 
+  case SDL_SCANCODE_F11:
+    key = (input_msg_s){special, msg_toggle_gl_shader};
+    break;
+
   case SDL_SCANCODE_F12:
     key = (input_msg_s){special, msg_toggle_special_fx};
     break;

@@ -94,6 +94,9 @@ int main(int argc, char *argv[]) {
         case msg_toggle_special_fx:
           toggle_special_fx();
           break;
+        case msg_toggle_gl_shader:
+          toggle_gl_shader();
+          break;
         default:
           break;
         }

@@ -6,7 +6,9 @@
 #include <SDL2/SDL_log.h>
 #include <SDL2/SDL_pixels.h>
 #include <SDL2/SDL_render.h>
-#include <stdio.h>
+#include <SDL2/_real_SDL_config.h>
+#include <SDL_opengl.h>
+#include <SDL_opengl_glext.h>
 
 #include "SDL2_inprint.h"
 #include "SDL_blendmode.h"
@@ -15,11 +17,16 @@
 #include "fx_gradient.h"
 #include "fx_piano.h"
 #include "fx_tunnel.h"
+#include "fxhelpers.h"
+#include "gl_functions.h"
 
 SDL_Window *win;
 SDL_Renderer *rend;
-SDL_Texture *maintexture;
-SDL_Texture *fxtexture;
+SDL_Texture *main_texture;
+SDL_Texture *m8_texture;
+SDL_Texture *fx_texture;
+
+GLuint program_id;
 
 // Device state information
 SDL_Color background_color = (SDL_Color){0, 0, 0, 0};
@@ -35,16 +42,17 @@ static int fps;
 #endif
 uint8_t fullscreen = 0;
 uint8_t special_fx = 0;
+uint8_t enable_gl_shader = 0;
 
 // Initializes SDL and creates a renderer and required surfaces
 int initialize_sdl() {
 
   ticks = SDL_GetTicks();
 
-  const int window_width = 640;  // SDL window width
-  const int window_height = 480; // SDL window height
+  const int window_width = 1280;  // SDL window width
+  const int window_height = 960; // SDL window height
 
-  if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
+  if (SDL_Init(SDL_INIT_EVERYTHING | SDL_VIDEO_OPENGL) != 0) {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "SDL_Init: %s\n", SDL_GetError());
     return -1;
   }
@@ -54,24 +62,47 @@ int initialize_sdl() {
                          SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL |
                              SDL_WINDOW_RESIZABLE);
 
+  SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
+
   rend = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
+
+  SDL_RendererInfo renderer_info;
+  SDL_GetRendererInfo(rend, &renderer_info);
+
+  if (!strncmp(renderer_info.name, "opengl", 6)) {
+    SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "OpenGL renderer found");
+#ifndef __APPLE__
+    // If you want to use GLEW or some other GL extension handler, do it here!
+    if (!init_gl_extensions()) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Could not init GL extensions!");
+      SDL_Quit();
+      return -1;
+    }
+#endif
+
+    program_id = compile_program("std.vertex", "crt.fragment");
+    SDL_LogInfo(SDL_LOG_CATEGORY_RENDER, "programId = %d", program_id);
+  }
 
   SDL_RenderSetLogicalSize(rend, 320, 240);
 
-  maintexture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888,
-                                  SDL_TEXTUREACCESS_TARGET, 320, 240);
+  m8_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888,
+                                 SDL_TEXTUREACCESS_TARGET, 320, 240);
 
-  fxtexture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888,
-                                SDL_TEXTUREACCESS_STREAMING, 320, 240);
+  fx_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888,
+                                 SDL_TEXTUREACCESS_STREAMING, 320, 240);
 
-  SDL_SetTextureBlendMode(maintexture, SDL_BLENDMODE_BLEND);
-  SDL_SetTextureBlendMode(fxtexture, SDL_BLENDMODE_BLEND);
+  main_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888,
+                                   SDL_TEXTUREACCESS_TARGET, 320, 240);
 
-  SDL_SetRenderTarget(rend, fxtexture);
+  SDL_SetTextureBlendMode(m8_texture, SDL_BLENDMODE_BLEND);
+  SDL_SetTextureBlendMode(fx_texture, SDL_BLENDMODE_BLEND);
+
+  SDL_SetRenderTarget(rend, fx_texture);
   SDL_SetRenderDrawColor(rend, 0x00, 0x00, 0x00, SDL_ALPHA_OPAQUE);
   SDL_RenderClear(rend);
 
-  SDL_SetRenderTarget(rend, maintexture);
+  SDL_SetRenderTarget(rend, m8_texture);
   SDL_SetRenderDrawColor(rend, 0x00, 0x00, 0x00, SDL_ALPHA_OPAQUE);
   SDL_RenderClear(rend);
 
@@ -103,8 +134,8 @@ void close_renderer() {
   special_fx = 0;
 
   // Destroy sdl stuff
-  SDL_DestroyTexture(maintexture);
-  SDL_DestroyTexture(fxtexture);
+  SDL_DestroyTexture(m8_texture);
+  SDL_DestroyTexture(fx_texture);
   SDL_DestroyRenderer(rend);
   SDL_DestroyWindow(win);
 }
@@ -129,11 +160,11 @@ int toggle_special_fx() {
   special_fx++;
   switch (special_fx) {
   case 1:
-    fx_piano_init(fxtexture);
+    fx_piano_init(fx_texture);
     break;
   case 2:
     fx_piano_destroy();
-    fx_tunnel_init(fxtexture, title_color);
+    fx_tunnel_init(fx_texture, title_color);
     break;
   case 3:
     fx_tunnel_destroy();
@@ -141,7 +172,7 @@ int toggle_special_fx() {
     break;
   case 4:
     fx_cube_destroy();
-    fx_gradient_init(fxtexture,title_color);
+    fx_gradient_init(fx_texture, title_color);
     break;
   case 5:
     fx_gradient_destroy();
@@ -151,6 +182,15 @@ int toggle_special_fx() {
     break;
   }
   return special_fx;
+}
+
+int toggle_gl_shader() {
+  
+  if (program_id > 0) {
+  enable_gl_shader = !enable_gl_shader;
+  return enable_gl_shader;
+  }
+  return -1;
 }
 
 void render_special_fx() {
@@ -172,62 +212,6 @@ void render_special_fx() {
   }
 }
 
-int note_to_hex(int note_char) {
-  switch (note_char) {
-  case 45: // - = note off
-    return 0x00;
-  case 67: // C
-    return 0x01;
-  case 68: // D
-    return 0x03;
-  case 69: // E
-    return 0x05;
-  case 70: // F
-    return 0x06;
-  case 71: // G
-    return 0x08;
-  case 65: // A
-    return 0x0A;
-  case 66: // B
-    return 0x0C;
-  default:
-    return 0x00;
-  }
-}
-
-// Updates the active notes information array with the current command's data
-void update_active_notes_data(struct draw_character_command *command) {
-
-  // Channels are 10 pixels apart, starting from y=70
-  int channel_number = command->pos.y / 10 - 7;
-
-  // Note playback information starts from X=288
-  if (command->pos.x == 288) {
-    active_notes[channel_number].note = note_to_hex(command->c);
-  }
-
-  // Sharp notes live at x = 296
-  if (command->pos.x == 296 && !strcmp((char *)&command->c, "#"))
-    active_notes[channel_number].sharp = 1;
-  else
-    active_notes[channel_number].sharp = 0;
-
-  // Note octave, x = 304
-  if (command->pos.x == 304) {
-    int8_t octave = command->c - 48;
-
-    // Octaves A-B
-    if (octave == 17 || octave == 18)
-      octave -= 7;
-
-    // If octave hasn't been applied to the note yet, do it
-    if (octave > 0)
-      active_notes[channel_number].octave = octave * 0x0C;
-    else
-      active_notes[channel_number].octave = 0;
-  }
-}
-
 int draw_character(struct draw_character_command *command) {
 
   uint32_t fgcolor = (command->foreground.r << 16) |
@@ -240,7 +224,7 @@ int draw_character(struct draw_character_command *command) {
   /* Note characters appear between y=70 and y=140, update the active notes
     array */
   if (command->pos.y >= 70 && command->pos.y <= 140) {
-    update_active_notes_data(command);
+    update_active_notes_data(command, active_notes);
   }
 
   /* Get the default color from tempo text, that should be pretty much always
@@ -378,17 +362,23 @@ void render_screen() {
   // process every 16ms (roughly 60fps)
   if (SDL_GetTicks() - ticks > 15) {
     ticks = SDL_GetTicks();
+    SDL_SetRenderTarget(rend, main_texture);
+    SDL_RenderCopy(rend, m8_texture, NULL, NULL);
+    if (special_fx) {
+      render_special_fx();
+      SDL_RenderCopy(rend, fx_texture, NULL, NULL);
+    }
     SDL_SetRenderTarget(rend, NULL);
     SDL_SetRenderDrawColor(rend, 0, 0, 0, 0);
     SDL_RenderClear(rend);
-    SDL_RenderCopy(rend, maintexture, NULL, NULL);
-    if (special_fx) {
-      render_special_fx();
-      SDL_RenderCopy(rend, fxtexture, NULL, NULL);
-    }
 
-    SDL_RenderPresent(rend);
-    SDL_SetRenderTarget(rend, maintexture);
+    SDL_RenderCopy(rend, main_texture, NULL, NULL);
+    if (enable_gl_shader) {
+      present_backbuffer(rend, win, main_texture, program_id);
+    } else {
+      SDL_RenderPresent(rend);
+    }
+    SDL_SetRenderTarget(rend, m8_texture);
 
 #ifdef SHOW_FPS
     fps++;
