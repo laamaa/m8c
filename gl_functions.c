@@ -3,7 +3,6 @@
 #include "SDL_rwops.h"
 #include "SDL_stdinc.h"
 #include "SDL_video.h"
-
 #include <SDL2/SDL.h>
 #include <SDL_opengl.h>
 #include <SDL_opengl_glext.h>
@@ -147,6 +146,13 @@ GLuint compile_program(const char *vtx_file, const char *frag_file) {
   return program_id;
 }
 
+static int int_log2 (int val) {
+    int log = 0;
+    while ((val >>= 1) != 0)
+	log++;
+    return log;
+}
+
 void present_backbuffer(SDL_Renderer *renderer, SDL_Window *win,
                        SDL_Texture *backBuffer, GLuint program_id) {
   GLint oldprogram_id;
@@ -177,6 +183,16 @@ void present_backbuffer(SDL_Renderer *renderer, SDL_Window *win,
   maxu = 1.0f;
   minv = 0.0f;
   maxv = 1.0f;
+
+  int outputWidth, outputHeight;
+
+  SDL_QueryTexture(backBuffer, NULL, NULL, &outputWidth, &outputHeight);
+
+  if (program_id != 0) {
+    GLint rubyTextureSize = glGetUniformLocation(program_id, "rubyTextureSize");
+    GLfloat outputSize[2] = { outputWidth, outputHeight };
+    glUniform2fv(rubyTextureSize, 1, outputSize);
+  }
 
   glBegin(GL_TRIANGLE_STRIP);
   glTexCoord2f(minu, minv);

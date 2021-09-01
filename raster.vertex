@@ -1,0 +1,28 @@
+uniform sampler2D tex0;
+uniform vec2 rubyTextureSize;
+
+varying vec2 rubyOutputSize;
+varying vec2 rubyInputSize;
+
+// Define some calculations that will be used in fragment shader.
+varying vec2 texCoord;
+varying vec2 one;
+varying float mod_factor;
+
+void main()
+{
+        // Do the standard vertex processing.
+        gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+
+	rubyInputSize = rubyTextureSize;
+	rubyOutputSize = rubyTextureSize;
+
+        // Texture coords.
+        texCoord = gl_MultiTexCoord0.xy;
+
+        // The size of one texel, in texture-coordinates.
+        one = 1.0 / rubyTextureSize;
+
+        // Resulting X pixel-coordinate of the pixel we're drawing.
+        mod_factor = texCoord.x * 0.9;//rubyTextureSize.x * rubyOutputSize.x / rubyInputSize.x;
+}

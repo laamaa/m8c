@@ -1,0 +1,16 @@
+uniform sampler2D tex0;
+uniform vec2 rubyTextureSize;
+
+varying float filterWidth;
+varying vec2 texCoord;
+
+void main()
+{
+#if defined(CURVATURE)
+	screenScale = rubyTextureSize / rubyTextureSize;
+#endif
+	filterWidth = 1.0 / 3.0; //(InputSize.y / OutputSize.y) / 3.0;
+        gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+	texCoord = gl_MultiTexCoord0.xy;
+}
+

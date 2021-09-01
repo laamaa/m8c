@@ -6,7 +6,7 @@
 #include <SDL2/SDL_log.h>
 #include <SDL2/SDL_pixels.h>
 #include <SDL2/SDL_render.h>
-#include <SDL2/_real_SDL_config.h>
+//#include <SDL2/_real_SDL_config.h>
 #include <SDL_opengl.h>
 #include <SDL_opengl_glext.h>
 
@@ -26,7 +26,8 @@ SDL_Texture *main_texture;
 SDL_Texture *m8_texture;
 SDL_Texture *fx_texture;
 
-GLuint program_id;
+int program_index = 2;
+GLuint program_ids[2];
 
 // Device state information
 SDL_Color background_color = (SDL_Color){0, 0, 0, 0};
@@ -80,8 +81,8 @@ int initialize_sdl() {
     }
 #endif
 
-    program_id = compile_program("std.vertex", "crt.fragment");
-    SDL_LogInfo(SDL_LOG_CATEGORY_RENDER, "programId = %d", program_id);
+    program_ids[0] = compile_program("raster.vertex", "raster.fragment");
+    program_ids[1] = compile_program("crt-pi.vertex", "crt-pi.fragment");
   }
 
   SDL_RenderSetLogicalSize(rend, 320, 240);
@@ -185,11 +186,11 @@ int toggle_special_fx() {
 }
 
 int toggle_gl_shader() {
-  
-  if (program_id > 0) {
-  enable_gl_shader = !enable_gl_shader;
-  return enable_gl_shader;
-  }
+  program_index += 1;
+  if (program_index > 2) {
+    program_index = 0;
+    return 0;
+  } else if (program_ids[program_index] > 0) return 1;
   return -1;
 }
 
@@ -373,8 +374,8 @@ void render_screen() {
     SDL_RenderClear(rend);
 
     SDL_RenderCopy(rend, main_texture, NULL, NULL);
-    if (enable_gl_shader) {
-      present_backbuffer(rend, win, main_texture, program_id);
+    if (program_index < 2) {
+      present_backbuffer(rend, win, main_texture, program_ids[program_index]);
     } else {
       SDL_RenderPresent(rend);
     }
