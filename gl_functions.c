@@ -1,8 +1,4 @@
 #include "gl_functions.h"
-#include "SDL_log.h"
-#include "SDL_rwops.h"
-#include "SDL_stdinc.h"
-#include "SDL_video.h"
 
 #include "SDL_log.h"
 #include "SDL_rwops.h"
