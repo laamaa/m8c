@@ -27,14 +27,42 @@ varying float mod_factor;
 
 vec2 warp=vec2(1.0/12.0,1.0/12.0);
 
+varying vec2 screenScale;
+
 // Apply radial distortion to the given coordinate.
 vec2 radialDistortion(vec2 coord)
 {
+        vec2 CURVATURE_DISTORTION = vec2(distortion, distortion);
+        vec2 barrelScale = 1.0 - (0.23 * CURVATURE_DISTORTION);
         coord *= rubyTextureSize / rubyInputSize;
+        coord *= barrelScale;
         vec2 cc = coord - 0.5;
         float dist = dot(cc, cc) * distortion;
         return (coord + cc * (1.0 + dist) * dist) * rubyInputSize / rubyTextureSize;
 }
+
+#if defined(CURVATURE)
+vec2 Distort(vec2 coord)
+{
+	vec2 CURVATURE_DISTORTION = vec2(distortion, distortion);
+	// Barrel distortion shrinks the display area a bit, this will allow us to counteract that.
+	vec2 barrelScale = 1.0 - (0.23 * CURVATURE_DISTORTION);
+	coord *= screenScale;
+	coord -= vec2(0.5);
+	float rsq = coord.x * coord.x + coord.y * coord.y;
+	coord += coord * (CURVATURE_DISTORTION * rsq);
+	coord *= barrelScale;
+	if (abs(coord.x) >= 0.5 || abs(coord.y) >= 0.5)
+		coord = vec2(-1.0);		// If out of bounds, return an invalid value.
+	else
+	{
+		coord += vec2(0.5);
+		coord /= screenScale;
+	}
+
+	return coord;
+}
+#endif
 
 // Calculate the influence of a scanline on the current pixel.
 //
@@ -102,7 +130,10 @@ void main()
 
         // Texture coordinates of the texel containing the active pixel.
 #ifdef CURVATURE
-        vec2 xy = radialDistortion(texCoord);
+        vec2 xy = Distort(texCoord);
+        if (xy.x < 0.0) {
+        gl_FragColor = vec4(0.0);
+        } else {
 #else
         vec2 xy = texCoord;
 #endif
@@ -141,4 +172,7 @@ void main()
 	//gl_FragColor = vec4(rubyTextureSize.x, ratio_scale.x, 0.0, 1.0);
 	//gl_FragColor = vec4(texCoord.x, texCoord.y, 0.0, 1.0);
 	//gl_FragColor = vec4(ratio.x, 0.0, 0.0, 1.0);
+#ifdef CURVATURE
+        }
+#endif
 }

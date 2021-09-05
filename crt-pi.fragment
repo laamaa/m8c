@@ -18,9 +18,11 @@ varying float filterWidth;
 #define MASK_BRIGHTNESS 0.70
 #define SCANLINE_WEIGHT 6.0
 #define SCANLINE_GAP_BRIGHTNESS 0.12
-#define BLOOM_FACTOR 1.5
+#define BLOOM_FACTOR 2.0
 #define INPUT_GAMMA 2.4
 #define OUTPUT_GAMMA 2.2
+
+varying vec2 screenScale;
 
 #if defined(CURVATURE)
 vec2 Distort(vec2 coord)

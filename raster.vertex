@@ -9,6 +9,8 @@ varying vec2 texCoord;
 varying vec2 one;
 varying float mod_factor;
 
+varying vec2 screenScale;
+
 void main()
 {
         // Do the standard vertex processing.
@@ -16,6 +18,8 @@ void main()
 
 	rubyInputSize = rubyTextureSize;
 	rubyOutputSize = rubyTextureSize;
+
+	screenScale = rubyTextureSize / rubyTextureSize;
 
         // Texture coords.
         texCoord = gl_MultiTexCoord0.xy;

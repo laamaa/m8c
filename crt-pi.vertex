@@ -4,6 +4,10 @@ uniform vec2 rubyTextureSize;
 varying float filterWidth;
 varying vec2 texCoord;
 
+varying vec2 screenScale;
+
+//#define CURVATURE
+
 void main()
 {
 #if defined(CURVATURE)
