@@ -3,6 +3,13 @@
 
 #include "render.h"
 
+#include <SDL2/SDL_log.h>
+#include <SDL2/SDL_pixels.h>
+#include <SDL2/SDL_render.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_log.h>
+#include <SDL2/SDL_pixels.h>
+#include <SDL2/SDL_render.h>
 #include <SDL2/SDL.h>
 #include <SDL_opengl.h>
 #include <SDL_opengl_glext.h>
@@ -22,7 +29,8 @@ SDL_Texture *main_texture;
 SDL_Texture *m8_texture;
 SDL_Texture *fx_texture;
 
-GLuint program_id;
+int program_index = 3;
+GLuint program_ids[3];
 
 // Device state information
 SDL_Color background_color = (SDL_Color){0, 0, 0, 0};
@@ -45,13 +53,22 @@ int initialize_sdl() {
 
   ticks = SDL_GetTicks();
 
-  const int window_width = 1280;  // SDL window width
-  const int window_height = 960; // SDL window height
+  const int window_width = 640*2;  // SDL window width
+  const int window_height = 480*2; // SDL window height
 
   if (SDL_Init(SDL_INIT_EVERYTHING | SDL_VIDEO_OPENGL) != 0) {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "SDL_Init: %s\n", SDL_GetError());
     return -1;
   }
+
+    // OPENGL VERSION
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+
+    // DOUBLE BUFFER
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);    
 
   win = SDL_CreateWindow("m8c", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                          window_width, window_height,
@@ -76,11 +93,10 @@ int initialize_sdl() {
     }
 #endif
 
-    program_id = compile_program("std.vertex", "crt.fragment");
-    SDL_LogInfo(SDL_LOG_CATEGORY_RENDER, "programId = %d", program_id);
+    program_ids[0] = compile_program("raster.vertex", "raster.fragment");
+    program_ids[1] = compile_program("crt-pi.vertex", "crt-pi.fragment");
+    program_ids[2] = compile_program("glitch.vertex", "glitch.fragment");
   }
-
-  SDL_RenderSetLogicalSize(rend, 320, 240);
 
   m8_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888,
                                  SDL_TEXTUREACCESS_TARGET, 320, 240);
@@ -181,11 +197,12 @@ int toggle_special_fx() {
 }
 
 int toggle_gl_shader() {
-  
-  if (program_id > 0) {
-  enable_gl_shader = !enable_gl_shader;
-  return enable_gl_shader;
-  }
+  program_index += 1;
+  //query_gl_vars(program_ids[program_index]);
+  if (program_index > 3) {
+    program_index = 0;
+    return 0;
+  } else if (program_ids[program_index] > 0) return 1;
   return -1;
 }
 
@@ -369,8 +386,8 @@ void render_screen() {
     SDL_RenderClear(rend);
 
     SDL_RenderCopy(rend, main_texture, NULL, NULL);
-    if (enable_gl_shader) {
-      present_backbuffer(rend, win, main_texture, program_id);
+    if (program_index < 3) {
+      present_backbuffer(rend, win, main_texture, program_ids[program_index]);
     } else {
       SDL_RenderPresent(rend);
     }

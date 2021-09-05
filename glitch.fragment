@@ -1,0 +1,71 @@
+#version 130
+
+// ---- gllock required fields -----------------------------------------------------------------------------------------
+#define RATE 0.25
+
+uniform float time;
+uniform sampler2D tex0;
+uniform vec2 rubyTextureSize;
+varying vec2 fragCoord;
+// ----------------------------
+
+
+float rand(float seed){
+  return fract(sin(dot(vec2(seed) ,vec2(12.9898,78.233))) * 43758.5453);
+}
+
+vec2 displace(vec2 co, float seed, float seed2) {
+  vec2 shift = vec2(0);
+  if (rand(seed) > 0.5) {
+    shift += 0.1 * vec2(2. * (0.5 - rand(seed2)));
+  }
+  if (rand(seed2) > 0.6) {
+    if (co.y > 0.5) {
+      shift.x *= rand(seed2 * seed);
+    }
+  }
+  return shift;
+}
+
+vec4 interlace(vec2 co, vec4 col) {
+  float shaderTime = time*RATE;
+  if (int(co.y) % 3 == 0) {
+    return col * ((sin(shaderTime * 4.) * 0.1) + 0.75) + (rand(shaderTime) * 0.05);
+  }
+  return col;
+}
+
+void main(void) {
+
+  float shaderTime = time*RATE;
+
+  // Normalized pixel coordinates (from 0 to 1)
+  vec2 uv = fragCoord.xy;
+
+  vec2 rDisplace = vec2(0);
+  vec2 gDisplace = vec2(0);
+  vec2 bDisplace = vec2(0);
+  
+  if (rand(shaderTime) > 0.95) {
+    rDisplace = displace(uv, shaderTime * 2., 2. + shaderTime);
+    gDisplace = displace(uv, shaderTime * 3., 3. + shaderTime);
+    bDisplace = displace(uv, shaderTime * 5., 5. + shaderTime);
+  }
+  
+  rDisplace.x += 0.005 * (0.5 - rand(shaderTime * 37. * uv.y));
+  gDisplace.x += 0.007 * (0.5 - rand(shaderTime * 41. * uv.y));
+  bDisplace.x += 0.0011 * (0.5 - rand(shaderTime * 53. * uv.y));
+
+  rDisplace.y += 0.001 * (0.5 - rand(shaderTime * 37. * uv.x));
+  gDisplace.y += 0.001 * (0.5 - rand(shaderTime * 41. * uv.x));
+  bDisplace.y += 0.001 * (0.5 - rand(shaderTime * 53. * uv.x));
+  
+  // Output to screen
+  float rcolor = texture2D(tex0, uv.xy + rDisplace).r;
+  float gcolor = texture2D(tex0, uv.xy + gDisplace).g;
+  float bcolor = texture2D(tex0, uv.xy + bDisplace).b;
+
+  gl_FragColor = interlace(fragCoord.xy, vec4(rcolor, gcolor, bcolor, 1));
+   
+    
+}

@@ -1,0 +1,13 @@
+uniform sampler2D tex0;
+uniform vec2 rubyTextureSize;
+
+varying vec2 fragCoord;
+
+varying float filterWidth;
+
+void main()
+{
+gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+fragCoord = gl_MultiTexCoord0.xy;
+}
+
