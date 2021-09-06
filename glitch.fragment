@@ -1,14 +1,13 @@
 #version 130
 
-// ---- gllock required fields -----------------------------------------------------------------------------------------
+// Source: https://github.com/kuravih/gllock
+
 #define RATE 0.25
 
 uniform float time;
 uniform sampler2D tex0;
 uniform vec2 rubyTextureSize;
 varying vec2 fragCoord;
-// ----------------------------
-
 
 float rand(float seed){
   return fract(sin(dot(vec2(seed) ,vec2(12.9898,78.233))) * 43758.5453);
