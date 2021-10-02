@@ -4,9 +4,11 @@
 #include <SDL2/SDL.h>
 #include <libserialport.h>
 #include <signal.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "command.h"
+#include "ini.h"
 #include "input.h"
 #include "render.h"
 #include "serial.h"
@@ -23,6 +25,22 @@ uint8_t need_display_reset = 0;
 void intHandler(int dummy) { run = 0; }
 
 int main(int argc, char *argv[]) {
+
+  // Default initialize fullscreen setting is 0 (false)
+  int init_fullscreen = 0;
+
+  // Load the config and read the fullscreen setting from the graphics section
+  ini_t *config = ini_load("config.ini");
+  const char *setting_fullscren = ini_get(config, "graphics", "fullscreen");
+  // Other settings could be read here, too.
+
+  // This obviously requires the parameter to be a lowercase true to enable fullscreen
+  if ( strcmp(setting_fullscren, "true") == 0 ) {
+    init_fullscreen = 1;
+  }
+
+  // Frees the mem used for the config
+  ini_free(config);
 
   // allocate memory for serial buffer
   uint8_t *serial_buf = malloc(serial_read_size);
@@ -53,7 +71,7 @@ int main(int argc, char *argv[]) {
   if (enable_and_reset_display(port) == -1)
     run = 0;
 
-  if (initialize_sdl() == -1)
+  if (initialize_sdl(init_fullscreen) == -1)
     run = 0;
 
   uint8_t prev_input = 0;
