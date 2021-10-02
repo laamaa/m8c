@@ -24,11 +24,11 @@ uint8_t need_display_reset = 0;
 // Handles CTRL+C / SIGINT
 void intHandler(int dummy) { run = 0; }
 
-int main(int argc, char *argv[]) {
+// Config variables
+int init_fullscreen = 0;
 
-  // Default initialize fullscreen setting is 0 (false)
-  int init_fullscreen = 0;
-
+// Read config 
+void read_config() {
   // Load the config and read the fullscreen setting from the graphics section
   ini_t *config = ini_load("config.ini");
   const char *setting_fullscren = ini_get(config, "graphics", "fullscreen");
@@ -41,6 +41,10 @@ int main(int argc, char *argv[]) {
 
   // Frees the mem used for the config
   ini_free(config);
+}
+
+int main(int argc, char *argv[]) {
+  read_config();
 
   // allocate memory for serial buffer
   uint8_t *serial_buf = malloc(serial_read_size);
