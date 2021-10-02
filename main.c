@@ -31,6 +31,10 @@ int init_fullscreen = 0;
 void read_config() {
   // Load the config and read the fullscreen setting from the graphics section
   ini_t *config = ini_load("config.ini");
+  if (config == NULL) {
+    return;
+  }
+
   const char *setting_fullscren = ini_get(config, "graphics", "fullscreen");
   // Other settings could be read here, too.
 
