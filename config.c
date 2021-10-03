@@ -24,6 +24,8 @@ config_params_s init_config() {
   c.key_edit_alt    = SDL_SCANCODE_X;
   c.key_delete      = SDL_SCANCODE_DELETE;
   c.key_reset       = SDL_SCANCODE_R;
+  c.key_gl_shader   = SDL_SCANCODE_F11;
+  c.key_visualizer  = SDL_SCANCODE_F12;
 
   c.gamepad_up      = SDL_CONTROLLER_BUTTON_DPAD_UP;
   c.gamepad_left    = SDL_CONTROLLER_BUTTON_DPAD_LEFT;
@@ -78,6 +80,8 @@ void read_key_config(ini_t *ini, config_params_s *conf) {
   const char *key_edit_alt    = ini_get(ini, "keyboard", "key_edit_alt");
   const char *key_delete      = ini_get(ini, "keyboard", "key_delete");
   const char *key_reset       = ini_get(ini, "keyboard", "key_reset");
+  const char *key_gl_shader   = ini_get(ini, "keyboard", "key_gl_shader");
+  const char *key_visualizer   = ini_get(ini, "keyboard", "key_visualizer");
 
   conf->key_up          = atoi(key_up);
   conf->key_left        = atoi(key_left);
@@ -93,6 +97,8 @@ void read_key_config(ini_t *ini, config_params_s *conf) {
   conf->key_edit_alt    = atoi(key_edit_alt);
   conf->key_delete      = atoi(key_delete);
   conf->key_reset       = atoi(key_reset);
+  conf->key_gl_shader   = atoi(key_gl_shader);
+  conf->key_visualizer  = atoi(key_visualizer);
 }
 
 void read_gamepad_config(ini_t *ini, config_params_s *conf) {

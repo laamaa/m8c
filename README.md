@@ -83,6 +83,8 @@ Additional controls:
 * Delete = opt+edit (deletes a row)
 * Esc = toggle keyjazz on/off 
 * r / select+start+opt+edit = reset display (if glitches appear on the screen, use this)
+* F12 = cycle visual fx
+* F11 = enable/disable gl shader
 
 Keyjazz allows to enter notes with keyboard, oldschool tracker-style. The layout is two octaves, starting from keys Z and Q.
 When keyjazz is active, regular a/s/z/x keys are disabled.
@@ -90,6 +92,12 @@ When keyjazz is active, regular a/s/z/x keys are disabled.
 ## Gamepads
 
 The program uses SDL's game controller system, which should make it work automagically with most gamepads.
+
+## GL Shaders
+
+There is a possibility to use a GL shader to spice up your headless experience. You can enable/disable it by pressing F11.
+
+If you wish to customize the shader, you can edit crt.fragment / std.vertex files or add new ones and edit initialize_sdl() in render.c accordingly.
 
 Enjoy making some nice music!
 

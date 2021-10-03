@@ -6,15 +6,13 @@
 
 #include <stdint.h>
 
-typedef enum input_type_t {
-  normal,
-  keyjazz,
-  special
-} input_type_t;
+typedef enum input_type_t { normal, keyjazz, special } input_type_t;
 
 typedef enum special_messages_t {
   msg_quit = 1,
-  msg_reset_display = 2
+  msg_reset_display = 2,
+  msg_toggle_special_fx = 3,
+  msg_toggle_gl_shader = 4
 } special_messages_t;
 
 typedef struct input_msg_s {
