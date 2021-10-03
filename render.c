@@ -25,7 +25,7 @@ static int fps;
 uint8_t fullscreen = 0;
 
 // Initializes SDL and creates a renderer and required surfaces
-int initialize_sdl() {
+int initialize_sdl(int init_fullscreen) {
 
   ticks = SDL_GetTicks();
 
@@ -40,7 +40,7 @@ int initialize_sdl() {
   win = SDL_CreateWindow("m8c", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                          window_width, window_height,
                          SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL |
-                             SDL_WINDOW_RESIZABLE);
+                             SDL_WINDOW_RESIZABLE | init_fullscreen);
 
   rend = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 

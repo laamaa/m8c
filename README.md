@@ -93,6 +93,12 @@ The program uses SDL's game controller system, which should make it work automag
 
 Enjoy making some nice music!
 
+### Config
+
+The config function is currently a prototype, the config file must be named `config.ini` and must be present in the directory from which you're running the command.
+
+See the `config.ini` file to see the available options.
+
 -----------
 
 ### Bonus: improve performance on the Raspberry Pi
