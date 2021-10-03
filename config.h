@@ -9,11 +9,37 @@
 typedef struct config_params_s {
   char *filename;
   int init_fullscreen;
+
+  int key_up;
+  int key_left;
+  int key_down;
+  int key_right;
+  int key_select;
+  int key_select_alt;
+  int key_start;
+  int key_start_alt;
+  int key_opt;
+  int key_opt_alt;
+  int key_edit;
+  int key_edit_alt;
+  int key_delete;
+  int key_reset;
+
+  int gamepad_up;
+  int gamepad_left;
+  int gamepad_down;
+  int gamepad_right;
+  int gamepad_select;
+  int gamepad_start;
+  int gamepad_opt;
+  int gamepad_edit;
 } config_params_s;
 
 
 config_params_s init_config();
 void read_config();
-int read_fullscreen(ini_t *config);
+void read_graphics_config(ini_t *config, config_params_s *conf);
+void read_key_config(ini_t *config, config_params_s *conf);
+void read_gamepad_config(ini_t *config, config_params_s *conf);
 
 #endif

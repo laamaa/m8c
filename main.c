@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
   while (run) {
 
     // get current inputs
-    input_msg_s input = get_input_msg();
+    input_msg_s input = get_input_msg(&conf);
 
     switch (input.type) {
     case normal:
