@@ -4,6 +4,7 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
 
+#include "config.h"
 #include "input.h"
 #include "render.h"
 #include "write.h"
@@ -183,116 +184,66 @@ static input_msg_s handle_keyjazz(SDL_Event *event, uint8_t keyvalue) {
   return key;
 }
 
-static input_msg_s handle_normal_keys(SDL_Event *event, uint8_t keyvalue) {
+static input_msg_s handle_normal_keys(SDL_Event *event, config_params_s *conf, uint8_t keyvalue) {
   input_msg_s key = {normal, keyvalue};
-  switch (event->key.keysym.scancode) {
 
-  case SDL_SCANCODE_UP:
+  if (event->key.keysym.scancode == conf->key_up) {
     key.value = key_up;
-    break;
-
-  case SDL_SCANCODE_LEFT:
+  } else if (event->key.keysym.scancode == conf->key_left) {
     key.value = key_left;
-    break;
-
-  case SDL_SCANCODE_DOWN:
+  } else if (event->key.keysym.scancode == conf->key_down) {
     key.value = key_down;
-    break;
-
-  case SDL_SCANCODE_RIGHT:
+  } else if (event->key.keysym.scancode == conf->key_right) {
     key.value = key_right;
-    break;
-
-  case SDL_SCANCODE_LSHIFT:
-  case SDL_SCANCODE_A:
+  } else if (event->key.keysym.scancode == conf->key_select || event->key.keysym.scancode == conf->key_select_alt ) {
     key.value = key_select;
-    break;
-
-  case SDL_SCANCODE_SPACE:
-  case SDL_SCANCODE_S:
+  } else if (event->key.keysym.scancode == conf->key_start || event->key.keysym.scancode == conf->key_start_alt) {
     key.value = key_start;
-    break;
-
-  case SDL_SCANCODE_LALT:
-  case SDL_SCANCODE_Z:
+  } else if (event->key.keysym.scancode == conf->key_opt || event->key.keysym.scancode == conf->key_opt_alt) {
     key.value = key_opt;
-    break;
-
-  case SDL_SCANCODE_LCTRL:
-  case SDL_SCANCODE_X:
+  } else if (event->key.keysym.scancode == conf->key_edit || event->key.keysym.scancode == conf->key_edit_alt) {
     key.value = key_edit;
-    break;
-
-  case SDL_SCANCODE_DELETE:
+  } else if (event->key.keysym.scancode == conf->key_delete) {
     key.value = key_opt | key_edit;
-    break;
-
-  case SDL_SCANCODE_R:
+  } else if (event->key.keysym.scancode == conf->key_reset) {
     key = (input_msg_s){special, msg_reset_display};
-    break;
-
-  case SDL_SCANCODE_F11:
+  } else if (event->key.keysym.scancode == conf->key_gl_shader) {
     key = (input_msg_s){special, msg_toggle_gl_shader};
-    break;
-
-  case SDL_SCANCODE_F12:
+  } else if (event->key.keysym.scancode == conf->key_visualizer) {
     key = (input_msg_s){special, msg_toggle_special_fx};
-    break;
-
-  default:
+  } else {
     key.value = 0;
-    break;
   }
   return key;
 }
 
-static input_msg_s handle_game_controller_buttons(SDL_Event *event,
-                                                  uint8_t keyvalue) {
+static input_msg_s handle_game_controller_buttons(SDL_Event *event, config_params_s *conf, uint8_t keyvalue) {
   input_msg_s key = {normal, keyvalue};
-  switch (event->cbutton.button) {
 
-  case SDL_CONTROLLER_BUTTON_DPAD_UP:
+  if (event->cbutton.button == conf->gamepad_up) {
     key.value = key_up;
-    break;
-
-  case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
-    key.value = key_down;
-    break;
-
-  case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+  } else if (event->cbutton.button == conf->gamepad_left) {
     key.value = key_left;
-    break;
-
-  case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+  } else if (event->cbutton.button == conf->gamepad_down) {
+    key.value = key_down;
+  } else if (event->cbutton.button == conf->gamepad_right) {
     key.value = key_right;
-    break;
-
-  case SDL_CONTROLLER_BUTTON_BACK:
+  } else if (event->cbutton.button == conf->gamepad_select) {
     key.value = key_select;
-    break;
-
-  case SDL_CONTROLLER_BUTTON_START:
+  } else if (event->cbutton.button == conf->gamepad_start) {
     key.value = key_start;
-    break;
-
-  case SDL_CONTROLLER_BUTTON_B:
-    key.value = key_edit;
-    break;
-
-  case SDL_CONTROLLER_BUTTON_A:
+  } else if (event->cbutton.button == conf->gamepad_opt) {
     key.value = key_opt;
-    break;
-
-  default:
+  } else if (event->cbutton.button == conf->gamepad_edit) {
+    key.value = key_edit;
+  } else {
     key.value = 0;
-    break;
   }
-
   return key;
 }
 
 // Handles SDL input events
-void handle_sdl_events() {
+void handle_sdl_events(config_params_s *conf) {
 
   SDL_Event event;
 
@@ -334,7 +285,7 @@ void handle_sdl_events() {
 
   // Normal keyboard inputs
   case SDL_KEYUP:
-    key = handle_normal_keys(&event, 0);
+    key = handle_normal_keys(&event, conf, 0);
 
     if (keyjazz_enabled)
       key = handle_keyjazz(&event, key.value);
@@ -343,7 +294,7 @@ void handle_sdl_events() {
   // Game controller events
   case SDL_CONTROLLERBUTTONDOWN:
   case SDL_CONTROLLERBUTTONUP:
-    key = handle_game_controller_buttons(&event, 0);
+    key = handle_game_controller_buttons(&event, conf, 0);
     break;
 
   default:
@@ -365,12 +316,12 @@ void handle_sdl_events() {
 }
 
 // Returns the currently pressed keys to main
-input_msg_s get_input_msg() {
+input_msg_s get_input_msg(config_params_s *conf) {
 
   key = (input_msg_s){normal, 0};
 
   // Query for SDL events
-  handle_sdl_events();
+  handle_sdl_events(conf);
 
   if (keycode == (key_start|key_select|key_opt|key_edit)){
     key = (input_msg_s){special,msg_reset_display};

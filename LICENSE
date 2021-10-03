@@ -57,3 +57,8 @@ The font is used in this program with the permission of the original author.
 The software contains portions of public domain code:
 Bitmap font routine by driedfruit, https://github.com/driedfruit/SDL_inprint (SDL2_inprint.h, inprint2.c)
 Serial port code from libserialport's examples (serial.c, serial.h)
+
+-----------
+
+The software contains the Tiny ANSI C ini libary under The MIT License:
+rxi: https://github.com/rxi/ini (ini.h, ini.c)

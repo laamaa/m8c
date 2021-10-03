@@ -4,9 +4,11 @@
 #include <SDL2/SDL.h>
 #include <libserialport.h>
 #include <signal.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "command.h"
+#include "config.h"
 #include "input.h"
 #include "render.h"
 #include "serial.h"
@@ -23,6 +25,12 @@ uint8_t need_display_reset = 0;
 void intHandler(int dummy) { run = 0; }
 
 int main(int argc, char *argv[]) {
+  // Initialize the config to defaults read in the params from the
+  // configfile if present
+  config_params_s conf = init_config();
+
+  // TODO: take cli parameter to override default configfile location
+  read_config(&conf);
 
   // allocate memory for serial buffer
   uint8_t *serial_buf = malloc(serial_read_size);
@@ -53,7 +61,7 @@ int main(int argc, char *argv[]) {
   if (enable_and_reset_display(port) == -1)
     run = 0;
 
-  if (initialize_sdl() == -1)
+  if (initialize_sdl(conf.init_fullscreen) == -1)
     run = 0;
 
   uint8_t prev_input = 0;
@@ -62,7 +70,7 @@ int main(int argc, char *argv[]) {
   while (run) {
 
     // get current inputs
-    input_msg_s input = get_input_msg();
+    input_msg_s input = get_input_msg(&conf);
 
     switch (input.type) {
     case normal:

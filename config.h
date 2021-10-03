@@ -1,0 +1,47 @@
+// Copyright 2021 Jonne Kokkonen
+// Released under the MIT licence, https://opensource.org/licenses/MIT
+
+#ifndef CONFIG_H_
+#define CONFIG_H_
+
+#include "ini.h"
+
+typedef struct config_params_s {
+  char *filename;
+  int init_fullscreen;
+
+  int key_up;
+  int key_left;
+  int key_down;
+  int key_right;
+  int key_select;
+  int key_select_alt;
+  int key_start;
+  int key_start_alt;
+  int key_opt;
+  int key_opt_alt;
+  int key_edit;
+  int key_edit_alt;
+  int key_delete;
+  int key_reset;
+  int key_gl_shader;
+  int key_visualizer;
+
+  int gamepad_up;
+  int gamepad_left;
+  int gamepad_down;
+  int gamepad_right;
+  int gamepad_select;
+  int gamepad_start;
+  int gamepad_opt;
+  int gamepad_edit;
+} config_params_s;
+
+
+config_params_s init_config();
+void read_config();
+void read_graphics_config(ini_t *config, config_params_s *conf);
+void read_key_config(ini_t *config, config_params_s *conf);
+void read_gamepad_config(ini_t *config, config_params_s *conf);
+
+#endif
