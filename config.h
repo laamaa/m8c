@@ -33,6 +33,8 @@ typedef struct config_params_s {
   int gamepad_start;
   int gamepad_opt;
   int gamepad_edit;
+
+  int gamepad_analog_threshold;
 } config_params_s;
 
 
