@@ -33,7 +33,7 @@ config_params_s init_config() {
   c.gamepad_start             = SDL_CONTROLLER_BUTTON_START;
   c.gamepad_opt               = SDL_CONTROLLER_BUTTON_B;
   c.gamepad_edit              = SDL_CONTROLLER_BUTTON_A;
-  c.gamepad_analog_threshold  = 32000;
+  c.gamepad_analog_threshold  = 32767;
   return c;
 }
 

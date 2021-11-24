@@ -2,9 +2,6 @@
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_events.h>
-#include <SDL2/SDL_gamecontroller.h>
-#include <SDL2/SDL_log.h>
 #include <stdio.h>
 
 #include "config.h"
