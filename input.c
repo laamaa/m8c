@@ -2,6 +2,9 @@
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_events.h>
+#include <SDL2/SDL_gamecontroller.h>
+#include <SDL2/SDL_log.h>
 #include <stdio.h>
 
 #include "config.h"
@@ -28,7 +31,8 @@ enum keycodes {
 uint8_t keyjazz_enabled = 0;
 uint8_t keyjazz_base_octave = 2;
 
-uint8_t keycode = 0; // value of the pressed key
+uint8_t keycode = 0;          // value of the pressed key
+static int controller_axis_released = 1; // is analog axis released
 input_msg_s key = {normal, 0};
 
 uint8_t toggle_input_keyjazz() {
@@ -184,7 +188,8 @@ static input_msg_s handle_keyjazz(SDL_Event *event, uint8_t keyvalue) {
   return key;
 }
 
-static input_msg_s handle_normal_keys(SDL_Event *event, config_params_s *conf, uint8_t keyvalue) {
+static input_msg_s handle_normal_keys(SDL_Event *event, config_params_s *conf,
+                                      uint8_t keyvalue) {
   input_msg_s key = {normal, keyvalue};
 
   if (event->key.keysym.scancode == conf->key_up) {
@@ -195,13 +200,17 @@ static input_msg_s handle_normal_keys(SDL_Event *event, config_params_s *conf, u
     key.value = key_down;
   } else if (event->key.keysym.scancode == conf->key_right) {
     key.value = key_right;
-  } else if (event->key.keysym.scancode == conf->key_select || event->key.keysym.scancode == conf->key_select_alt ) {
+  } else if (event->key.keysym.scancode == conf->key_select ||
+             event->key.keysym.scancode == conf->key_select_alt) {
     key.value = key_select;
-  } else if (event->key.keysym.scancode == conf->key_start || event->key.keysym.scancode == conf->key_start_alt) {
+  } else if (event->key.keysym.scancode == conf->key_start ||
+             event->key.keysym.scancode == conf->key_start_alt) {
     key.value = key_start;
-  } else if (event->key.keysym.scancode == conf->key_opt || event->key.keysym.scancode == conf->key_opt_alt) {
+  } else if (event->key.keysym.scancode == conf->key_opt ||
+             event->key.keysym.scancode == conf->key_opt_alt) {
     key.value = key_opt;
-  } else if (event->key.keysym.scancode == conf->key_edit || event->key.keysym.scancode == conf->key_edit_alt) {
+  } else if (event->key.keysym.scancode == conf->key_edit ||
+             event->key.keysym.scancode == conf->key_edit_alt) {
     key.value = key_edit;
   } else if (event->key.keysym.scancode == conf->key_delete) {
     key.value = key_opt | key_edit;
@@ -213,7 +222,9 @@ static input_msg_s handle_normal_keys(SDL_Event *event, config_params_s *conf, u
   return key;
 }
 
-static input_msg_s handle_game_controller_buttons(SDL_Event *event, config_params_s *conf, uint8_t keyvalue) {
+static input_msg_s handle_game_controller_buttons(SDL_Event *event,
+                                                  config_params_s *conf,
+                                                  uint8_t keyvalue) {
   input_msg_s key = {normal, keyvalue};
 
   if (event->cbutton.button == conf->gamepad_up) {
@@ -235,6 +246,71 @@ static input_msg_s handle_game_controller_buttons(SDL_Event *event, config_param
   } else {
     key.value = 0;
   }
+  return key;
+}
+
+static input_msg_s handle_game_controller_axis(SDL_Event *event,
+                                               config_params_s *conf,
+                                               uint8_t keyvalue) {
+
+  input_msg_s key = {normal, keyvalue};
+
+  // Handle up-down movement
+  if (event->caxis.axis == SDL_CONTROLLER_AXIS_LEFTY ||
+      event->caxis.axis == SDL_CONTROLLER_AXIS_RIGHTY) {
+
+    if (event->caxis.value > 0) {
+      key.value = key_down;
+      if (event->caxis.value < conf->gamepad_analog_threshold) {
+        if (controller_axis_released == 0) {
+          controller_axis_released = 1;
+          SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis released");
+        }
+      } else {
+        controller_axis_released = 0;
+        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis down");
+      }
+    } else {
+      key.value = key_up;
+      if (event->caxis.value > 0 - conf->gamepad_analog_threshold) {
+        if (controller_axis_released == 0) {
+          controller_axis_released = 1;
+          SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis released");
+        }
+      } else {
+        controller_axis_released = 0;
+        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis up");
+      }
+    }
+  }
+  // Handle left-right movement
+  else if (event->caxis.axis == SDL_CONTROLLER_AXIS_LEFTX ||
+           event->caxis.axis == SDL_CONTROLLER_AXIS_RIGHTX) {
+    if (event->caxis.value > 0) {
+      key.value = key_right;
+      if (event->caxis.value < conf->gamepad_analog_threshold) {
+        if (controller_axis_released == 0) {
+          controller_axis_released = 1;
+          SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis released");
+        }
+      } else {
+        controller_axis_released = 0;
+        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis down");
+      }
+    } else {
+      key.value = key_left;
+      if (event->caxis.value > 0 - conf->gamepad_analog_threshold) {
+        if (controller_axis_released == 0) {
+          controller_axis_released = 1;
+          SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis released");
+        }
+      } else {
+        controller_axis_released = 0;
+        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis up");
+      }
+    }
+  }
+
   return key;
 }
 
@@ -293,16 +369,24 @@ void handle_sdl_events(config_params_s *conf) {
     key = handle_game_controller_buttons(&event, conf, 0);
     break;
 
+  case SDL_CONTROLLERAXISMOTION:
+    key = handle_game_controller_axis(&event, conf, 0);
+    break;
+
   default:
     break;
   }
 
   // Do not allow pressing multiple keys with keyjazz
   if (key.type == normal) {
-    if (event.type == SDL_KEYDOWN || event.type == SDL_CONTROLLERBUTTONDOWN)
+
+    if (event.type == SDL_KEYDOWN || event.type == SDL_CONTROLLERBUTTONDOWN ||
+        controller_axis_released == 0) {
       keycode |= key.value;
-    else
+    } else {
       keycode &= ~key.value;
+    }
+
   } else {
     if (event.type == SDL_KEYDOWN)
       keycode = key.value;
@@ -319,8 +403,8 @@ input_msg_s get_input_msg(config_params_s *conf) {
   // Query for SDL events
   handle_sdl_events(conf);
 
-  if (keycode == (key_start|key_select|key_opt|key_edit)){
-    key = (input_msg_s){special,msg_reset_display};
+  if (keycode == (key_start | key_select | key_opt | key_edit)) {
+    key = (input_msg_s){special, msg_reset_display};
   }
 
   if (key.type == normal) {

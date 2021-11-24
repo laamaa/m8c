@@ -49,7 +49,7 @@ git clone https://github.com/laamaa/m8c.git
 
 ```
 cd m8c
-make && sudo make install
+make
  ```
 
 ### Start the program
@@ -57,7 +57,7 @@ make && sudo make install
 Connect the Teensy to your computer and start the program. It should automatically detect your device.
 
 ```
-m8c
+./m8c
 ```
 
 If the stars are aligned correctly, you should see the M8 screen.
@@ -101,16 +101,22 @@ See the `config.ini` file to see the available options.
 
 -----------
 
-### Bonus: improve performance on the Raspberry Pi
-Enabling the experimental GL Driver with Full KMS can boost the program's performance a bit.
+## FAQ
 
-The driver can be enabled with ```sudo raspi-config``` and selecting "Advanced options" -> "GL Driver" -> "GL (Full KMS)" and rebooting.
+* When starting the program, something like the following appears and the program does not start:
+```
+$ ./m8c
+INFO: Looking for USB serial devices.
+INFO: Found M8 in /dev/ttyACM1.
+INFO: Opening port.
+Aborted (core dumped)
+```
 
-Please note that with some configurations (for example, composite video) this can lead to not getting video output at all. If that happens, you can delete the row ```dtoverlay=vc4-kms-v3d``` in bottom of /boot/config.txt.
+This is likely an issue with the version of libserialport included in your Linux distribution and you need to build the library yourself. Please see [this issue for a workaround](https://github.com/laamaa/m8c/issues/20).
 
-Further performance improvement can be achieved by not using X11 and running the program directly in framebuffer console, but this might require doing a custom build of SDL.
+-----------
 
-### Bonus: quickly install m8c locally with nix
+### Bonus content: quickly install m8c locally with nix
 
 ``` sh
 nix-env -iA m8c-stable -f https://github.com/laamaa/m8c/archive/refs/heads/main.tar.gz
