@@ -28,7 +28,7 @@ enum keycodes {
 uint8_t keyjazz_enabled = 0;
 uint8_t keyjazz_base_octave = 2;
 
-uint8_t keycode = 0;          // value of the pressed key
+uint8_t keycode = 0;                     // value of the pressed key
 static int controller_axis_released = 1; // is analog axis released
 input_msg_s key = {normal, 0};
 
@@ -246,65 +246,81 @@ static input_msg_s handle_game_controller_buttons(SDL_Event *event,
   return key;
 }
 
+// Handle analog sticks and digital pads that emulate analog behavior.
 static input_msg_s handle_game_controller_axis(SDL_Event *event,
                                                config_params_s *conf,
                                                uint8_t keyvalue) {
 
   input_msg_s key = {normal, keyvalue};
+  static int active_keys, last_key_x, last_key_y;
+
+  // If the controller returns to zero position, clear all active directions
+  if (controller_axis_released == 0 &&
+      event->caxis.value > 0 - conf->gamepad_analog_threshold &&
+      event->caxis.value < conf->gamepad_analog_threshold) {
+
+    SDL_LogDebug(
+        SDL_LOG_CATEGORY_INPUT,
+        "Analog controller axis at zero, axis: %d, value: %d, active keys: %d",
+        event->caxis.axis, event->caxis.value, active_keys);
+
+    key.value = active_keys;
+    controller_axis_released = 1;
+    active_keys = 0;
+  }
 
   // Handle up-down movement
   if (event->caxis.axis == SDL_CONTROLLER_AXIS_LEFTY ||
       event->caxis.axis == SDL_CONTROLLER_AXIS_RIGHTY) {
 
-    if (event->caxis.value > 0) {
-      key.value = key_down;
-      if (event->caxis.value < conf->gamepad_analog_threshold) {
-        if (controller_axis_released == 0) {
-          controller_axis_released = 1;
-          SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis released");
-        }
-      } else {
-        controller_axis_released = 0;
-        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis down");
-      }
-    } else {
-      key.value = key_up;
-      if (event->caxis.value > 0 - conf->gamepad_analog_threshold) {
-        if (controller_axis_released == 0) {
-          controller_axis_released = 1;
-          SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis released");
-        }
-      } else {
-        controller_axis_released = 0;
-        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis up");
-      }
+    if (event->caxis.value >= conf->gamepad_analog_threshold) {
+
+      active_keys |= key_down;
+      key.value = active_keys;
+      last_key_y = key_down;
+      controller_axis_released = 0;
+
+      SDL_LogDebug(
+          SDL_LOG_CATEGORY_INPUT,
+          "Analog controller axis down, axis: %d, value: %d, active keys: %d",
+          event->caxis.axis, event->caxis.value, active_keys);
+
+    } else if (event->caxis.value <= 0 - conf->gamepad_analog_threshold) {
+
+      active_keys |= key_up;
+      key.value = active_keys;
+      last_key_y = key_up;
+      controller_axis_released = 0;
+
+      SDL_LogDebug(
+          SDL_LOG_CATEGORY_INPUT,
+          "Analog controller axis up, axis: %d, value: %d, active keys: %d",
+          event->caxis.axis, event->caxis.value, active_keys);
     }
   }
+
   // Handle left-right movement
   else if (event->caxis.axis == SDL_CONTROLLER_AXIS_LEFTX ||
            event->caxis.axis == SDL_CONTROLLER_AXIS_RIGHTX) {
-    if (event->caxis.value > 0) {
-      key.value = key_right;
-      if (event->caxis.value < conf->gamepad_analog_threshold) {
-        if (controller_axis_released == 0) {
-          controller_axis_released = 1;
-          SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis released");
-        }
-      } else {
-        controller_axis_released = 0;
-        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis down");
-      }
-    } else {
-      key.value = key_left;
-      if (event->caxis.value > 0 - conf->gamepad_analog_threshold) {
-        if (controller_axis_released == 0) {
-          controller_axis_released = 1;
-          SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis released");
-        }
-      } else {
-        controller_axis_released = 0;
-        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis up");
-      }
+    if (event->caxis.value >= conf->gamepad_analog_threshold) {
+
+      active_keys |= key_right;
+      key.value = active_keys;
+      last_key_x = key_right;
+      controller_axis_released = 0;
+      SDL_LogDebug(
+          SDL_LOG_CATEGORY_INPUT,
+          "Analog controller axis right, axis: %d, value: %d, active keys: %d",
+          event->caxis.axis, event->caxis.value, active_keys);
+    } else if (event->caxis.value <= 0 - conf->gamepad_analog_threshold) {
+      active_keys |= key_left;
+      key.value = active_keys;
+      last_key_x = key_left;
+      controller_axis_released = 0;
+      SDL_LogDebug(
+          SDL_LOG_CATEGORY_INPUT,
+          "Analog controller axis left, axis: %d, value: %d, active keys: %d",
+          event->caxis.axis, event->caxis.value, active_keys);
     }
   }
 
