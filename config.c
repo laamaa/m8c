@@ -25,14 +25,15 @@ config_params_s init_config() {
   c.key_delete      = SDL_SCANCODE_DELETE;
   c.key_reset       = SDL_SCANCODE_R;
 
-  c.gamepad_up      = SDL_CONTROLLER_BUTTON_DPAD_UP;
-  c.gamepad_left    = SDL_CONTROLLER_BUTTON_DPAD_LEFT;
-  c.gamepad_down    = SDL_CONTROLLER_BUTTON_DPAD_DOWN;
-  c.gamepad_right   = SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
-  c.gamepad_select  = SDL_CONTROLLER_BUTTON_BACK;
-  c.gamepad_start   = SDL_CONTROLLER_BUTTON_START;
-  c.gamepad_opt     = SDL_CONTROLLER_BUTTON_B;
-  c.gamepad_edit    = SDL_CONTROLLER_BUTTON_A;
+  c.gamepad_up                = SDL_CONTROLLER_BUTTON_DPAD_UP;
+  c.gamepad_left              = SDL_CONTROLLER_BUTTON_DPAD_LEFT;
+  c.gamepad_down              = SDL_CONTROLLER_BUTTON_DPAD_DOWN;
+  c.gamepad_right             = SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
+  c.gamepad_select            = SDL_CONTROLLER_BUTTON_BACK;
+  c.gamepad_start             = SDL_CONTROLLER_BUTTON_START;
+  c.gamepad_opt               = SDL_CONTROLLER_BUTTON_B;
+  c.gamepad_edit              = SDL_CONTROLLER_BUTTON_A;
+  c.gamepad_analog_threshold  = 32000;
   return c;
 }
 
@@ -98,21 +99,23 @@ void read_key_config(ini_t *ini, config_params_s *conf) {
 void read_gamepad_config(ini_t *ini, config_params_s *conf) {
   // TODO: Some form of validation
 
-  const char *gamepad_up      = ini_get(ini, "gamepad", "gamepad_up");
-  const char *gamepad_left    = ini_get(ini, "gamepad", "gamepad_left");
-  const char *gamepad_down    = ini_get(ini, "gamepad", "gamepad_down");
-  const char *gamepad_right   = ini_get(ini, "gamepad", "gamepad_right");
-  const char *gamepad_select  = ini_get(ini, "gamepad", "gamepad_select");
-  const char *gamepad_start   = ini_get(ini, "gamepad", "gamepad_start");
-  const char *gamepad_opt     = ini_get(ini, "gamepad", "gamepad_opt");
-  const char *gamepad_edit    = ini_get(ini, "gamepad", "gamepad_edit");
+  const char *gamepad_up                = ini_get(ini, "gamepad", "gamepad_up");
+  const char *gamepad_left              = ini_get(ini, "gamepad", "gamepad_left");
+  const char *gamepad_down              = ini_get(ini, "gamepad", "gamepad_down");
+  const char *gamepad_right             = ini_get(ini, "gamepad", "gamepad_right");
+  const char *gamepad_select            = ini_get(ini, "gamepad", "gamepad_select");
+  const char *gamepad_start             = ini_get(ini, "gamepad", "gamepad_start");
+  const char *gamepad_opt               = ini_get(ini, "gamepad", "gamepad_opt");
+  const char *gamepad_edit              = ini_get(ini, "gamepad", "gamepad_edit");
+  const char *gamepad_analog_threshold  = ini_get(ini, "gamepad", "gamepad_analog_threshold");
 
-  conf->gamepad_up      = atoi(gamepad_up);
-  conf->gamepad_left    = atoi(gamepad_left);
-  conf->gamepad_down    = atoi(gamepad_down);
-  conf->gamepad_right   = atoi(gamepad_right);
-  conf->gamepad_select  = atoi(gamepad_select);
-  conf->gamepad_start   = atoi(gamepad_start);
-  conf->gamepad_opt     = atoi(gamepad_opt);
-  conf->gamepad_edit    = atoi(gamepad_edit);
+  conf->gamepad_up                = atoi(gamepad_up);
+  conf->gamepad_left              = atoi(gamepad_left);
+  conf->gamepad_down              = atoi(gamepad_down);
+  conf->gamepad_right             = atoi(gamepad_right);
+  conf->gamepad_select            = atoi(gamepad_select);
+  conf->gamepad_start             = atoi(gamepad_start);
+  conf->gamepad_opt               = atoi(gamepad_opt);
+  conf->gamepad_edit              = atoi(gamepad_edit);
+  conf->gamepad_analog_threshold  = atoi(gamepad_analog_threshold);
 }
