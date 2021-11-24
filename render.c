@@ -58,6 +58,9 @@ int initialize_sdl(int init_fullscreen) {
   inrenderer(rend);
   prepare_inline_font();
 
+  // Uncomment this for debug level logging
+  //  SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
+
   return 1;
 }
 
@@ -155,7 +158,8 @@ void display_keyjazz_overlay(uint8_t show, uint8_t base_octave) {
     draw_rectangle(&drc);
 
     struct draw_character_command dcc;
-    dcc.background = (struct color){background_color.r,background_color.g,background_color.b};
+    dcc.background = (struct color){background_color.r, background_color.g,
+                                    background_color.b};
     dcc.foreground = (struct color){200, 200, 200};
     dcc.c = base_octave + 48;
     dcc.pos.x = 300;
@@ -165,7 +169,8 @@ void display_keyjazz_overlay(uint8_t show, uint8_t base_octave) {
 
   } else {
     struct draw_rectangle_command drc;
-    drc.color = (struct color){background_color.r,background_color.g,background_color.b};
+    drc.color = (struct color){background_color.r, background_color.g,
+                               background_color.b};
     drc.pos.x = 300;
     drc.pos.y = 226;
     drc.size.width = 20;
