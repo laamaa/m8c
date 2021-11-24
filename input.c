@@ -252,7 +252,7 @@ static input_msg_s handle_game_controller_axis(SDL_Event *event,
                                                uint8_t keyvalue) {
 
   input_msg_s key = {normal, keyvalue};
-  static int active_keys, last_key_x, last_key_y;
+  static int active_keys;
 
   // If the controller returns to zero position, clear all active directions
   if (controller_axis_released == 0 &&
@@ -277,7 +277,6 @@ static input_msg_s handle_game_controller_axis(SDL_Event *event,
 
       active_keys |= key_down;
       key.value = active_keys;
-      last_key_y = key_down;
       controller_axis_released = 0;
 
       SDL_LogDebug(
@@ -289,7 +288,6 @@ static input_msg_s handle_game_controller_axis(SDL_Event *event,
 
       active_keys |= key_up;
       key.value = active_keys;
-      last_key_y = key_up;
       controller_axis_released = 0;
 
       SDL_LogDebug(
@@ -306,7 +304,6 @@ static input_msg_s handle_game_controller_axis(SDL_Event *event,
 
       active_keys |= key_right;
       key.value = active_keys;
-      last_key_x = key_right;
       controller_axis_released = 0;
       SDL_LogDebug(
           SDL_LOG_CATEGORY_INPUT,
@@ -315,7 +312,6 @@ static input_msg_s handle_game_controller_axis(SDL_Event *event,
     } else if (event->caxis.value <= 0 - conf->gamepad_analog_threshold) {
       active_keys |= key_left;
       key.value = active_keys;
-      last_key_x = key_left;
       controller_axis_released = 0;
       SDL_LogDebug(
           SDL_LOG_CATEGORY_INPUT,
