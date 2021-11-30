@@ -33,6 +33,7 @@ uint8_t keyjazz_enabled = 0;
 uint8_t keyjazz_base_octave = 2;
 
 static uint8_t keycode = 0; // value of the pressed key
+static int num_joysticks = 0;
 
 input_msg_s key = {normal, 0};
 
@@ -44,7 +45,7 @@ uint8_t toggle_input_keyjazz() {
 // Opens available game controllers and returns the amount of opened controllers
 int initialize_game_controllers() {
 
-  int num_joysticks = SDL_NumJoysticks();
+  num_joysticks = SDL_NumJoysticks();
   int controller_index = 0;
 
   SDL_Log("Looking for game controllers\n");
@@ -223,33 +224,6 @@ static input_msg_s handle_normal_keys(SDL_Event *event, config_params_s *conf,
   return key;
 }
 
-/*static input_msg_s handle_game_controller_buttons(SDL_Event *event,
-                                                  config_params_s *conf,
-                                                  uint8_t keyvalue) {
-  input_msg_s key = {normal, keyvalue};
-
-  if (event->cbutton.button == conf->gamepad_up) {
-    key.value |= key_up;
-  } else if (event->cbutton.button == conf->gamepad_left) {
-    key.value |= key_left;
-  } else if (event->cbutton.button == conf->gamepad_down) {
-    key.value |= key_down;
-  } else if (event->cbutton.button == conf->gamepad_right) {
-    key.value |= key_right;
-  } else if (event->cbutton.button == conf->gamepad_select) {
-    key.value |= key_select;
-  } else if (event->cbutton.button == conf->gamepad_start) {
-    key.value |= key_start;
-  } else if (event->cbutton.button == conf->gamepad_opt) {
-    key.value |= key_opt;
-  } else if (event->cbutton.button == conf->gamepad_edit) {
-    key.value |= key_edit;
-  } else {
-    key.value = 0;
-  }
-  return key;
-} */
-
 int axis_in_threshold(int axis_value, int threshold) {
   if (axis_value <= 0 - threshold || axis_value >= threshold) {
     return 1;
@@ -320,7 +294,7 @@ static int handle_game_controller_buttons(config_params_s *conf) {
   int key = 0;
 
   // Cycle through every active game controller
-  for (int gc = 0; gc < SDL_NumJoysticks(); gc++) {
+  for (int gc = 0; gc < num_joysticks; gc++) {
     // Cycle through all M8 buttons
     for (int button = 0; button < (input_buttons_t)INPUT_MAX; button++) {
       // If the button is active, add the keycode to the variable containing
