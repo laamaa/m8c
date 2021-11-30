@@ -6,6 +6,18 @@
 
 #include <stdint.h>
 
+typedef enum input_buttons_t {
+    INPUT_UP,
+    INPUT_DOWN,
+    INPUT_LEFT,
+    INPUT_RIGHT,
+    INPUT_OPT,
+    INPUT_EDIT,
+    INPUT_SELECT,
+    INPUT_START,
+    INPUT_MAX
+} input_buttons_t;
+
 typedef enum input_type_t {
   normal,
   keyjazz,

@@ -4,9 +4,6 @@
 #include "render.h"
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_log.h>
-#include <SDL2/SDL_pixels.h>
-#include <SDL2/SDL_render.h>
 #include <stdio.h>
 
 #include "SDL2_inprint.h"
@@ -59,7 +56,7 @@ int initialize_sdl(int init_fullscreen) {
   prepare_inline_font();
 
   // Uncomment this for debug level logging
-  //  SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
+  //SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
 
   return 1;
 }

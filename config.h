@@ -35,6 +35,14 @@ typedef struct config_params_s {
   int gamepad_edit;
 
   int gamepad_analog_threshold;
+  int gamepad_analog_invert;
+  int gamepad_analog_axis_updown;
+  int gamepad_analog_axis_leftright;
+  int gamepad_analog_axis_start;
+  int gamepad_analog_axis_select;
+  int gamepad_analog_axis_opt;
+  int gamepad_analog_axis_edit;
+
 } config_params_s;
 
 
