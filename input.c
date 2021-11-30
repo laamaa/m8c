@@ -2,10 +2,6 @@
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_events.h>
-#include <SDL2/SDL_gamecontroller.h>
-#include <SDL2/SDL_joystick.h>
-#include <SDL2/SDL_stdinc.h>
 #include <stdio.h>
 
 #include "config.h"
@@ -224,14 +220,7 @@ static input_msg_s handle_normal_keys(SDL_Event *event, config_params_s *conf,
   return key;
 }
 
-int axis_in_threshold(int axis_value, int threshold) {
-  if (axis_value <= 0 - threshold || axis_value >= threshold) {
-    return 1;
-  } else {
-    return 0;
-  }
-}
-
+// Check whether a button is pressed on a gamepad and return 1 if pressed.
 static int get_game_controller_button(config_params_s *conf,
                                       SDL_GameController *controller,
                                       int button) {
@@ -241,9 +230,11 @@ static int get_game_controller_button(config_params_s *conf,
                                   conf->gamepad_opt,    conf->gamepad_edit,
                                   conf->gamepad_select, conf->gamepad_start};
 
+  // Check digital buttons
   if (SDL_GameControllerGetButton(controller, button_mappings[button])) {
     return 1;
   } else {
+    // If digital button isn't pressed, check the corresponding analog control
     switch (button) {
     case INPUT_UP:
       return SDL_GameControllerGetAxis(controller,
