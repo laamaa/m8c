@@ -36,7 +36,7 @@ jobs:
       with:
         msystem: ${{ matrix.sys }}
         update: true
-        install: mingw-w64-${{ matrix.env }}-toolchain make mingw-w64-${{ matrix.env }}-SDL2 libserialport zip
+        install: mingw-w64-${{ matrix.env }}-toolchain make mingw-w64-${{ matrix.env }}-SDL2 mingw-w64-${{ matrix.env }}-libserialport zip
   
     - name: 'Get current date'
       id: date
