@@ -1,0 +1,104 @@
+name: m8c build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-win:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { sys: mingw32, env: i686, win: win32 }
+          - { sys: mingw64, env: x86_64, win: win64 }
+    name: ${{ matrix.win }}
+    defaults:
+      run:
+        shell: msys2 {0}
+    env:
+      MINGW_ARCH: ${{ matrix.sys }}
+    steps:
+
+    - name: 'git config'
+      run: git config --global core.autocrlf input
+      shell: bash
+
+    - name: 'Checkout'
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: 'Setup MSYS2'
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{ matrix.sys }}
+        update: true
+        install: mingw-w64-${{ matrix.env }}-toolchain make mingw-w64-${{ matrix.env }}-SDL2 libserialport zip
+  
+    - name: 'Get current date'
+      id: date
+      run: echo "::set-output name=date::$(date +%Y%m%d)"
+
+    - name: 'Build package'
+      run: |
+        make
+        strip -g m8c.exe
+        cp /mingw32/bin/SDL2.dll .
+        cp /mingw32/bin/libserialport-0.dll .
+        unix2dos README.md config.ini LICENSE AUDIOGUIDE.md
+    - name: 'Upload artifact (win32)'
+      if: matrix.win == 'win32'
+      uses: actions/upload-artifact@v2
+      with:
+        name: m8c-${{ steps.date.outputs.date }}-${{ matrix.win }}
+        path: |
+          m8c.exe
+          SDL2.dll
+          libserialport-0.dll
+          gamecontrollerdb.txt
+          LICENSE
+          README.md
+          AUDIOGUIDE.md
+          config.ini
+    - name: 'Upload artifact (win64)'
+      if: matrix.win == 'win64'
+      uses: actions/upload-artifact@v2
+      with:
+        name: m8c-${{ steps.date.outputs.date }}-${{ matrix.win }}
+        path: |
+          m8c.exe
+          SDL2.dll
+          libserialport-0.dll
+          gamecontrollerdb.txt
+          LICENSE
+          README.md
+          AUDIOGUIDE.md
+          config.ini
+
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 'Install dependencies'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --fix-missing build-essential libsdl2-dev libserialport-dev zip
+      - name: 'Checkout'
+        uses: actions/checkout@v2
+
+      - name: 'Get current date'
+        id: date
+        run: echo "::set-output name=date::$(date +%Y%m%d)"
+
+      - name: 'Build package'
+        run: |
+          make
+          zip m8c.zip LICENSE README.md m8c gamecontrollerdb.txt config.ini
+      - name: 'Upload artifact'
+        uses: actions/upload-artifact@v2
+        with:
+          name: m8c-${{ steps.date.outputs.date }}-linux
+          path: m8c.zip
