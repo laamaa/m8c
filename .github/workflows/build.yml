@@ -65,6 +65,7 @@ jobs:
           m8c.exe
           SDL2.dll
           libserialport-0.dll
+          libgcc_s_dw2-1.dll
           gamecontrollerdb.txt
           LICENSE
           README.md
