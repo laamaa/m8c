@@ -46,8 +46,14 @@ jobs:
       run: |
         make
         strip -g m8c.exe
-        cp /mingw32/bin/SDL2.dll .
-        cp /mingw32/bin/libserialport-0.dll .
+        if [ ${{ matrix.win }} == "win32" ]
+        then        
+          cp /mingw32/bin/SDL2.dll .
+          cp /mingw32/bin/libserialport-0.dll .
+        else
+          cp /mingw64/bin/SDL2.dll .
+          cp /mingw64/bin/libserialport-0.dll .
+        fi
         unix2dos README.md config.ini LICENSE AUDIOGUIDE.md
     - name: 'Upload artifact (win32)'
       if: matrix.win == 'win32'
