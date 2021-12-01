@@ -49,6 +49,7 @@ jobs:
         if [ ${{ matrix.win }} == "win32" ]
         then        
           cp /mingw32/bin/SDL2.dll .
+          cp /mingw32/bin/libgcc_s_dw2-1.dll .
           cp /mingw32/bin/libserialport-0.dll .
         else
           cp /mingw64/bin/SDL2.dll .
