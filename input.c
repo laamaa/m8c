@@ -28,8 +28,9 @@ enum keycodes {
 uint8_t keyjazz_enabled = 0;
 uint8_t keyjazz_base_octave = 2;
 
-uint8_t keycode = 0;          // value of the pressed key
-static int controller_axis_released = 1; // is analog axis released
+static uint8_t keycode = 0; // value of the pressed key
+static int num_joysticks = 0;
+
 input_msg_s key = {normal, 0};
 
 uint8_t toggle_input_keyjazz() {
@@ -40,7 +41,7 @@ uint8_t toggle_input_keyjazz() {
 // Opens available game controllers and returns the amount of opened controllers
 int initialize_game_controllers() {
 
-  int num_joysticks = SDL_NumJoysticks();
+  num_joysticks = SDL_NumJoysticks();
   int controller_index = 0;
 
   SDL_Log("Looking for game controllers\n");
@@ -223,91 +224,78 @@ static input_msg_s handle_normal_keys(SDL_Event *event, config_params_s *conf,
   return key;
 }
 
-static input_msg_s handle_game_controller_buttons(SDL_Event *event,
-                                                  config_params_s *conf,
-                                                  uint8_t keyvalue) {
-  input_msg_s key = {normal, keyvalue};
+// Check whether a button is pressed on a gamepad and return 1 if pressed.
+static int get_game_controller_button(config_params_s *conf,
+                                      SDL_GameController *controller,
+                                      int button) {
 
-  if (event->cbutton.button == conf->gamepad_up) {
-    key.value = key_up;
-  } else if (event->cbutton.button == conf->gamepad_left) {
-    key.value = key_left;
-  } else if (event->cbutton.button == conf->gamepad_down) {
-    key.value = key_down;
-  } else if (event->cbutton.button == conf->gamepad_right) {
-    key.value = key_right;
-  } else if (event->cbutton.button == conf->gamepad_select) {
-    key.value = key_select;
-  } else if (event->cbutton.button == conf->gamepad_start) {
-    key.value = key_start;
-  } else if (event->cbutton.button == conf->gamepad_opt) {
-    key.value = key_opt;
-  } else if (event->cbutton.button == conf->gamepad_edit) {
-    key.value = key_edit;
+  const int button_mappings[8] = {conf->gamepad_up,     conf->gamepad_down,
+                                  conf->gamepad_left,   conf->gamepad_right,
+                                  conf->gamepad_opt,    conf->gamepad_edit,
+                                  conf->gamepad_select, conf->gamepad_start};
+
+  // Check digital buttons
+  if (SDL_GameControllerGetButton(controller, button_mappings[button])) {
+    return 1;
   } else {
-    key.value = 0;
-  }
-  return key;
-}
-
-static input_msg_s handle_game_controller_axis(SDL_Event *event,
-                                               config_params_s *conf,
-                                               uint8_t keyvalue) {
-
-  input_msg_s key = {normal, keyvalue};
-
-  // Handle up-down movement
-  if (event->caxis.axis == SDL_CONTROLLER_AXIS_LEFTY ||
-      event->caxis.axis == SDL_CONTROLLER_AXIS_RIGHTY) {
-
-    if (event->caxis.value > 0) {
-      key.value = key_down;
-      if (event->caxis.value < conf->gamepad_analog_threshold) {
-        if (controller_axis_released == 0) {
-          controller_axis_released = 1;
-          SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis released");
-        }
-      } else {
-        controller_axis_released = 0;
-        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis down");
-      }
-    } else {
-      key.value = key_up;
-      if (event->caxis.value > 0 - conf->gamepad_analog_threshold) {
-        if (controller_axis_released == 0) {
-          controller_axis_released = 1;
-          SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis released");
-        }
-      } else {
-        controller_axis_released = 0;
-        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis up");
-      }
+    // If digital button isn't pressed, check the corresponding analog control
+    switch (button) {
+    case INPUT_UP:
+      return SDL_GameControllerGetAxis(controller,
+                                       conf->gamepad_analog_axis_updown) <
+             -conf->gamepad_analog_threshold;
+    case INPUT_DOWN:
+      return SDL_GameControllerGetAxis(controller,
+                                       conf->gamepad_analog_axis_updown) >
+             conf->gamepad_analog_threshold;
+    case INPUT_LEFT:
+      return SDL_GameControllerGetAxis(controller,
+                                       conf->gamepad_analog_axis_leftright) <
+             -conf->gamepad_analog_threshold;
+    case INPUT_RIGHT:
+      return SDL_GameControllerGetAxis(controller,
+                                       conf->gamepad_analog_axis_leftright) >
+             conf->gamepad_analog_threshold;
+    case INPUT_OPT:
+      return SDL_GameControllerGetAxis(controller,
+                                       conf->gamepad_analog_axis_opt) >
+             conf->gamepad_analog_threshold;
+    case INPUT_EDIT:
+      return SDL_GameControllerGetAxis(controller,
+                                       conf->gamepad_analog_axis_edit) >
+             conf->gamepad_analog_threshold;
+    case INPUT_SELECT:
+      return SDL_GameControllerGetAxis(controller,
+                                       conf->gamepad_analog_axis_select) >
+             conf->gamepad_analog_threshold;
+    case INPUT_START:
+      return SDL_GameControllerGetAxis(controller,
+                                       conf->gamepad_analog_axis_start) >
+             conf->gamepad_analog_threshold;
+    default:
+      return 0;
     }
   }
-  // Handle left-right movement
-  else if (event->caxis.axis == SDL_CONTROLLER_AXIS_LEFTX ||
-           event->caxis.axis == SDL_CONTROLLER_AXIS_RIGHTX) {
-    if (event->caxis.value > 0) {
-      key.value = key_right;
-      if (event->caxis.value < conf->gamepad_analog_threshold) {
-        if (controller_axis_released == 0) {
-          controller_axis_released = 1;
-          SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis released");
-        }
-      } else {
-        controller_axis_released = 0;
-        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis down");
-      }
-    } else {
-      key.value = key_left;
-      if (event->caxis.value > 0 - conf->gamepad_analog_threshold) {
-        if (controller_axis_released == 0) {
-          controller_axis_released = 1;
-          SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis released");
-        }
-      } else {
-        controller_axis_released = 0;
-        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Axis up");
+  return 0;
+}
+
+// Handle game controllers, simply check all buttons and analog axis on every
+// cycle
+static int handle_game_controller_buttons(config_params_s *conf) {
+
+  const int keycodes[8] = {key_up,  key_down, key_left,   key_right,
+                           key_opt, key_edit, key_select, key_start};
+
+  int key = 0;
+
+  // Cycle through every active game controller
+  for (int gc = 0; gc < num_joysticks; gc++) {
+    // Cycle through all M8 buttons
+    for (int button = 0; button < (input_buttons_t)INPUT_MAX; button++) {
+      // If the button is active, add the keycode to the variable containing
+      // active keys
+      if (get_game_controller_button(conf, game_controllers[gc], button)) {
+        key |= keycodes[button];
       }
     }
   }
@@ -318,7 +306,16 @@ static input_msg_s handle_game_controller_axis(SDL_Event *event,
 // Handles SDL input events
 void handle_sdl_events(config_params_s *conf) {
 
+  static int prev_key_analog = 0;
+
   SDL_Event event;
+
+  // Read joysticks
+  int key_analog = handle_game_controller_buttons(conf);
+  if (prev_key_analog != key_analog) {
+    keycode = key_analog;
+    prev_key_analog = key_analog;
+  }
 
   SDL_PollEvent(&event);
 
@@ -364,35 +361,29 @@ void handle_sdl_events(config_params_s *conf) {
       key = handle_keyjazz(&event, key.value);
     break;
 
-  // Game controller events
-  case SDL_CONTROLLERBUTTONDOWN:
-  case SDL_CONTROLLERBUTTONUP:
-    key = handle_game_controller_buttons(&event, conf, 0);
-    break;
-
-  case SDL_CONTROLLERAXISMOTION:
-    key = handle_game_controller_axis(&event, conf, 0);
-    break;
-
   default:
     break;
   }
 
-  // Do not allow pressing multiple keys with keyjazz
-  if (key.type == normal) {
-
-    if (event.type == SDL_KEYDOWN || event.type == SDL_CONTROLLERBUTTONDOWN ||
-        controller_axis_released == 0) {
+  switch (key.type) {
+  case normal:
+    if (event.type == SDL_KEYDOWN) {
       keycode |= key.value;
     } else {
       keycode &= ~key.value;
     }
-
-  } else {
-    if (event.type == SDL_KEYDOWN)
+    break;
+  case keyjazz:
+    // Do not allow pressing multiple keys with keyjazz
+  case special:
+    if (event.type == SDL_KEYDOWN) {
       keycode = key.value;
-    else
+    } else {
       keycode = 0;
+    }
+    break;
+  default:
+    break;
   }
 }
 

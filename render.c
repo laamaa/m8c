@@ -3,13 +3,7 @@
 
 #include "render.h"
 
-#include <SDL2/SDL_log.h>
-#include <SDL2/SDL_pixels.h>
-#include <SDL2/SDL_render.h>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_log.h>
-#include <SDL2/SDL_pixels.h>
-#include <SDL2/SDL_render.h>
+#include <stdio.h>
 #include <SDL2/SDL.h>
 #include <SDL_opengl.h>
 #include <SDL_opengl_glext.h>
@@ -121,6 +115,9 @@ int initialize_sdl(int init_fullscreen) {
   // Initialize a texture for the font and read the inline font bitmap
   inrenderer(rend);
   prepare_inline_font();
+
+  // Uncomment this for debug level logging
+  //SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
 
   return 1;
 }
