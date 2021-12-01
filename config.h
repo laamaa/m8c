@@ -24,6 +24,8 @@ typedef struct config_params_s {
   int key_edit_alt;
   int key_delete;
   int key_reset;
+  int key_gl_shader;
+  int key_visualizer;
 
   int gamepad_up;
   int gamepad_left;
