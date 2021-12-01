@@ -90,7 +90,7 @@ jobs:
 
   build-linux:
     runs-on: ubuntu-latest
-
+    name: linux-x86_64
     steps:
       - name: 'Install dependencies'
         run: |
