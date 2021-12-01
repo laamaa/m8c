@@ -102,9 +102,13 @@ jobs:
       - name: 'Build package'
         run: |
           make
-          zip m8c.zip LICENSE README.md m8c gamecontrollerdb.txt config.ini
       - name: 'Upload artifact'
         uses: actions/upload-artifact@v2
         with:
           name: m8c-${{ steps.date.outputs.date }}-linux
-          path: m8c.zip
+          path: |
+            LICENSE
+            README.md
+            m8c
+            gamecontrollerdb.txt
+            config.ini
