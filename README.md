@@ -98,9 +98,9 @@ Enjoy making some nice music!
 Keyboard and game controller bindings can be configured via `config.ini`.
 
 If not found, the file will be created in one of these locations:
-Windows: C:\Users\<username>\AppData\Roaming\m8c\config.ini
-Linux: /home/<username>/.local/share/m8c/
-MacOS: /Users/<username>/Library/Application Support/m8c/
+* Windows: C:\Users\<username>\AppData\Roaming\m8c\config.ini
+* Linux: /home/<username>/.local/share/m8c/
+* MacOS: /Users/<username>/Library/Application Support/m8c/
 
 See the `config.ini.sample` file to see the available options.
 
