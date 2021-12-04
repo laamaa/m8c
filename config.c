@@ -3,11 +3,6 @@
 
 #include "config.h"
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_log.h>
-#include <SDL2/SDL_rwops.h>
-#include <SDL2/SDL_stdinc.h>
-#include <stdio.h>
-#include <string.h>
 
 config_params_s init_config() {
   config_params_s c;
