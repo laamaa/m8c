@@ -61,93 +61,67 @@ void write_config(config_params_s *conf) {
   // Open the default config file for writing
   SDL_RWops *rw = SDL_RWFromFile(conf->filename, "w");
 
-  // Labels for the config file
-  const char ini_labels[34][30] = {"[graphics]\n",
-                                   "fullscreen",
-                                   "[keyboard]\n",
-                                   "key_up",
-                                   "key_left",
-                                   "key_down",
-                                   "key_right",
-                                   "key_select",
-                                   "key_select_alt",
-                                   "key_start",
-                                   "key_start_alt",
-                                   "key_opt",
-                                   "key_opt_alt",
-                                   "key_edit",
-                                   "key_edit_alt",
-                                   "key_delete",
-                                   "key_reset",
-                                   "[gamepad]\n",
-                                   "gamepad_up",
-                                   "gamepad_left",
-                                   "gamepad_down",
-                                   "gamepad_right",
-                                   "gamepad_select",
-                                   "gamepad_start",
-                                   "gamepad_opt",
-                                   "gamepad_edit",
-                                   "gamepad_analog_threshold",
-                                   "gamepad_analog_invert",
-                                   "gamepad_analog_axis_updown",
-                                   "gamepad_analog_axis_leftright",
-                                   "gamepad_analog_axis_start",
-                                   "gamepad_analog_axis_select",
-                                   "gamepad_analog_axis_opt",
-                                   "gamepad_analog_axis_edit"};
-
-  char ini_values[34][7];
-  sprintf(ini_values[1], "%s\n", conf->init_fullscreen ? "true" : "false");
-  sprintf(ini_values[3], "%d\n", conf->key_up);
-  sprintf(ini_values[4], "%d\n", conf->key_left);
-  sprintf(ini_values[5], "%d\n", conf->key_down);
-  sprintf(ini_values[6], "%d\n", conf->key_right);
-  sprintf(ini_values[7], "%d\n", conf->key_select);
-  sprintf(ini_values[8], "%d\n", conf->key_select_alt);
-  sprintf(ini_values[9], "%d\n", conf->key_start);
-  sprintf(ini_values[10], "%d\n", conf->key_start_alt);
-  sprintf(ini_values[11], "%d\n", conf->key_opt);
-  sprintf(ini_values[12], "%d\n", conf->key_opt_alt);
-  sprintf(ini_values[13], "%d\n", conf->key_edit);
-  sprintf(ini_values[14], "%d\n", conf->key_edit_alt);
-  sprintf(ini_values[15], "%d\n", conf->key_delete);
-  sprintf(ini_values[16], "%d\n", conf->key_reset);
-  sprintf(ini_values[18], "%d\n", conf->gamepad_up);
-  sprintf(ini_values[19], "%d\n", conf->gamepad_left);
-  sprintf(ini_values[20], "%d\n", conf->gamepad_down);
-  sprintf(ini_values[21], "%d\n", conf->gamepad_right);
-  sprintf(ini_values[22], "%d\n", conf->gamepad_select);
-  sprintf(ini_values[23], "%d\n", conf->gamepad_start);
-  sprintf(ini_values[24], "%d\n", conf->gamepad_opt);
-  sprintf(ini_values[25], "%d\n", conf->gamepad_edit);
-  sprintf(ini_values[26], "%d\n", conf->gamepad_analog_threshold);
-  sprintf(ini_values[27], "%s\n",
+  // Entries for the config file
+  char ini_values[34][50];
+  sprintf(ini_values[0], "[graphics]\n");
+  sprintf(ini_values[1], "fullscreen=%s\n",
+          conf->init_fullscreen ? "true" : "false");
+  sprintf(ini_values[2], "[keyboard]\n");
+  sprintf(ini_values[3], "key_up=%d\n", conf->key_up);
+  sprintf(ini_values[4], "key_left=%d\n", conf->key_left);
+  sprintf(ini_values[5], "key_down=%d\n", conf->key_down);
+  sprintf(ini_values[6], "key_right=%d\n", conf->key_right);
+  sprintf(ini_values[7], "key_select=%d\n", conf->key_select);
+  sprintf(ini_values[8], "key_select_alt=%d\n", conf->key_select_alt);
+  sprintf(ini_values[9], "key_start=%d\n", conf->key_start);
+  sprintf(ini_values[10], "key_start_alt=%d\n", conf->key_start_alt);
+  sprintf(ini_values[11], "key_opt=%d\n", conf->key_opt);
+  sprintf(ini_values[12], "key_opt_alt=%d\n", conf->key_opt_alt);
+  sprintf(ini_values[13], "key_edit=%d\n", conf->key_edit);
+  sprintf(ini_values[14], "key_edit_alt=%d\n", conf->key_edit_alt);
+  sprintf(ini_values[15], "key_delete=%d\n", conf->key_delete);
+  sprintf(ini_values[16], "key_reset=%d\n", conf->key_reset);
+  sprintf(ini_values[17], "[keyboard]\n");
+  sprintf(ini_values[18], "gamepad_up=%d\n", conf->gamepad_up);
+  sprintf(ini_values[19], "gamepad_left=%d\n", conf->gamepad_left);
+  sprintf(ini_values[20], "gamepad_down=%d\n", conf->gamepad_down);
+  sprintf(ini_values[21], "gamepad_right=%d\n", conf->gamepad_right);
+  sprintf(ini_values[22], "gamepad_select=%d\n", conf->gamepad_select);
+  sprintf(ini_values[23], "gamepad_start=%d\n", conf->gamepad_start);
+  sprintf(ini_values[24], "gamepad_opt=%d\n", conf->gamepad_opt);
+  sprintf(ini_values[25], "gamepad_edit=%d\n", conf->gamepad_edit);
+  sprintf(ini_values[26], "gamepad_analog_threshold=%d\n",
+          conf->gamepad_analog_threshold);
+  sprintf(ini_values[27], "gamepad_analog_invert=%s\n",
           conf->gamepad_analog_invert ? "true" : "false");
-  sprintf(ini_values[28], "%d\n", conf->gamepad_analog_axis_updown);
-  sprintf(ini_values[29], "%d\n", conf->gamepad_analog_axis_leftright);
-  sprintf(ini_values[30], "%d\n", conf->gamepad_analog_axis_select);
-  sprintf(ini_values[31], "%d\n", conf->gamepad_analog_axis_start);
-  sprintf(ini_values[32], "%d\n", conf->gamepad_analog_axis_opt);
-  sprintf(ini_values[33], "%d\n", conf->gamepad_analog_axis_edit);
+  sprintf(ini_values[28], "gamepad_analog_axis_updown=%d\n",
+          conf->gamepad_analog_axis_updown);
+  sprintf(ini_values[29], "gamepad_analog_axis_leftright=%d\n",
+          conf->gamepad_analog_axis_leftright);
+  sprintf(ini_values[30], "gamepad_analog_axis_select=%d\n",
+          conf->gamepad_analog_axis_select);
+  sprintf(ini_values[31], "gamepad_analog_axis_start=%d\n",
+          conf->gamepad_analog_axis_start);
+  sprintf(ini_values[32], "gamepad_analog_axis_opt=%d\n",
+          conf->gamepad_analog_axis_opt);
+  sprintf(ini_values[33], "gamepad_analog_axis_edit=%d\n",
+          conf->gamepad_analog_axis_edit);
 
   if (rw != NULL) {
+    // Write ini_values array to config file
     for (int i = 0; i < 34; i++) {
-      char str[100];
-      strcpy(str, ini_labels[i]);
-      // If the label doesn't start with braces, append a value to the string
-      if (memcmp(&str[0], "[", 1)) {
-        strcat(str, "=");
-        strcat(str, ini_values[i]);
-      }
-      size_t len = SDL_strlen(str);
-      if (SDL_RWwrite(rw, str, 1, len) != len) {
-        printf("Couldn't fully write string\n");
+      size_t len = SDL_strlen(ini_values[i]);
+      if (SDL_RWwrite(rw, ini_values[i], 1, len) != len) {
+        SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM,
+                     "Couldn't write line into config file.");
       } else {
-        SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "%s", str);
+        SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Wrote to config: %s",
+                     ini_values[i]);
       }
     }
     SDL_RWclose(rw);
+  } else {
+    SDL_Log("Couldn't write into config file.");
   }
 }
 
