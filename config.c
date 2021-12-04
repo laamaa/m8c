@@ -81,7 +81,7 @@ void write_config(config_params_s *conf) {
   sprintf(ini_values[14], "key_edit_alt=%d\n", conf->key_edit_alt);
   sprintf(ini_values[15], "key_delete=%d\n", conf->key_delete);
   sprintf(ini_values[16], "key_reset=%d\n", conf->key_reset);
-  sprintf(ini_values[17], "[keyboard]\n");
+  sprintf(ini_values[17], "[gamepad]\n");
   sprintf(ini_values[18], "gamepad_up=%d\n", conf->gamepad_up);
   sprintf(ini_values[19], "gamepad_left=%d\n", conf->gamepad_left);
   sprintf(ini_values[20], "gamepad_down=%d\n", conf->gamepad_down);
@@ -172,20 +172,20 @@ void read_key_config(ini_t *ini, config_params_s *conf) {
   const char *key_delete = ini_get(ini, "keyboard", "key_delete");
   const char *key_reset = ini_get(ini, "keyboard", "key_reset");
 
-  conf->key_up = atoi(key_up);
-  conf->key_left = atoi(key_left);
-  conf->key_down = atoi(key_down);
-  conf->key_right = atoi(key_right);
-  conf->key_select = atoi(key_select);
-  conf->key_select_alt = atoi(key_select_alt);
-  conf->key_start = atoi(key_start);
-  conf->key_start_alt = atoi(key_start_alt);
-  conf->key_opt = atoi(key_opt);
-  conf->key_opt_alt = atoi(key_opt_alt);
-  conf->key_edit = atoi(key_edit);
-  conf->key_edit_alt = atoi(key_edit_alt);
-  conf->key_delete = atoi(key_delete);
-  conf->key_reset = atoi(key_reset);
+  conf->key_up = SDL_atoi(key_up);
+  conf->key_left = SDL_atoi(key_left);
+  conf->key_down = SDL_atoi(key_down);
+  conf->key_right = SDL_atoi(key_right);
+  conf->key_select = SDL_atoi(key_select);
+  conf->key_select_alt = SDL_atoi(key_select_alt);
+  conf->key_start = SDL_atoi(key_start);
+  conf->key_start_alt = SDL_atoi(key_start_alt);
+  conf->key_opt = SDL_atoi(key_opt);
+  conf->key_opt_alt = SDL_atoi(key_opt_alt);
+  conf->key_edit = SDL_atoi(key_edit);
+  conf->key_edit_alt = SDL_atoi(key_edit_alt);
+  conf->key_delete = SDL_atoi(key_delete);
+  conf->key_reset = SDL_atoi(key_reset);
 }
 
 void read_gamepad_config(ini_t *ini, config_params_s *conf) {
@@ -216,15 +216,15 @@ void read_gamepad_config(ini_t *ini, config_params_s *conf) {
   const char *gamepad_analog_axis_edit =
       ini_get(ini, "gamepad", "gamepad_analog_axis_edit");
 
-  conf->gamepad_up = atoi(gamepad_up);
-  conf->gamepad_left = atoi(gamepad_left);
-  conf->gamepad_down = atoi(gamepad_down);
-  conf->gamepad_right = atoi(gamepad_right);
-  conf->gamepad_select = atoi(gamepad_select);
-  conf->gamepad_start = atoi(gamepad_start);
-  conf->gamepad_opt = atoi(gamepad_opt);
-  conf->gamepad_edit = atoi(gamepad_edit);
-  conf->gamepad_analog_threshold = atoi(gamepad_analog_threshold);
+  conf->gamepad_up = SDL_atoi(gamepad_up);
+  conf->gamepad_left = SDL_atoi(gamepad_left);
+  conf->gamepad_down = SDL_atoi(gamepad_down);
+  conf->gamepad_right = SDL_atoi(gamepad_right);
+  conf->gamepad_select = SDL_atoi(gamepad_select);
+  conf->gamepad_start = SDL_atoi(gamepad_start);
+  conf->gamepad_opt = SDL_atoi(gamepad_opt);
+  conf->gamepad_edit = SDL_atoi(gamepad_edit);
+  conf->gamepad_analog_threshold = SDL_atoi(gamepad_analog_threshold);
 
   // This obviously requires the parameter to be a lowercase true to enable
   // fullscreen
@@ -233,10 +233,10 @@ void read_gamepad_config(ini_t *ini, config_params_s *conf) {
   } else
     conf->gamepad_analog_invert = 0;
 
-  conf->gamepad_analog_axis_updown = atoi(gamepad_analog_axis_updown);
-  conf->gamepad_analog_axis_leftright = atoi(gamepad_analog_axis_leftright);
-  conf->gamepad_analog_axis_select = atoi(gamepad_analog_axis_select);
-  conf->gamepad_analog_axis_start = atoi(gamepad_analog_axis_start);
-  conf->gamepad_analog_axis_opt = atoi(gamepad_analog_axis_opt);
-  conf->gamepad_analog_axis_edit = atoi(gamepad_analog_axis_edit);
+  conf->gamepad_analog_axis_updown = SDL_atoi(gamepad_analog_axis_updown);
+  conf->gamepad_analog_axis_leftright = SDL_atoi(gamepad_analog_axis_leftright);
+  conf->gamepad_analog_axis_select = SDL_atoi(gamepad_analog_axis_select);
+  conf->gamepad_analog_axis_start = SDL_atoi(gamepad_analog_axis_start);
+  conf->gamepad_analog_axis_opt = SDL_atoi(gamepad_analog_axis_opt);
+  conf->gamepad_analog_axis_edit = SDL_atoi(gamepad_analog_axis_edit);
 }

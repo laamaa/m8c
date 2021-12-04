@@ -2,6 +2,8 @@
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_filesystem.h>
+#include <SDL2/SDL_log.h>
 #include <stdio.h>
 
 #include "config.h"
@@ -60,7 +62,10 @@ int initialize_game_controllers() {
   }
 
   // Read controller mapping database
-  SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt");
+  char *filename = SDL_GetPrefPath("", "m8c");
+  strcat(filename, "gamecontrollerdb.txt");
+  SDL_Log("Loading game controller database from %s", filename);
+  SDL_GameControllerAddMappingsFromFile(filename);
 
   return controller_index;
 }

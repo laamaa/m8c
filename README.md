@@ -54,7 +54,7 @@ make
 
 ### Start the program
 
-Connect the Teensy to your computer and start the program. It should automatically detect your device.
+Connect the M8 or Teensy (with headless firmware) to your computer and start the program. It should automatically detect your device.
 
 ```
 ./m8c
@@ -95,9 +95,14 @@ Enjoy making some nice music!
 
 ### Config
 
-The config function is currently a prototype, the config file must be named `config.ini` and must be present in the directory from which you're running the command.
+Keyboard and game controller bindings can be configured via `config.ini`.
 
-See the `config.ini` file to see the available options.
+If not found, the file will be created in one of these locations:
+Windows: C:\Users\<username>\AppData\Roaming\m8c\config.ini
+Linux: /home/<username>/.local/share/m8c/
+MacOS: /Users/<username>/Library/Application Support/m8c/
+
+See the `config.ini.sample` file to see the available options.
 
 -----------
 
