@@ -116,8 +116,10 @@ int initialize_sdl(int init_fullscreen) {
   inrenderer(rend);
   prepare_inline_font();
 
+  SDL_LogSetAllPriority(SDL_LOG_PRIORITY_INFO);
+
   // Uncomment this for debug level logging
-  //SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
+  // SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
 
   return 1;
 }

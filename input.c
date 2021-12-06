@@ -46,7 +46,8 @@ int initialize_game_controllers() {
 
   SDL_Log("Looking for game controllers\n");
   SDL_Delay(
-      1); // Some controllers like XBone wired need a little while to get ready
+      10); // Some controllers like XBone wired need a little while to get ready
+
   // Open all available game controllers
   for (int i = 0; i < num_joysticks; i++) {
     if (!SDL_IsGameController(i))
@@ -59,8 +60,23 @@ int initialize_game_controllers() {
     controller_index++;
   }
 
-  // Read controller mapping database
-  SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt");
+  // Try to load the game controller database file
+  char db_filename[1024] = {0};
+  sprintf(db_filename, "%sgamecontrollerdb.txt", SDL_GetPrefPath("", "m8c"));
+  SDL_Log("Trying to open game controller database from %s", db_filename);
+  SDL_RWops *db_rw = SDL_RWFromFile(db_filename, "rb");
+
+  if (db_rw != NULL) {
+    int mappings = SDL_GameControllerAddMappingsFromRW(db_rw, 1);
+    if (mappings != -1)
+      SDL_Log("Found %d game controller mappings", mappings);
+    else
+      SDL_LogError(SDL_LOG_CATEGORY_INPUT,
+                   "Error loading game controller mappings.");
+  } else {
+    SDL_LogError(SDL_LOG_CATEGORY_INPUT,
+                 "Unable to open game controller database file.");
+  }
 
   return controller_index;
 }
