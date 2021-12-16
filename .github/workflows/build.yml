@@ -36,7 +36,7 @@ jobs:
       with:
         msystem: ${{ matrix.sys }}
         update: true
-        install: mingw-w64-${{ matrix.env }}-toolchain make mingw-w64-${{ matrix.env }}-SDL2 mingw-w64-${{ matrix.env }}-libserialport zip dos2unix
+        install: mingw-w64-${{ matrix.env }}-toolchain make mingw-w64-${{ matrix.env }}-SDL2 mingw-w64-${{ matrix.env }}-libserialport zip dos2unix sed
   
     - name: 'Get current date'
       id: date
@@ -44,6 +44,7 @@ jobs:
 
     - name: 'Build package'
       run: |
+        sed -i 's/-lGL/-lopengl32/g' Makefile
         make
         strip -g m8c.exe
         if [ ${{ matrix.win }} == "win32" ]
