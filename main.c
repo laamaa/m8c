@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
     }
 
     // read serial port
-    size_t bytes_read = sp_nonblocking_read(port, serial_buf, serial_read_size);
+    size_t bytes_read = sp_blocking_read(port, serial_buf, serial_read_size, 1);
     if (bytes_read < 0) {
       SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %d reading serial. \n",
                       (int)bytes_read);
@@ -120,17 +120,13 @@ int main(int argc, char *argv[]) {
         int n = slip_read_byte(&slip, rx);
         if (n != SLIP_NO_ERROR) {
           if (n == SLIP_ERROR_INVALID_PACKET) {
-            // Reset display on invalid packets. On current firmwares this can cause a softlock in effect list so this is commented out for now.
-            //reset_display(port);
+            reset_display(port);
           } else {
             SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SLIP error %d\n", n);
           }
         }
       }
-      usleep(10);
-    } else {
       render_screen();
-      usleep(100);
     }
   }
 
