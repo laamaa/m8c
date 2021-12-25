@@ -15,10 +15,8 @@ SDL_Texture *maintexture;
 SDL_Color background_color = (SDL_Color){0, 0, 0, 0};
 
 static uint32_t ticks;
-#ifdef SHOW_FPS
 static uint32_t ticks_fps;
 static int fps;
-#endif
 uint8_t fullscreen = 0;
 
 // Initializes SDL and creates a renderer and required surfaces
@@ -181,8 +179,7 @@ void display_keyjazz_overlay(uint8_t show, uint8_t base_octave) {
 
 void render_screen() {
 
-  // process every 16ms (roughly 60fps)
-  if (SDL_GetTicks() - ticks > 15) {
+  if (SDL_GetTicks() - ticks > 14) {
     ticks = SDL_GetTicks();
     SDL_SetRenderTarget(rend, NULL);
     SDL_SetRenderDrawColor(rend, 0, 0, 0, 0);
@@ -191,14 +188,12 @@ void render_screen() {
     SDL_RenderPresent(rend);
     SDL_SetRenderTarget(rend, maintexture);
 
-#ifdef SHOW_FPS
     fps++;
 
     if (SDL_GetTicks() - ticks_fps > 5000) {
       ticks_fps = SDL_GetTicks();
-      SDL_LogDebug(SDL_LOG_CATEGORY_VIDEO, "%d fps\n", fps / 5);
+      SDL_LogDebug(SDL_LOG_CATEGORY_VIDEO, "%.1f fps\n", (float)fps / 5);
       fps = 0;
     }
-#endif
   }
 }
