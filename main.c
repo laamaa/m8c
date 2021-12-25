@@ -16,7 +16,7 @@
 #include "write.h"
 
 // maximum amount of bytes to read from the serial in one read()
-#define serial_read_size 1024
+#define serial_read_size 324
 
 uint8_t run = 1;
 uint8_t need_display_reset = 0;
