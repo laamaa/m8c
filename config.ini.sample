@@ -19,6 +19,8 @@ key_edit=224
 key_edit_alt=27
 key_delete=76
 key_reset=21
+key_gl_shader=68
+key_visualizer=69
 
 [gamepad]
 ; these need to be the decimal value of the SDL Controller buttons.

@@ -25,6 +25,8 @@ config_params_s init_config() {
   c.key_edit_alt = SDL_SCANCODE_X;
   c.key_delete = SDL_SCANCODE_DELETE;
   c.key_reset = SDL_SCANCODE_R;
+  c.key_gl_shader = SDL_SCANCODE_F11;
+  c.key_visualizer = SDL_SCANCODE_F12;
 
   c.gamepad_up = SDL_CONTROLLER_BUTTON_DPAD_UP;
   c.gamepad_left = SDL_CONTROLLER_BUTTON_DPAD_LEFT;
@@ -58,7 +60,7 @@ void write_config(config_params_s *conf) {
   SDL_Log("Writing config file to %s", config_path);
 
   // Entries for the config file
-  char ini_values[34][50];
+  char ini_values[37][50];
   sprintf(ini_values[0], "[graphics]\n");
   sprintf(ini_values[1], "fullscreen=%s\n",
           conf->init_fullscreen ? "true" : "false");
@@ -77,30 +79,36 @@ void write_config(config_params_s *conf) {
   sprintf(ini_values[14], "key_edit_alt=%d\n", conf->key_edit_alt);
   sprintf(ini_values[15], "key_delete=%d\n", conf->key_delete);
   sprintf(ini_values[16], "key_reset=%d\n", conf->key_reset);
-  sprintf(ini_values[17], "[gamepad]\n");
-  sprintf(ini_values[18], "gamepad_up=%d\n", conf->gamepad_up);
-  sprintf(ini_values[19], "gamepad_left=%d\n", conf->gamepad_left);
-  sprintf(ini_values[20], "gamepad_down=%d\n", conf->gamepad_down);
-  sprintf(ini_values[21], "gamepad_right=%d\n", conf->gamepad_right);
-  sprintf(ini_values[22], "gamepad_select=%d\n", conf->gamepad_select);
-  sprintf(ini_values[23], "gamepad_start=%d\n", conf->gamepad_start);
-  sprintf(ini_values[24], "gamepad_opt=%d\n", conf->gamepad_opt);
-  sprintf(ini_values[25], "gamepad_edit=%d\n", conf->gamepad_edit);
-  sprintf(ini_values[26], "gamepad_analog_threshold=%d\n",
+  sprintf(ini_values[17], "key_gl_shader=%d\n",
+          conf->key_gl_shader);          
+  sprintf(ini_values[18], "key_visualizer=%d\n",
+          conf->key_visualizer);          
+  sprintf(ini_values[19], "[gamepad]\n");
+  sprintf(ini_values[20], "gamepad_up=%d\n", conf->gamepad_up);
+  sprintf(ini_values[21], "gamepad_left=%d\n", conf->gamepad_left);
+  sprintf(ini_values[22], "gamepad_down=%d\n", conf->gamepad_down);
+  sprintf(ini_values[23], "gamepad_right=%d\n", conf->gamepad_right);
+  sprintf(ini_values[24], "gamepad_select=%d\n", conf->gamepad_select);
+  sprintf(ini_values[25], "gamepad_start=%d\n", conf->gamepad_start);
+  sprintf(ini_values[26], "gamepad_opt=%d\n", conf->gamepad_opt);
+  sprintf(ini_values[27], "gamepad_edit=%d\n", conf->gamepad_edit);
+  sprintf(ini_values[28], "gamepad_analog_threshold=%d\n",
           conf->gamepad_analog_threshold);
-  sprintf(ini_values[27], "gamepad_analog_invert=%s\n",
+  sprintf(ini_values[29], "gamepad_analog_invert=%s\n",
           conf->gamepad_analog_invert ? "true" : "false");
-  sprintf(ini_values[28], "gamepad_analog_axis_updown=%d\n",
+  sprintf(ini_values[30], "gamepad_analog_axis_updown=%d\n",
           conf->gamepad_analog_axis_updown);
-  sprintf(ini_values[29], "gamepad_analog_axis_leftright=%d\n",
+  sprintf(ini_values[31], "gamepad_analog_axis_leftright=%d\n",
           conf->gamepad_analog_axis_leftright);
-  sprintf(ini_values[30], "gamepad_analog_axis_select=%d\n",
+  sprintf(ini_values[32], "gamepad_analog_axis_select=%d\n",
           conf->gamepad_analog_axis_select);
-  sprintf(ini_values[31], "gamepad_analog_axis_start=%d\n",
+  sprintf(ini_values[33], "gamepad_analog_axis_start=%d\n",
           conf->gamepad_analog_axis_start);
-  sprintf(ini_values[32], "gamepad_analog_axis_opt=%d\n",
+  sprintf(ini_values[34], "gamepad_analog_axis_opt=%d\n",
           conf->gamepad_analog_axis_opt);
-  sprintf(ini_values[33], "gamepad_analog_axis_edit=%d\n",
+  sprintf(ini_values[35], "gamepad_analog_axis_edit=%d\n",
+          conf->gamepad_analog_axis_edit);
+  sprintf(ini_values[36], "gamepad_analog_axis_edit=%d\n",
           conf->gamepad_analog_axis_edit);
 
   if (rw != NULL) {
@@ -169,6 +177,8 @@ void read_key_config(ini_t *ini, config_params_s *conf) {
   const char *key_edit_alt = ini_get(ini, "keyboard", "key_edit_alt");
   const char *key_delete = ini_get(ini, "keyboard", "key_delete");
   const char *key_reset = ini_get(ini, "keyboard", "key_reset");
+  const char *key_gl_shader = ini_get(ini, "keyboard", "key_gl_shader");
+  const char *key_visualizer = ini_get(ini, "keyboard", "key_visualizer");
 
   if (key_up)
     conf->key_up = SDL_atoi(key_up);
@@ -198,6 +208,10 @@ void read_key_config(ini_t *ini, config_params_s *conf) {
     conf->key_delete = SDL_atoi(key_delete);
   if (key_reset)
     conf->key_reset = SDL_atoi(key_reset);
+  if (key_gl_shader)
+    conf->key_gl_shader = atoi(key_gl_shader);
+  if (key_visualizer)
+    conf->key_visualizer = atoi(key_visualizer);
 }
 
 void read_gamepad_config(ini_t *ini, config_params_s *conf) {
@@ -253,10 +267,17 @@ void read_gamepad_config(ini_t *ini, config_params_s *conf) {
   else
     conf->gamepad_analog_invert = 0;
 
-  if (gamepad_analog_axis_updown) conf->gamepad_analog_axis_updown = SDL_atoi(gamepad_analog_axis_updown);
-  if (gamepad_analog_axis_leftright) conf->gamepad_analog_axis_leftright = SDL_atoi(gamepad_analog_axis_leftright);
-  if (gamepad_analog_axis_select) conf->gamepad_analog_axis_select = SDL_atoi(gamepad_analog_axis_select);
-  if (gamepad_analog_axis_start) conf->gamepad_analog_axis_start = SDL_atoi(gamepad_analog_axis_start);
-  if (gamepad_analog_axis_opt) conf->gamepad_analog_axis_opt = SDL_atoi(gamepad_analog_axis_opt);
-  if (gamepad_analog_axis_edit) conf->gamepad_analog_axis_edit = SDL_atoi(gamepad_analog_axis_edit);
+  if (gamepad_analog_axis_updown)
+    conf->gamepad_analog_axis_updown = SDL_atoi(gamepad_analog_axis_updown);
+  if (gamepad_analog_axis_leftright)
+    conf->gamepad_analog_axis_leftright =
+        SDL_atoi(gamepad_analog_axis_leftright);
+  if (gamepad_analog_axis_select)
+    conf->gamepad_analog_axis_select = SDL_atoi(gamepad_analog_axis_select);
+  if (gamepad_analog_axis_start)
+    conf->gamepad_analog_axis_start = SDL_atoi(gamepad_analog_axis_start);
+  if (gamepad_analog_axis_opt)
+    conf->gamepad_analog_axis_opt = SDL_atoi(gamepad_analog_axis_opt);
+  if (gamepad_analog_axis_edit)
+    conf->gamepad_analog_axis_edit = SDL_atoi(gamepad_analog_axis_edit);
 }

@@ -230,6 +230,10 @@ static input_msg_s handle_normal_keys(SDL_Event *event, config_params_s *conf,
     key.value = key_opt | key_edit;
   } else if (event->key.keysym.scancode == conf->key_reset) {
     key = (input_msg_s){special, msg_reset_display};
+  } else if (event->key.keysym.scancode == conf->key_gl_shader) {
+    key = (input_msg_s){special, msg_toggle_gl_shader};
+  } else if (event->key.keysym.scancode == conf->key_visualizer) {
+    key = (input_msg_s){special, msg_toggle_special_fx};
   } else {
     key.value = 0;
   }
