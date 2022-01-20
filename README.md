@@ -122,10 +122,22 @@ $ ./m8c
 INFO: Looking for USB serial devices.
 INFO: Found M8 in /dev/ttyACM1.
 INFO: Opening port.
-Aborted (core dumped)
+ERROR: Error: Failed: Permission denied
 ```
 
-This is likely an issue with the version of libserialport included in your Linux distribution and you need to build the library yourself. Please see [this issue for a workaround](https://github.com/laamaa/m8c/issues/20).
+This is likely caused because the user running m8c does not have permission to use the serial port. The eaiest way to fix this is to add the current user to a group with permission to use the serial port.
+
+On Linux systems, look at the permissions on the serial port shown on the line that says "Found M8 in":
+```
+$ ls -la /dev/ttyACM1
+crw-rw---- 1 root dialout 166, 0 Jan  8 14:51 /dev/ttyACM0
+```
+
+This shows that the serial port is owned by the user 'root' and the grou 'dialout'. Both the user and the group have read/write permissions. To add a user to the group, run this command, replacing 'dialout' with the group shown on your own system:
+
+    sudo adduser $USER dialout
+
+You may need to log out and back in or even fully reboot the system for this change to take effect, but this will hopefully fix the problem. Please see [this issue for more details](https://github.com/laamaa/m8c/issues/20).
 
 -----------
 

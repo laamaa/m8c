@@ -34,10 +34,8 @@ struct active_notes active_notes[8] = {0};
 int vu_meter[2] = {0};
 
 static uint32_t ticks;
-#ifdef SHOW_FPS
 static uint32_t ticks_fps;
 static int fps;
-#endif
 uint8_t fullscreen = 0;
 uint8_t special_fx = 0;
 uint8_t enable_gl_shader = 0;
@@ -371,8 +369,7 @@ void display_keyjazz_overlay(uint8_t show, uint8_t base_octave) {
 
 void render_screen() {
 
-  // process every 16ms (roughly 60fps)
-  if (SDL_GetTicks() - ticks > 15) {
+  if (SDL_GetTicks() - ticks > 14) {
     ticks = SDL_GetTicks();
     SDL_SetRenderTarget(rend, main_texture);
     SDL_RenderCopy(rend, m8_texture, NULL, NULL);
@@ -392,14 +389,12 @@ void render_screen() {
     }
     SDL_SetRenderTarget(rend, m8_texture);
 
-#ifdef SHOW_FPS
     fps++;
 
     if (SDL_GetTicks() - ticks_fps > 5000) {
       ticks_fps = SDL_GetTicks();
-      SDL_LogDebug(SDL_LOG_CATEGORY_VIDEO, "%d fps\n", fps / 5);
+      SDL_LogDebug(SDL_LOG_CATEGORY_VIDEO, "%.1f fps\n", (float)fps / 5);
       fps = 0;
     }
-#endif
   }
 }
