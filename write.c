@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <enet/enet.h>
 
 int reset_display(struct sp_port *port){
   SDL_Log("Reset display\n");

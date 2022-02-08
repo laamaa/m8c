@@ -7,3 +7,4 @@ build/
 compile_commands.json
 .clangd
 result*
+SDL2.dll
