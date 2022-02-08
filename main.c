@@ -11,9 +11,10 @@
 #include "config.h"
 #include "input.h"
 #include "render.h"
-#include "serial.h"
+// #include "serial.h"
 #include "slip.h"
 #include "write.h"
+#include <enet/enet.h>
 
 // maximum amount of bytes to read from the serial in one read()
 #define serial_read_size 324
@@ -24,7 +25,14 @@ uint8_t need_display_reset = 0;
 // Handles CTRL+C / SIGINT
 void intHandler(int dummy) { run = 0; }
 
+ENetAddress address;
+ENetHost * client;
+ENetPeer * peer;
+
 int main(int argc, char *argv[]) {
+
+
+
   // Initialize the config to defaults read in the params from the
   // configfile if present
   config_params_s conf = init_config();
@@ -32,6 +40,64 @@ int main(int argc, char *argv[]) {
   // TODO: take cli parameter to override default configfile location
   read_config(&conf);
 
+
+
+  if (enet_initialize () != 0)
+  {
+      fprintf (stderr, "An error occurred while initializing ENet.\n");
+      return EXIT_FAILURE;
+  }
+  atexit (enet_deinitialize);
+
+
+
+  client = enet_host_create (NULL /* create a client host */,
+              1 /* only allow 1 outgoing connection */,
+              2 /* allow up 2 channels to be used, 0 and 1 */,
+              0 /* assume any amount of incoming bandwidth */,
+              0 /* assume any amount of outgoing bandwidth */);
+
+  if (client == NULL)
+  {
+      fprintf (stderr, 
+              "An error occurred while trying to create an ENet server host.\n");
+      exit (EXIT_FAILURE);
+  }
+  ENetEvent event;
+
+
+  /* Bind the server to port 1234. */
+  //enet_address_set_host (& address, "127.0.0.1");
+  enet_address_set_host (& address, "192.168.1.146");
+  address.port = 1234;
+
+  /* Initiate the connection, allocating the two channels 0 and 1. */
+  peer = enet_host_connect (client, & address, 2, 0);   
+
+
+  if (peer == NULL)
+  {
+    fprintf (stderr, 
+              "No available peers for initiating an ENet connection.\n");
+    exit (EXIT_FAILURE);
+  }
+  /* Wait up to 5 seconds for the connection attempt to succeed. */
+  if (enet_host_service (client, & event, 5000) > 0 &&
+      event.type == ENET_EVENT_TYPE_CONNECT)
+  {
+      SDL_LogInfo(0, "Connection to 192.168.1.146:1234 succeeded");
+  }
+  else
+  {
+      /* Either the 5 seconds are up or a disconnect event was */
+      /* received. Reset the peer in the event the 5 seconds   */
+      /* had run out without any significant event.            */
+      enet_peer_reset (peer);
+      SDL_LogInfo(0, "Connection to some.server.net:1234 failed.");
+      return 0;
+  }
+
+  SDL_LogInfo(0, "After Client init");
   // allocate memory for serial buffer
   uint8_t *serial_buf = malloc(serial_read_size);
 
@@ -52,14 +118,6 @@ int main(int argc, char *argv[]) {
 
   slip_init(&slip, &slip_descriptor);
 
-  struct sp_port *port;
-
-  port = init_serial();
-  if (port == NULL)
-    return -1;
-
-  if (enable_and_reset_display(port) == -1)
-    run = 0;
 
   if (initialize_sdl(conf.init_fullscreen) == -1)
     run = 0;
@@ -68,7 +126,46 @@ int main(int argc, char *argv[]) {
 
   // main loop
   while (run) {
+    //SDL_LogInfo(0, "Run Loop");
+    enet_host_service(client, & event, 0);
 
+    switch (event.type)
+    {
+      case ENET_EVENT_TYPE_NONE:
+        break;
+      case ENET_EVENT_TYPE_CONNECT:
+        break;
+      case ENET_EVENT_TYPE_RECEIVE:
+        break;
+      case ENET_EVENT_TYPE_DISCONNECT:
+        run=0;
+        printf("You have been disconnected.\n");
+    }
+
+
+    // don't read serial port in the client
+    // size_t bytes_read = sp_blocking_read(port, serial_buf, serial_read_size, 3);
+
+    // if (bytes_read < 0) {
+    //   SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %d reading serial. \n",
+    //                   (int)bytes_read);
+    //   run = 0;
+    // }
+
+    size_t bytes_read = 0;
+    //SDL_LogInfo(0, "Before packet stuff");
+    
+
+
+    if (event.peer && event.type == ENET_EVENT_TYPE_RECEIVE) {
+      serial_buf = event.packet -> data;
+      bytes_read = event.packet -> dataLength;
+      peer = event.peer;
+    }
+   
+
+
+    //SDL_LogInfo(0, "After enet host");
     // get current inputs
     input_msg_s input = get_input_msg(&conf);
 
@@ -76,16 +173,20 @@ int main(int argc, char *argv[]) {
     case normal:
       if (input.value != prev_input) {
         prev_input = input.value;
-        send_msg_controller(port, input.value);
+        if (peer) {
+          send_msg_controller_client(peer, input.value);
+        }
       }
       break;
     case keyjazz:
       if (input.value != prev_input) {
         prev_input = input.value;
-        if (input.value != 0) {
-          send_msg_keyjazz(port, input.value, 0xFF);
-        } else {
-          send_msg_keyjazz(port, 0, 0);
+        if (peer) {
+          if (input.value != 0) {
+            send_msg_keyjazz_client(peer, input.value, 0xFF);
+          } else {
+            send_msg_keyjazz_client(peer, 0, 0);
+          }
         }
       }
       break;
@@ -97,7 +198,7 @@ int main(int argc, char *argv[]) {
           run = 0;
           break;
         case msg_reset_display:
-          reset_display(port);
+          // reset_display(port);
           break;
         default:
           break;
@@ -106,27 +207,28 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    // read serial port
-    size_t bytes_read = sp_blocking_read(port, serial_buf, serial_read_size, 3);
-    if (bytes_read < 0) {
-      SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %d reading serial. \n",
-                      (int)bytes_read);
-      run = 0;
-    }
-    if (bytes_read > 0) {
+
+    
+
+    //SDL_LogInfo(0, "After packet stuff");
+
+    if (serial_buf) {
+
       for (int i = 0; i < bytes_read; i++) {
         uint8_t rx = serial_buf[i];
         // process the incoming bytes into commands and draw them
         int n = slip_read_byte(&slip, rx);
         if (n != SLIP_NO_ERROR) {
           if (n == SLIP_ERROR_INVALID_PACKET) {
-            reset_display(port);
+            //reset_display(port);
           } else {
             SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SLIP error %d\n", n);
           }
         }
       }
-      render_screen();
+      // don't need to render in the server 
+      render_screen(); // TODO comment out
+      serial_buf = 0;
     }
   }
 
@@ -134,10 +236,10 @@ int main(int argc, char *argv[]) {
   SDL_Log("Shutting down\n");
   close_game_controllers();
   close_renderer();
-  disconnect(port);
-  sp_close(port);
-  sp_free_port(port);
+  // disconnect(port);
+  // sp_close(port);
+  // sp_free_port(port);
   free(serial_buf);
-
+  enet_host_destroy(client);
   return 0;
 }

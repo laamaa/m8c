@@ -1,3 +1,12 @@
+# This Fork - Remote CLIENT HACK
+
+This is a hacked version of the M8 client designed to enable remote control. This client version connects to the sister-fork server version of m8c. It allows remote control - in that it displays the headless m8 and passes key commands to the server. It does not stream audio.
+
+
+# This Fork - Remote SERVER HACK
+
+This is a hacked version of the M8 client designed to enable remote control. The server version connects to the sister-fork client version of m8c. It allows remote control - it streams the GUI to the client and receives key commands from the client. This server deals with the serial connection to the m8. To use the server, rename main.c to be main_client.c and main_server.c to main.c.
+
 # m8c
 
 m8c is a client for Dirtywave M8 tracker's headless mode. The application should be cross-platform ready and can be built in Linux, Windows (with MSYS2/MINGW64) and Mac OS.

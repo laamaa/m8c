@@ -84,3 +84,51 @@ int send_msg_keyjazz(struct sp_port *port, uint8_t note, uint8_t velocity) {
 
   return 1;
 }
+
+
+
+int send_msg_controller_server(struct sp_port *port, unsigned char buf[2]) {
+  size_t nbytes = 2;
+  int result;
+  result = sp_blocking_write(port, buf, nbytes, 5);
+  if (result != nbytes) {
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error sending input, code %d", result);
+    return -1;
+  }
+  return 1;
+
+}
+
+int send_msg_keyjazz_server(struct sp_port *port, unsigned char buf[3]) {
+  size_t nbytes = 3;
+  int result;
+  result = sp_blocking_write(port, buf, nbytes,5);
+  if (result != nbytes) {
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error sending keyjazz, code %d", result);
+    return -1;
+  }
+
+  return 1;
+}
+
+void send_msg_controller_client(ENetPeer * peer, uint8_t input) {
+  char buf[2] = {'C',input};
+  size_t nbytes = 2;
+  ENetPacket * packet = enet_packet_create (buf, 
+                                            nbytes, 
+                                            ENET_PACKET_FLAG_RELIABLE);
+  enet_peer_send (peer, 0, packet);
+
+}
+
+void send_msg_keyjazz_client(ENetPeer * peer, uint8_t note, uint8_t velocity) {
+  if (velocity > 64)
+    velocity = 64;
+  char buf[3] = {'K',note,velocity};
+  size_t nbytes = 3;
+  ENetPacket * packet = enet_packet_create (buf, 
+                                            nbytes, 
+                                            ENET_PACKET_FLAG_RELIABLE);
+  enet_peer_send (peer, 1, packet);
+
+}

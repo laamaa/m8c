@@ -5,7 +5,7 @@ OBJ = main.o serial.o slip.o command.o write.o render.o ini.o config.o input.o f
 DEPS = serial.h slip.h command.h write.h render.h ini.h config.h input.h
 
 #Any special libraries you are using in your project (e.g. -lbcm2835 -lrt `pkg-config --libs gtk+-3.0` ), or leave blank
-INCLUDES = -lenet -lws2_32 -lserialport -lenet64 
+INCLUDES = -lenet -lws2_32 -lwinmm -lserialport -lenet64 
 
 #Set any compiler flags you want to use (e.g. -I/usr/include/somefolder `pkg-config --cflags gtk+-3.0` ), or leave blank
 CFLAGS = `sdl2-config --libs --cflags` -march=native -Wall -O2 -pipe -I.
