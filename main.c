@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
 
   client = enet_host_create (NULL /* create a client host */,
               1 /* only allow 1 outgoing connection */,
-              2 /* allow up 2 channels to be used, 0 and 1 */,
+              2 /* allow up 3 channels to be used, 0, 1 and 2 */,
               0 /* assume any amount of incoming bandwidth */,
               0 /* assume any amount of outgoing bandwidth */);
 
@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
       /* received. Reset the peer in the event the 5 seconds   */
       /* had run out without any significant event.            */
       enet_peer_reset (peer);
-      SDL_LogInfo(0, "Connection to some.server.net:1234 failed.");
+      SDL_LogInfo(0, "Connection to 192.168.1.146:1234 failed.");
       return 0;
   }
 
@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
     
     size_t bytes_read = 0;
 
-    if (event.peer && event.type == ENET_EVENT_TYPE_RECEIVE) {
+    if (event.peer && event.type == ENET_EVENT_TYPE_RECEIVE && event.channelID == 2) {
       serial_buf = event.packet -> data;
       bytes_read = event.packet -> dataLength;
       peer = event.peer;
@@ -191,7 +191,7 @@ int main(int argc, char *argv[]) {
           if (input.value != 0) {
             send_msg_keyjazz_client(peer, input.value, 0xFF);
           } else {
-            send_msg_keyjazz_client(peer, 0, 0);
+            //send_msg_keyjazz_client(peer, 0, 0);
           }
         }
       }
