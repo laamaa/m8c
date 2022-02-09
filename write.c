@@ -92,25 +92,15 @@ int send_msg_keyjazz(struct sp_port *port, uint8_t note, uint8_t velocity) {
 
 int send_msg_controller_server(struct sp_port *port, unsigned char buf[2]) {
   size_t nbytes = 2;
-  if (buf[1] != prev_input) {
-    prev_input = buf[1];
-    sp_blocking_write(port, buf, nbytes, 5);
-  }
-  return 1;
-}
 
-int send_msg_keyjazz_server(struct sp_port *port, unsigned char buf[3]) {
-  size_t nbytes = 3;
-  if (buf[1] != prev_input) {
-    prev_input = buf[1];
-    sp_blocking_write(port, buf, nbytes,5);
-  }
+  sp_blocking_write(port, buf, nbytes, 5);
+  
   return 1;
 }
 
 void send_msg_controller_client(ENetPeer * peer, uint8_t input) {
-  char buf[2] = {'C',input};
-  size_t nbytes = 2;
+  char buf[3] = {'C',input,0};
+  size_t nbytes = 3;
   ENetPacket * packet = enet_packet_create (buf, 
                                             nbytes, 
                                             ENET_PACKET_FLAG_RELIABLE);
