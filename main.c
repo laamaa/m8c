@@ -147,6 +147,8 @@ int main(int argc, char *argv[]) {
 
 
     if (event.peer && event.type == ENET_EVENT_TYPE_RECEIVE) {
+      serial_buf = event.packet -> data;
+      bytes_read = event.packet -> dataLength;
       peer = event.peer;
     }
    
@@ -195,7 +197,24 @@ int main(int argc, char *argv[]) {
     // if (peer) {
     //   enet_host_flush(peer);
     // }
-    render_screen();
+    if (serial_buf) {
+
+      for (int i = 0; i < bytes_read; i++) {
+        uint8_t rx = serial_buf[i];
+        // process the incoming bytes into commands and draw them
+        int n = slip_read_byte(&slip, rx);
+        if (n != SLIP_NO_ERROR) {
+          if (n == SLIP_ERROR_INVALID_PACKET) {
+            //reset_display(port);
+          } else {
+            SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SLIP error %d\n", n);
+          }
+        }
+      }
+      // don't need to render in the server 
+      render_screen(); // TODO comment out
+      serial_buf = 0;
+    }
   }
 
   // exit, clean up
