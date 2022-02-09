@@ -163,8 +163,7 @@ int main(int argc, char *argv[]) {
                                                     bytes_read, 
                                                     ENET_PACKET_FLAG_RELIABLE);
           
-          enet_host_broadcast(server, 0, packet);
-          
+
           for (int i = 0; i < bytes_read; i++) {
             uint8_t rx = serial_buf[i];
 
@@ -178,6 +177,8 @@ int main(int argc, char *argv[]) {
               }
             }
           }
+          enet_host_broadcast(server, 0, packet);
+          enet_host_flush(server);
         }
       }
     

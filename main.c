@@ -143,23 +143,10 @@ int main(int argc, char *argv[]) {
     }
 
 
-    // don't read serial port in the client
-    // size_t bytes_read = sp_blocking_read(port, serial_buf, serial_read_size, 3);
-
-    // if (bytes_read < 0) {
-    //   SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %d reading serial. \n",
-    //                   (int)bytes_read);
-    //   run = 0;
-    // }
-
-    size_t bytes_read = 0;
-    //SDL_LogInfo(0, "Before packet stuff");
     
 
 
     if (event.peer && event.type == ENET_EVENT_TYPE_RECEIVE) {
-      serial_buf = event.packet -> data;
-      bytes_read = event.packet -> dataLength;
       peer = event.peer;
     }
    
@@ -198,7 +185,6 @@ int main(int argc, char *argv[]) {
           run = 0;
           break;
         case msg_reset_display:
-          // reset_display(port);
           break;
         default:
           break;
@@ -207,28 +193,7 @@ int main(int argc, char *argv[]) {
       }
     }
 
-
-    
-
-    //SDL_LogInfo(0, "After packet stuff");
-
-    // if (serial_buf) {
-
-    //   for (int i = 0; i < bytes_read; i++) {
-    //     uint8_t rx = serial_buf[i];
-    //     // process the incoming bytes into commands and draw them
-    //     int n = slip_read_byte(&slip, rx);
-    //     if (n != SLIP_NO_ERROR) {
-    //       if (n == SLIP_ERROR_INVALID_PACKET) {
-    //         //reset_display(port);
-    //       } else {
-    //         SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SLIP error %d\n", n);
-    //       }
-    //     }
-    //   }
-
-      render_screen();
-      serial_buf = 0;
+    render_screen();
     }
   }
 
