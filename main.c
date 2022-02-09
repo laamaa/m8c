@@ -192,7 +192,7 @@ int main(int argc, char *argv[]) {
         break;
       }
     }
-    enet_host_flush(peer);
+    enet_host_flush();
     render_screen();
   }
 
