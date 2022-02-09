@@ -216,7 +216,7 @@ int main(int argc, char *argv[]) {
     // if (peer) {
     //   enet_host_flush(peer);
     // }
-    Sleep(25);
+    usleep(25 * 1000);
   }
 
   // exit, clean up
