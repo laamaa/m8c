@@ -151,7 +151,8 @@ int main(int argc, char *argv[]) {
       bytes_read = event.packet -> dataLength;
       peer = event.peer;
     }
-   
+    enet_packet_destroy (event.packet);
+    
     if (serial_buf) {
 
       for (int i = 0; i < bytes_read; i++) {
