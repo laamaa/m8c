@@ -144,7 +144,7 @@ int main(int argc, char *argv[]) {
 
 
     
-
+    size_t bytes_read = 0;
 
     if (event.peer && event.type == ENET_EVENT_TYPE_RECEIVE) {
       serial_buf = event.packet -> data;
