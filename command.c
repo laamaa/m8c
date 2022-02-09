@@ -87,31 +87,31 @@ int process_command(uint8_t *data, uint32_t size) {
 
   case draw_oscilloscope_waveform_command:
 
-    if (size < draw_oscilloscope_waveform_command_mindatalength ||
-        size > draw_oscilloscope_waveform_command_maxdatalength) {
-      SDL_LogError(
-          SDL_LOG_CATEGORY_ERROR,
-          "Invalid draw oscilloscope packet: expected length between %d "
-          "and %d, got "
-          "%d\n",
-          draw_oscilloscope_waveform_command_mindatalength,
-          draw_oscilloscope_waveform_command_maxdatalength, size);
-      dump_packet(size, recv_buf);
-      return 0;
-      break;
-    } else {
+    // if (size < draw_oscilloscope_waveform_command_mindatalength ||
+    //     size > draw_oscilloscope_waveform_command_maxdatalength) {
+    //   SDL_LogError(
+    //       SDL_LOG_CATEGORY_ERROR,
+    //       "Invalid draw oscilloscope packet: expected length between %d "
+    //       "and %d, got "
+    //       "%d\n",
+    //       draw_oscilloscope_waveform_command_mindatalength,
+    //       draw_oscilloscope_waveform_command_maxdatalength, size);
+    //   dump_packet(size, recv_buf);
+    //   return 0;
+    //   break;
+    // } else {
 
-      struct draw_oscilloscope_waveform_command osccmd;
+    //   struct draw_oscilloscope_waveform_command osccmd;
 
-      osccmd.color =
-          (struct color){recv_buf[1], recv_buf[2], recv_buf[3]}; // color r/g/b
-      memcpy(osccmd.waveform, &recv_buf[4], size - 4);
+    //   osccmd.color =
+    //       (struct color){recv_buf[1], recv_buf[2], recv_buf[3]}; // color r/g/b
+    //   memcpy(osccmd.waveform, &recv_buf[4], size - 4);
 
-      osccmd.waveform_size = size - 4;
+    //   osccmd.waveform_size = size - 4;
 
-      draw_waveform(&osccmd);
-      return 1;
-    }
+    //   draw_waveform(&osccmd);
+    //   return 1;
+    // }
 
     break;
 
