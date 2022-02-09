@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
   }
   atexit (enet_deinitialize);
 
-  enet_address_set_host (& address, "192.168.1.201");
+  enet_address_set_host (& address, "192.168.1.146");
   //enet_address_set_host (& address, "127.0.0.1");
   /* Bind the server to port 1234. */
   address.port = 1234;
