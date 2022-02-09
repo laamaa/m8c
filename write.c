@@ -112,10 +112,9 @@ void send_msg_controller_client(ENetPeer * peer, uint8_t input) {
   char buf[2] = {'C',input};
   size_t nbytes = 2;
   ENetPacket * packet = enet_packet_create (buf, 
-                                            nbytes,
-                                            ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT );
+                                            nbytes, 
+                                            ENET_PACKET_FLAG_RELIABLE);
   enet_peer_send (peer, 0, packet);
-  //enet_host_flush(peer);
 }
 
 void send_msg_keyjazz_client(ENetPeer * peer, uint8_t note, uint8_t velocity) {
@@ -124,8 +123,7 @@ void send_msg_keyjazz_client(ENetPeer * peer, uint8_t note, uint8_t velocity) {
   char buf[3] = {'K',note,velocity};
   size_t nbytes = 3;
   ENetPacket * packet = enet_packet_create (buf, 
-                                            nbytes,
-                                            ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT );
+                                            nbytes, 
+                                            ENET_PACKET_FLAG_RELIABLE);
   enet_peer_send (peer, 1, packet);
-  //enet_host_flush(peer);
 }
