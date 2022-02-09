@@ -17,7 +17,7 @@
 #include <enet/enet.h>
 
 // maximum amount of bytes to read from the serial in one read()
-#define serial_read_size 324
+#define serial_read_size 4096
 
 uint8_t run = 1;  
 int main_loop=1;
@@ -50,6 +50,7 @@ int main(int argc, char *argv[]) {
   atexit (enet_deinitialize);
 
   enet_address_set_host (& address, "192.168.1.146");
+  //enet_address_set_host (& address, "192.168.1.201");
   //enet_address_set_host (& address, "127.0.0.1");
   /* Bind the server to port 1234. */
   address.port = 1234;
@@ -61,7 +62,7 @@ int main(int argc, char *argv[]) {
     //SDL_Log("Creating Server.\n");
     server = enet_host_create (& address /* the address to bind the server host to */, 
                               1      /* allow up to 32 clients and/or outgoing connections */,
-                                2      /* allow up to 2 channels to be used, 0 and 1 */,
+                                3      /* allow up to 2 channels to be used, 0 and 1 */,
                                 0      /* assume any amount of incoming bandwidth */,
                                 0      /* assume any amount of outgoing bandwidth */);
     if (server == NULL)
@@ -140,16 +141,6 @@ int main(int argc, char *argv[]) {
       if (connected == 1) {
 
 
-
-        if (event.peer && event.type == ENET_EVENT_TYPE_RECEIVE && event.channelID == 0) {
-          send_msg_controller_server(port, event.packet -> data);
-        }
-
-        if (event.peer && event.type == ENET_EVENT_TYPE_RECEIVE && event.channelID == 1) {
-          send_msg_keyjazz_server(port, event.packet -> data);
-        }
-
-
         // read serial port
         size_t bytes_read = sp_blocking_read(port, serial_buf, serial_read_size, 3);
         if (bytes_read < 0) {
@@ -157,13 +148,18 @@ int main(int argc, char *argv[]) {
                           (int)bytes_read);
           run = 0;
         }
+        
         if (bytes_read > 0) {
+
+
+          SDL_Log("Display Bytes: %d\n", bytes_read);
           // Send the bytes to the client
           ENetPacket * packet = enet_packet_create (serial_buf, 
                                                     bytes_read, 
                                                     ENET_PACKET_FLAG_RELIABLE);
           
-
+          enet_host_broadcast(server, 0, packet);
+          
           for (int i = 0; i < bytes_read; i++) {
             uint8_t rx = serial_buf[i];
 
@@ -177,9 +173,14 @@ int main(int argc, char *argv[]) {
               }
             }
           }
-          enet_host_broadcast(server, 0, packet);
-          enet_host_flush(server);
         }
+
+        if (event.peer && event.type == ENET_EVENT_TYPE_RECEIVE) {
+          SDL_Log("Key Press Bytes: %d\n", event.packet -> dataLength);
+          send_msg_controller_server(port, event.packet -> data);
+          enet_packet_destroy (event.packet);
+        }
+        usleep(70 * 1000);
       }
     
     }

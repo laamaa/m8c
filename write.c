@@ -86,13 +86,11 @@ int send_msg_keyjazz(struct sp_port *port, uint8_t note, uint8_t velocity) {
   return 1;
 }
 
-
-
-int send_msg_controller_server(struct sp_port *port, unsigned char buf[2]) {
-  size_t nbytes = 2;
+int send_msg_controller_server(struct sp_port *port, unsigned char buf[3]) {
+  size_t nbytes = 3;
 
   sp_blocking_write(port, buf, nbytes, 5);
-  
+
   return 1;
 }
 
