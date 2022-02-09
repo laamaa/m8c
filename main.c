@@ -17,7 +17,7 @@
 #include <enet/enet.h>
 
 // maximum amount of bytes to read from the serial in one read()
-#define serial_read_size 10368
+#define serial_read_size 512
 
 uint8_t run = 1;
 uint8_t need_display_reset = 0;
@@ -216,7 +216,7 @@ int main(int argc, char *argv[]) {
     // if (peer) {
     //   enet_host_flush(peer);
     // }
-
+    sleep(0.05);
   }
 
   // exit, clean up
