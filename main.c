@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
 
   client = enet_host_create (NULL /* create a client host */,
               1 /* only allow 1 outgoing connection */,
-              3 /* allow up 3 channels to be used, 0, 1 and 2 */,
+              2 /* allow up 3 channels to be used, 0, 1 and 2 */,
               0 /* assume any amount of incoming bandwidth */,
               0 /* assume any amount of outgoing bandwidth */);
 
@@ -191,7 +191,7 @@ int main(int argc, char *argv[]) {
           if (input.value != 0) {
             send_msg_keyjazz_client(peer, input.value, 0xFF);
           } else {
-            send_msg_keyjazz_client(peer, 0, 0);
+            //send_msg_keyjazz_client(peer, 0, 0);
           }
         }
       }
