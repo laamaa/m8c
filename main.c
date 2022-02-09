@@ -28,10 +28,14 @@ void intHandler(int dummy) { run = 0; }
 ENetAddress address;
 ENetHost * client;
 ENetPeer * peer;
+SDL_Cursor *cursor;
 
 int main(int argc, char *argv[]) {
 
-  SDL_ShowCursor(SDL_DISABLE);
+
+  int32_t cursorData[2] = {0, 0};
+  cursor = SDL_CreateCursor((Uint8 *)cursorData, (Uint8 *)cursorData, 8, 8, 4, 4);
+  SDL_SetCursor(cursor);
 
   // Initialize the config to defaults read in the params from the
   // configfile if present
@@ -223,6 +227,7 @@ int main(int argc, char *argv[]) {
   close_renderer();
   free(serial_buf);
   enet_host_destroy(client);
+  SDL_FreeCursor(cursor);
   return 0;
 
 }
