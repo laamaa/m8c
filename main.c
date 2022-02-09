@@ -151,7 +151,6 @@ int main(int argc, char *argv[]) {
       bytes_read = event.packet -> dataLength;
       peer = event.peer;
     }
-    enet_packet_destroy (event.packet);
     
     if (serial_buf) {
 
@@ -171,6 +170,8 @@ int main(int argc, char *argv[]) {
       render_screen(); // TODO comment out
       serial_buf = 0;
     }
+
+    enet_packet_destroy (event.packet);
 
     //SDL_LogInfo(0, "After enet host");
     // get current inputs
