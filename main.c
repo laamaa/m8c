@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
       /* received. Reset the peer in the event the 5 seconds   */
       /* had run out without any significant event.            */
       enet_peer_reset (peer);
-      SDL_LogInfo(0, "Connection to some.server.net:1234 failed.");
+      SDL_LogInfo(0, "Connection to 192.168.1.146:1234 failed.");
       return 0;
   }
 

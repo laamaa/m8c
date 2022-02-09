@@ -114,7 +114,7 @@ void send_msg_controller_client(ENetPeer * peer, uint8_t input) {
   ENetPacket * packet = enet_packet_create (buf, 
                                             nbytes, 
                                             ENET_PACKET_FLAG_RELIABLE);
-  enet_peer_send (peer, 0, packet);
+  enet_peer_send (peer, 1, packet);
 }
 
 void send_msg_keyjazz_client(ENetPeer * peer, uint8_t note, uint8_t velocity) {
@@ -125,5 +125,5 @@ void send_msg_keyjazz_client(ENetPeer * peer, uint8_t note, uint8_t velocity) {
   ENetPacket * packet = enet_packet_create (buf, 
                                             nbytes, 
                                             ENET_PACKET_FLAG_RELIABLE);
-  enet_peer_send (peer, 1, packet);
+  enet_peer_send (peer, 2, packet);
 }
