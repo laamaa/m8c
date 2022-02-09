@@ -194,7 +194,6 @@ int main(int argc, char *argv[]) {
     }
     enet_host_flush(peer);
     render_screen();
-    }
   }
 
   // exit, clean up
