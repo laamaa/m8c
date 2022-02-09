@@ -197,14 +197,15 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  // exit, clean up
-  SDL_Log("Shutting down\n");
-  close_game_controllers();
-  close_renderer();
-  // disconnect(port);
-  // sp_close(port);
-  // sp_free_port(port);
-  free(serial_buf);
-  enet_host_destroy(client);
-  return 0;
+    // exit, clean up
+    SDL_Log("Shutting down\n");
+    close_game_controllers();
+    close_renderer();
+    // disconnect(port);
+    // sp_close(port);
+    // sp_free_port(port);
+    free(serial_buf);
+    enet_host_destroy(client);
+    return 0;
+  }
 }
