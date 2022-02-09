@@ -8,8 +8,6 @@
 #include <unistd.h>
 #include <enet/enet.h>
 
-uint8_t prev_input = 0;
-
 int reset_display(struct sp_port *port){
   SDL_Log("Reset display\n");
   uint8_t buf[2];
@@ -99,7 +97,8 @@ int send_msg_controller_server(struct sp_port *port, unsigned char buf[2]) {
 }
 
 void send_msg_controller_client(ENetPeer * peer, uint8_t input) {
-  char buf[3] = {'C',input,0};
+  uint8_t bulk = 0;
+  char buf[3] = {'C',input,bulk};
   size_t nbytes = 3;
   ENetPacket * packet = enet_packet_create (buf, 
                                             nbytes, 
