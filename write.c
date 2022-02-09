@@ -127,7 +127,6 @@ void send_msg_controller_client(ENetPeer * peer, uint8_t input) {
                                             nbytes, 
                                             ENET_PACKET_FLAG_RELIABLE);
   enet_peer_send (peer, 0, packet);
-  enet_host_flush(peer);
 }
 
 void send_msg_keyjazz_client(ENetPeer * peer, uint8_t note, uint8_t velocity) {
@@ -139,5 +138,4 @@ void send_msg_keyjazz_client(ENetPeer * peer, uint8_t note, uint8_t velocity) {
                                             nbytes, 
                                             ENET_PACKET_FLAG_RELIABLE);
   enet_peer_send (peer, 1, packet);
-  enet_host_flush(peer);
 }
