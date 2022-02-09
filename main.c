@@ -213,19 +213,14 @@ int main(int argc, char *argv[]) {
         break;
       }
     }
-    // if (peer) {
-    //   enet_host_flush(peer);
-    // }
-    usleep(50 * 1000);
+
+    usleep(30 * 1000);
   }
 
   // exit, clean up
   SDL_Log("Shutting down\n");
   close_game_controllers();
   close_renderer();
-  // disconnect(port);
-  // sp_close(port);
-  // sp_free_port(port);
   free(serial_buf);
   enet_host_destroy(client);
   return 0;
