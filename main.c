@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
     
     size_t bytes_read = 0;
 
-    if (event.peer && event.type == ENET_EVENT_TYPE_RECEIVE && event.channelID == 2) {
+    if (event.peer && event.type == ENET_EVENT_TYPE_RECEIVE && event.channelID == 0) {
       serial_buf = event.packet -> data;
       bytes_read = event.packet -> dataLength;
       peer = event.peer;
