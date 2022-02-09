@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
 
   client = enet_host_create (NULL /* create a client host */,
               1 /* only allow 1 outgoing connection */,
-              3 /* allow up 2 channels to be used, 0 and 1 */,
+              3 /* allow up 3 channels to be used, 0, 1 and 2 */,
               0 /* assume any amount of incoming bandwidth */,
               0 /* assume any amount of outgoing bandwidth */);
 
@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
     
     size_t bytes_read = 0;
 
-    if (event.peer && event.type == ENET_EVENT_TYPE_RECEIVE) {
+    if (event.peer && event.type == ENET_EVENT_TYPE_RECEIVE event.channelID == 2) {
       serial_buf = event.packet -> data;
       bytes_read = event.packet -> dataLength;
       peer = event.peer;
