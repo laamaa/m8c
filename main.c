@@ -31,7 +31,7 @@ ENetPeer * peer;
 
 int main(int argc, char *argv[]) {
 
-
+  SDL_ShowCursor(SDL_DISABLE);
 
   // Initialize the config to defaults read in the params from the
   // configfile if present
