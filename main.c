@@ -17,7 +17,7 @@
 #include <enet/enet.h>
 
 // maximum amount of bytes to read from the serial in one read()
-#define serial_read_size 324
+#define serial_read_size 10368
 
 uint8_t run = 1;
 uint8_t need_display_reset = 0;
