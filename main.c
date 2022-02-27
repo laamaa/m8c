@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
     }
 
     // read serial port
-    size_t bytes_read = sp_blocking_read(port, serial_buf, serial_read_size, 3);
+    int bytes_read = sp_blocking_read(port, serial_buf, serial_read_size, 3);
     if (bytes_read < 0) {
       SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %d reading serial. \n",
                       (int)bytes_read);
