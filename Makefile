@@ -5,10 +5,12 @@ OBJ = main.o serial.o slip.o command.o write.o render.o ini.o config.o input.o f
 DEPS = serial.h slip.h command.h write.h render.h ini.h config.h input.h
 
 #Any special libraries you are using in your project (e.g. -lbcm2835 -lrt `pkg-config --libs gtk+-3.0` ), or leave blank
-INCLUDES = -lserialport
+INCLUDES = $(shell pkg-config --libs sdl2 libserialport)
+
+
 
 #Set any compiler flags you want to use (e.g. -I/usr/include/somefolder `pkg-config --cflags gtk+-3.0` ), or leave blank
-CFLAGS = `sdl2-config --libs --cflags` -march=native -Wall -O2 -pipe -I.
+CFLAGS = $(shell pkg-config --cflags sdl2 libserialport) -mcpu=apple-m1 -Wall -O2 -pipe -I.
 
 #Set the compiler you are using ( gcc for C or g++ for C++ )
 CC = gcc
@@ -26,7 +28,7 @@ m8c: $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS) $(INCLUDES)
 
 font.c: inline_font.h
-	@echo "#include <SDL2/SDL.h>" > $@-tmp1
+	@echo "#include <SDL.h>" > $@-tmp1
 	@cat inline_font.h >> $@-tmp1
 	@cat inprint2.c > $@-tmp2
 	@sed '/#include/d' $@-tmp2 >> $@-tmp1
