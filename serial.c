@@ -4,7 +4,7 @@
 // Contains portions of code from libserialport's examples released to the
 // public domain
 
-#include <SDL2/SDL_log.h>
+#include <SDL_log.h>
 #include <libserialport.h>
 #include <stdio.h>
 #include <stdlib.h>
