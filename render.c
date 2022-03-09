@@ -3,7 +3,7 @@
 
 #include "render.h"
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include <stdio.h>
 
 #include "SDL2_inprint.h"
