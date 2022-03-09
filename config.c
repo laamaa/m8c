@@ -2,7 +2,7 @@
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
 #include "config.h"
-#include <SDL2/SDL.h>
+#include <SDL.h>
 
 config_params_s init_config() {
   config_params_s c;
