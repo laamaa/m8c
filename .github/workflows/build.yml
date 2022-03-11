@@ -123,7 +123,7 @@ jobs:
     
     steps:
       - name: 'Install dependencies'
-        run: brew install sdl2 libserialport git
+        run: brew install sdl2 libserialport pkg-config
 
       - name: 'Checkout'
         uses: actions/checkout@v2
