@@ -1,5 +1,8 @@
+*.dylib
+*.a
 *.o
 *.exe
+.DS_Store
 m8c
 .vscode
 font.c
