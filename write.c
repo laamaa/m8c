@@ -1,7 +1,7 @@
 // Copyright 2021 Jonne Kokkonen
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
-#include <SDL2/SDL_log.h>
+#include <SDL_log.h>
 #include <libserialport.h>
 #include <stdint.h>
 #include <stdio.h>

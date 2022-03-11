@@ -1,7 +1,7 @@
 // Copyright 2021 Jonne Kokkonen
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include <libserialport.h>
 #include <signal.h>
 #include <string.h>
@@ -16,7 +16,7 @@
 #include "write.h"
 
 // maximum amount of bytes to read from the serial in one read()
-#define serial_read_size 1024
+#define serial_read_size 324
 
 uint8_t run = 1;
 uint8_t need_display_reset = 0;
@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
     }
 
     // read serial port
-    size_t bytes_read = sp_nonblocking_read(port, serial_buf, serial_read_size);
+    int bytes_read = sp_blocking_read(port, serial_buf, serial_read_size, 3);
     if (bytes_read < 0) {
       SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %d reading serial. \n",
                       (int)bytes_read);
@@ -120,17 +120,13 @@ int main(int argc, char *argv[]) {
         int n = slip_read_byte(&slip, rx);
         if (n != SLIP_NO_ERROR) {
           if (n == SLIP_ERROR_INVALID_PACKET) {
-            // Reset display on invalid packets. On current firmwares this can cause a softlock in effect list so this is commented out for now.
-            //reset_display(port);
+            reset_display(port);
           } else {
             SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SLIP error %d\n", n);
           }
         }
       }
-      usleep(10);
-    } else {
       render_screen();
-      usleep(100);
     }
   }
 
