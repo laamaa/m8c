@@ -99,14 +99,14 @@ The program uses SDL's game controller system, which should make it work automag
 
 Enjoy making some nice music!
 
-### Config
+## Config
 
 Keyboard and game controller bindings can be configured via `config.ini`.
 
 If not found, the file will be created in one of these locations:
-Windows: C:\Users\<username>\AppData\Roaming\m8c\config.ini
-Linux: /home/<username>/.local/share/m8c/config.ini
-MacOS: /Users/<username>/Library/Application Support/m8c/config.ini
+* Windows: `C:\Users\<username>\AppData\Roaming\m8c\config.ini`
+* Linux: `/home/<username>/.local/share/m8c/config.ini`
+* MacOS: `/Users/<username>/Library/Application Support/m8c/config.ini`
 
 See the `config.ini.sample` file to see the available options.
 
