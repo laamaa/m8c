@@ -65,7 +65,7 @@ void write_config(config_params_s *conf) {
   sprintf(ini_values[initPointer++], "fullscreen=%s\n",
           conf->init_fullscreen ? "true" : "false");
   sprintf(ini_values[initPointer++], "software=%s\n",
-          conf->init_fullscreen ? "true" : "false");
+          conf->init_software ? "true" : "false");
   sprintf(ini_values[initPointer++], "[keyboard]\n");
   sprintf(ini_values[initPointer++], "key_up=%d\n", conf->key_up);
   sprintf(ini_values[initPointer++], "key_left=%d\n", conf->key_left);
@@ -142,11 +142,11 @@ void read_config(config_params_s *conf) {
   read_key_config(ini, conf);
   read_gamepad_config(ini, conf);
 
-  //Write any new default options after loading
-  write_config(conf);
-
   // Frees the mem used for the config
   ini_free(ini);
+
+  //Write any new default options after loading
+  write_config(conf);
 }
 
 void read_graphics_config(ini_t *ini, config_params_s *conf) {
