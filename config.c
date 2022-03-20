@@ -10,6 +10,7 @@ config_params_s init_config() {
   c.filename = "config.ini"; // default config file to load
 
   c.init_fullscreen = 0; // default fullscreen state at load
+  c.init_software = 0;
 
   c.key_up = SDL_SCANCODE_UP;
   c.key_left = SDL_SCANCODE_LEFT;
@@ -61,6 +62,8 @@ void write_config(config_params_s *conf) {
   char ini_values[34][50];
   sprintf(ini_values[0], "[graphics]\n");
   sprintf(ini_values[1], "fullscreen=%s\n",
+          conf->init_fullscreen ? "true" : "false");
+  sprintf(ini_values[1], "software=%s\n",
           conf->init_fullscreen ? "true" : "false");
   sprintf(ini_values[2], "[keyboard]\n");
   sprintf(ini_values[3], "key_up=%d\n", conf->key_up);
@@ -150,6 +153,13 @@ void read_graphics_config(ini_t *ini, config_params_s *conf) {
     conf->init_fullscreen = 1;
   } else
     conf->init_fullscreen = 0;
+
+    param = ini_get(ini, "graphics", "software");
+
+  if (strcmp(param, "true") == 0) {
+    conf->init_software = 1;
+  } else
+    conf->init_software = 0;
 }
 
 void read_key_config(ini_t *ini, config_params_s *conf) {
