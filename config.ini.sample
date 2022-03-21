@@ -1,6 +1,8 @@
 [graphics]
 ; set this to true to have m8c start fullscreen
 fullscreen=false
+; set this to true to run m8c in software rendering mode (use for raspberry pi)
+software=false
 
 [keyboard]
 ; these need to be the decimal value of the SDL scancodes.
