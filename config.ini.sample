@@ -1,8 +1,13 @@
+; edit this file to change m8c defaults
+; this file is re-written every time it is read,
+; so do not expect comments or commented out values to survive!
+; valid parameter changes will be written back and persisted though.
+
 [graphics]
 ; set this to true to have m8c start fullscreen
 fullscreen=false
-; set this to true to run m8c in software rendering mode (use for raspberry pi)
-software=false
+; set this to false to run m8c in software rendering mode (may be useful for Raspberry Pi)
+use_gpu=true
 
 [keyboard]
 ; these need to be the decimal value of the SDL scancodes.
