@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
   if (enable_and_reset_display(port) == -1)
     run = 0;
 
-  if (initialize_sdl(conf.init_fullscreen, conf.init_software) == -1)
+  if (initialize_sdl(conf.init_fullscreen, conf.init_use_gpu) == -1)
     run = 0;
 
   uint8_t prev_input = 0;

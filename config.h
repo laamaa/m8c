@@ -9,7 +9,7 @@
 typedef struct config_params_s {
   char *filename;
   int init_fullscreen;
-  int init_software;
+  int init_use_gpu;
 
   int key_up;
   int key_left;
