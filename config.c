@@ -2,15 +2,27 @@
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
 #include "config.h"
+#include "ini.h"
 #include <SDL.h>
+
+/* Case insensitive string compare from ini.h library */
+static int strcmpci(const char *a, const char *b) {
+  for (;;) {
+    int d = tolower(*a) - tolower(*b);
+    if (d != 0 || !*a) {
+      return d;
+    }
+    a++, b++;
+  }
+}
 
 config_params_s init_config() {
   config_params_s c;
 
   c.filename = "config.ini"; // default config file to load
 
-  c.init_fullscreen = 0; // default fullscreen state at load
-  c.init_software = 0;
+  c.init_fullscreen = 0;  // default fullscreen state at load
+  c.init_use_gpu = 1;     // default to use hardware acceleration
 
   c.key_up = SDL_SCANCODE_UP;
   c.key_left = SDL_SCANCODE_LEFT;
@@ -64,8 +76,8 @@ void write_config(config_params_s *conf) {
   sprintf(ini_values[initPointer++], "[graphics]\n");
   sprintf(ini_values[initPointer++], "fullscreen=%s\n",
           conf->init_fullscreen ? "true" : "false");
-  sprintf(ini_values[initPointer++], "software=%s\n",
-          conf->init_software ? "true" : "false");
+  sprintf(ini_values[initPointer++], "use_gpu=%s\n",
+          conf->init_use_gpu ? "true" : "false");
   sprintf(ini_values[initPointer++], "[keyboard]\n");
   sprintf(ini_values[initPointer++], "key_up=%d\n", conf->key_up);
   sprintf(ini_values[initPointer++], "key_left=%d\n", conf->key_left);
@@ -151,19 +163,18 @@ void read_config(config_params_s *conf) {
 
 void read_graphics_config(ini_t *ini, config_params_s *conf) {
   const char *param_fs = ini_get(ini, "graphics", "fullscreen");
-  const char *param_sw = ini_get(ini, "graphics", "software");
-  // This obviously requires the parameter to be a lowercase true to enable
-  // fullscreen
-  if (strcmp(param_fs, "true") == 0) {
+  const char *param_gpu = ini_get(ini, "graphics", "use_gpu");
+
+  if (strcmpci(param_fs, "true") == 0) {
     conf->init_fullscreen = 1;
   } else
     conf->init_fullscreen = 0;
 
-  if(param_sw != NULL){
-    if (strcmp(param_sw, "true") == 0) {
-      conf->init_software = 1;
+  if(param_gpu != NULL){
+    if (strcmpci(param_gpu, "true") == 0) {
+      conf->init_use_gpu = 1;
     } else
-      conf->init_software = 0;
+      conf->init_use_gpu = 0;
   }
 
 }
@@ -263,8 +274,7 @@ void read_gamepad_config(ini_t *ini, config_params_s *conf) {
   if (gamepad_analog_threshold)
     conf->gamepad_analog_threshold = SDL_atoi(gamepad_analog_threshold);
 
-  // This requires the parameter to be a lowercase true to enable fullscreen
-  if (strcmp(gamepad_analog_invert, "true") == 0)
+  if (strcmpci(gamepad_analog_invert, "true") == 0)
     conf->gamepad_analog_invert = 1;
   else
     conf->gamepad_analog_invert = 0;
