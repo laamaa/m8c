@@ -123,7 +123,7 @@ jobs:
     
     steps:
       - name: 'Install dependencies'
-        run: brew install sdl2 libserialport pkg-config
+        run: brew install sdl2 libserialport pkg-config argp-standalone
 
       - name: 'Checkout'
         uses: actions/checkout@v2
