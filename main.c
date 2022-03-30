@@ -6,7 +6,6 @@
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
-#include <argp.h>
 
 #include "command.h"
 #include "config.h"

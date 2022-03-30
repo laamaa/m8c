@@ -5,6 +5,7 @@
 #define ARGS_H_
 
 #include <SDL.h>
+#include <argp.h>
 
 extern const char *argp_program_version;
 extern const char *argp_program_bug_address;
