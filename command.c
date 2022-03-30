@@ -5,6 +5,7 @@
 
 #include "command.h"
 #include "render.h"
+#include "custom_log.h"
 
 // Convert 2 little-endian 8bit bytes to a 16bit integer
 static uint16_t decodeInt16(uint8_t *data, uint8_t start) {
@@ -25,9 +26,9 @@ enum m8_command_bytes {
 
 static inline void dump_packet(uint32_t size, uint8_t *recv_buf) {
   for (uint16_t a = 0; a < size; a++) {
-    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "0x%02X ", recv_buf[a]);
+    SDL_LogDebug(M8C_LOG_COMMS, "0x%02X ", recv_buf[a]);
   }
-  SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "\n");
+  SDL_LogDebug(M8C_LOG_COMMS, "\n");
 }
 
 int process_command(uint8_t *data, uint32_t size) {
@@ -43,7 +44,7 @@ int process_command(uint8_t *data, uint32_t size) {
 
     if (size != draw_rectangle_command_datalength) {
       SDL_LogError(
-          SDL_LOG_CATEGORY_ERROR,
+          M8C_LOG_COMMS,
           "Invalid draw rectangle packet: expected length %d, got %d\n",
           draw_rectangle_command_datalength, size);
       dump_packet(size, recv_buf);
@@ -66,7 +67,7 @@ int process_command(uint8_t *data, uint32_t size) {
 
     if (size != draw_character_command_datalength) {
       SDL_LogError(
-          SDL_LOG_CATEGORY_ERROR,
+          M8C_LOG_COMMS,
           "Invalid draw character packet: expected length %d, got %d\n",
           draw_character_command_datalength, size);
       dump_packet(size, recv_buf);
@@ -90,7 +91,7 @@ int process_command(uint8_t *data, uint32_t size) {
     if (size < draw_oscilloscope_waveform_command_mindatalength ||
         size > draw_oscilloscope_waveform_command_maxdatalength) {
       SDL_LogError(
-          SDL_LOG_CATEGORY_ERROR,
+          M8C_LOG_COMMS,
           "Invalid draw oscilloscope packet: expected length between %d "
           "and %d, got "
           "%d\n",
@@ -132,7 +133,7 @@ int process_command(uint8_t *data, uint32_t size) {
 
   default:
 
-    SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Invalid packet\n");
+    SDL_LogError(M8C_LOG_COMMS, "Invalid packet\n");
     dump_packet(size, recv_buf);
     return 1;
     break;

@@ -6,6 +6,7 @@
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
+#include <argp.h>
 
 #include "command.h"
 #include "config.h"
@@ -14,6 +15,8 @@
 #include "serial.h"
 #include "slip.h"
 #include "write.h"
+#include "custom_log.h"
+#include "args.h"
 
 // maximum amount of bytes to read from the serial in one read()
 #define serial_read_size 324
@@ -25,6 +28,11 @@ uint8_t need_display_reset = 0;
 void intHandler(int dummy) { run = 0; }
 
 int main(int argc, char *argv[]) {
+
+  struct arguments arguments;
+
+  processArgs(argc, argv, &arguments);
+
   // Initialize the config to defaults read in the params from the
   // configfile if present
   config_params_s conf = init_config();
@@ -109,7 +117,7 @@ int main(int argc, char *argv[]) {
     // read serial port
     int bytes_read = sp_blocking_read(port, serial_buf, serial_read_size, 3);
     if (bytes_read < 0) {
-      SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %d reading serial. \n",
+      SDL_LogCritical(M8C_LOG_SERIAL, "Error %d reading serial. \n",
                       (int)bytes_read);
       run = 0;
     }
@@ -122,7 +130,7 @@ int main(int argc, char *argv[]) {
           if (n == SLIP_ERROR_INVALID_PACKET) {
             reset_display(port);
           } else {
-            SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SLIP error %d\n", n);
+            SDL_LogError(M8C_LOG_COMMS, "SLIP error %d\n", n);
           }
         }
       }
@@ -131,7 +139,7 @@ int main(int argc, char *argv[]) {
   }
 
   // exit, clean up
-  SDL_Log("Shutting down\n");
+  SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Shutting down\n");
   close_game_controllers();
   close_renderer();
   disconnect(port);

@@ -3,6 +3,7 @@
 
 #include "config.h"
 #include "ini.h"
+#include "custom_log.h"
 #include <SDL.h>
 
 /* Case insensitive string compare from ini.h library */
@@ -68,7 +69,7 @@ void write_config(config_params_s *conf) {
   sprintf(config_path, "%s%s", SDL_GetPrefPath("", "m8c"), conf->filename);
   SDL_RWops *rw = SDL_RWFromFile(config_path, "w");
 
-  SDL_Log("Writing config file to %s", config_path);
+  SDL_LogInfo(M8C_LOG_CONFIG, "Writing config file to %s", config_path);
 
   // Entries for the config file
   char ini_values[35][50];
@@ -124,16 +125,16 @@ void write_config(config_params_s *conf) {
     for (int i = 0; i < 34; i++) {
       size_t len = SDL_strlen(ini_values[i]);
       if (SDL_RWwrite(rw, ini_values[i], 1, len) != len) {
-        SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM,
+        SDL_LogError(M8C_LOG_CONFIG,
                      "Couldn't write line into config file.");
       } else {
-        SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Wrote to config: %s",
+        SDL_LogDebug(M8C_LOG_CONFIG, "Wrote to config: %s",
                      ini_values[i]);
       }
     }
     SDL_RWclose(rw);
   } else {
-    SDL_Log("Couldn't write into config file.");
+    SDL_LogError(M8C_LOG_CONFIG, "Couldn't write into config file.");
   }
 }
 
@@ -142,10 +143,10 @@ void read_config(config_params_s *conf) {
 
   char config_path[1024] = {0};
   sprintf(config_path, "%s%s", SDL_GetPrefPath("", "m8c"), conf->filename);
-  SDL_Log("Reading config %s", config_path);
+  SDL_LogInfo(M8C_LOG_CONFIG, "Reading config %s", config_path);
   ini_t *ini = ini_load(config_path);
   if (ini == NULL) {
-    SDL_Log("Could not load config.");
+    SDL_LogWarn(M8C_LOG_CONFIG, "Could not load config.");
     write_config(conf);
     return;
   }

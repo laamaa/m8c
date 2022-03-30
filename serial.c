@@ -10,6 +10,7 @@
 #include <stdlib.h>
 
 #include "serial.h"
+#include "custom_log.h"
 
 // Helper function for error handling
 static int check(enum sp_return result);
@@ -36,14 +37,14 @@ struct sp_port *init_serial() {
   struct sp_port *m8_port = NULL;
   struct sp_port **port_list;
 
-  SDL_Log("Looking for USB serial devices.\n");
+  SDL_LogInfo(M8C_LOG_SERIAL, "Looking for USB serial devices.\n");
 
   /* Call sp_list_ports() to get the ports. The port_list
    * pointer will be updated to refer to the array created. */
   enum sp_return result = sp_list_ports(&port_list);
 
   if (result != SP_OK) {
-    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "sp_list_ports() failed!\n");
+    SDL_LogError(M8C_LOG_SERIAL, "sp_list_ports() failed!\n");
     abort();
   }
 
@@ -53,7 +54,7 @@ struct sp_port *init_serial() {
     struct sp_port *port = port_list[i];
 
     if (detect_m8_serial_device(port)) {
-      SDL_Log("Found M8 in %s.\n", sp_get_port_name(port));
+      SDL_LogInfo(M8C_LOG_SERIAL, "Found M8 in %s.\n", sp_get_port_name(port));
       sp_copy_port(port, &m8_port);
     }
   }
@@ -62,7 +63,7 @@ struct sp_port *init_serial() {
 
   if (m8_port != NULL) {
       // Open the serial port and configure it
-      SDL_Log("Opening port.\n");
+      SDL_LogInfo(M8C_LOG_SERIAL, "Opening port.\n");
       enum sp_return result;
 
       result = sp_open(m8_port, SP_MODE_READ_WRITE);
@@ -83,7 +84,7 @@ struct sp_port *init_serial() {
       result = sp_set_flowcontrol(m8_port, SP_FLOWCONTROL_NONE);
       if (check(result) != SP_OK) return NULL;
   } else {
-    SDL_LogCritical(SDL_LOG_CATEGORY_SYSTEM, "Cannot find a M8.\n");
+    SDL_LogCritical(M8C_LOG_SERIAL, "Cannot find a M8.\n");
   }
 
   return (m8_port);
@@ -96,18 +97,18 @@ static int check(enum sp_return result) {
 
   switch (result) {
   case SP_ERR_ARG:
-    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error: Invalid argument.\n");
+    SDL_LogError(M8C_LOG_SERIAL, "Error: Invalid argument.\n");
     break;
   case SP_ERR_FAIL:
     error_message = sp_last_error_message();
-    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error: Failed: %s\n", error_message);
+    SDL_LogError(M8C_LOG_SERIAL, "Error: Failed: %s\n", error_message);
     sp_free_error_message(error_message);
     break;
   case SP_ERR_SUPP:
-    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error: Not supported.\n");
+    SDL_LogError(M8C_LOG_SERIAL, "Error: Not supported.\n");
     break;
   case SP_ERR_MEM:
-    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error: Couldn't allocate memory.\n");
+    SDL_LogError(M8C_LOG_SERIAL, "Error: Couldn't allocate memory.\n");
     break;
   case SP_OK:
   default:

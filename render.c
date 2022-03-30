@@ -15,8 +15,6 @@ SDL_Texture *maintexture;
 SDL_Color background_color = (SDL_Color){0, 0, 0, 0};
 
 static uint32_t ticks;
-static uint32_t ticks_fps;
-static int fps;
 uint8_t fullscreen = 0;
 
 // Initializes SDL and creates a renderer and required surfaces
@@ -39,6 +37,16 @@ int initialize_sdl(int init_fullscreen, int init_use_gpu) {
 
   rend = SDL_CreateRenderer(win, -1, init_use_gpu ? SDL_RENDERER_ACCELERATED : SDL_RENDERER_SOFTWARE);
 
+  SDL_RendererInfo info;
+  SDL_GetRendererInfo(rend, &info);
+  SDL_LogInfo(SDL_LOG_CATEGORY_RENDER, "\nRender driver: %s\n is_software_fallback=%s\n is_hardware_accel=%s\n is_vsynced=%s\n supports_targettexture=%s",
+    info.name,
+    info.flags & SDL_RENDERER_SOFTWARE      ? "YES" : "NO",
+    info.flags & SDL_RENDERER_ACCELERATED   ? "YES" : "NO",
+    info.flags & SDL_RENDERER_PRESENTVSYNC  ? "YES" : "NO",
+    info.flags & SDL_RENDERER_TARGETTEXTURE ? "YES" : "NO"
+    );
+
   SDL_RenderSetLogicalSize(rend, 320, 240);
 
   maintexture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888,
@@ -52,11 +60,6 @@ int initialize_sdl(int init_fullscreen, int init_use_gpu) {
   // Initialize a texture for the font and read the inline font bitmap
   inrenderer(rend);
   prepare_inline_font();
-
-  SDL_LogSetAllPriority(SDL_LOG_PRIORITY_INFO);
-
-  // Uncomment this for debug level logging
-  // SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
 
   return 1;
 }
@@ -179,6 +182,11 @@ void display_keyjazz_overlay(uint8_t show, uint8_t base_octave) {
 
 void render_screen() {
 
+  static float calc_fps = 0;
+  static uint32_t ticks_fps;
+  static int fps = 0;
+
+
   if (SDL_GetTicks() - ticks > 14) {
     ticks = SDL_GetTicks();
     SDL_SetRenderTarget(rend, NULL);
@@ -192,7 +200,8 @@ void render_screen() {
 
     if (SDL_GetTicks() - ticks_fps > 5000) {
       ticks_fps = SDL_GetTicks();
-      SDL_LogDebug(SDL_LOG_CATEGORY_VIDEO, "%.1f fps\n", (float)fps / 5);
+      calc_fps = (float)fps/5;
+      SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "%0.1f fps", calc_fps);
       fps = 0;
     }
   }

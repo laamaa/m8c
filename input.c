@@ -44,7 +44,7 @@ int initialize_game_controllers() {
   num_joysticks = SDL_NumJoysticks();
   int controller_index = 0;
 
-  SDL_Log("Looking for game controllers\n");
+  SDL_LogInfo(SDL_LOG_CATEGORY_INPUT, "Looking for game controllers\n");
   SDL_Delay(
       10); // Some controllers like XBone wired need a little while to get ready
 
@@ -55,7 +55,7 @@ int initialize_game_controllers() {
     if (controller_index >= MAX_CONTROLLERS)
       break;
     game_controllers[controller_index] = SDL_GameControllerOpen(i);
-    SDL_Log("Controller %d: %s", controller_index + 1,
+    SDL_LogInfo(SDL_LOG_CATEGORY_INPUT, "Controller %d: %s", controller_index + 1,
             SDL_GameControllerName(game_controllers[controller_index]));
     controller_index++;
   }
@@ -63,13 +63,13 @@ int initialize_game_controllers() {
   // Try to load the game controller database file
   char db_filename[1024] = {0};
   sprintf(db_filename, "%sgamecontrollerdb.txt", SDL_GetPrefPath("", "m8c"));
-  SDL_Log("Trying to open game controller database from %s", db_filename);
+  SDL_LogInfo(SDL_LOG_CATEGORY_INPUT, "Trying to open game controller database from %s", db_filename);
   SDL_RWops *db_rw = SDL_RWFromFile(db_filename, "rb");
 
   if (db_rw != NULL) {
     int mappings = SDL_GameControllerAddMappingsFromRW(db_rw, 1);
     if (mappings != -1)
-      SDL_Log("Found %d game controller mappings", mappings);
+      SDL_LogInfo(SDL_LOG_CATEGORY_INPUT, "Found %d game controller mappings", mappings);
     else
       SDL_LogError(SDL_LOG_CATEGORY_INPUT,
                    "Error loading game controller mappings.");
