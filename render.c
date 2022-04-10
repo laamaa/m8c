@@ -14,15 +14,12 @@ SDL_Renderer *rend;
 SDL_Texture *maintexture;
 SDL_Color background_color = (SDL_Color){0, 0, 0, 0};
 
-static uint32_t ticks;
 static uint32_t ticks_fps;
 static int fps;
 uint8_t fullscreen = 0;
 
 // Initializes SDL and creates a renderer and required surfaces
 int initialize_sdl(int init_fullscreen, int init_use_gpu) {
-
-  ticks = SDL_GetTicks();
 
   const int window_width = 640;  // SDL window width
   const int window_height = 480; // SDL window height
@@ -179,8 +176,6 @@ void display_keyjazz_overlay(uint8_t show, uint8_t base_octave) {
 
 void render_screen() {
 
-  if (SDL_GetTicks() - ticks > 14) {
-    ticks = SDL_GetTicks();
     SDL_SetRenderTarget(rend, NULL);
     SDL_SetRenderDrawColor(rend, 0, 0, 0, 0);
     SDL_RenderClear(rend);
@@ -195,5 +190,4 @@ void render_screen() {
       SDL_LogDebug(SDL_LOG_CATEGORY_VIDEO, "%.1f fps\n", (float)fps / 5);
       fps = 0;
     }
-  }
 }
