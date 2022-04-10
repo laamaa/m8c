@@ -14,15 +14,12 @@ SDL_Renderer *rend;
 SDL_Texture *maintexture;
 SDL_Color background_color = (SDL_Color){0, 0, 0, 0};
 
-static uint32_t ticks;
 static uint32_t ticks_fps;
 static int fps;
 uint8_t fullscreen = 0;
 
 // Initializes SDL and creates a renderer and required surfaces
 int initialize_sdl(int init_fullscreen, int init_use_gpu) {
-
-  ticks = SDL_GetTicks();
 
   const int window_width = 640;  // SDL window width
   const int window_height = 480; // SDL window height
