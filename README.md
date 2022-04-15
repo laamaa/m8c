@@ -68,6 +68,36 @@ Connect the M8 or Teensy (with headless firmware) to your computer and start the
 
 If the stars are aligned correctly, you should see the M8 screen.
 
+## Steam Deck (custom Arch Linux)
+1. Reboot Steam Deck into Desktop Mode
+2. Launch the _System > Konsole_ terminal application
+3. Clone this repository:
+```
+mkdir code && cd code
+git clone https://github.com/laamaa/m8c.git
+cd m8c
+```
+4. Set a sudo passwd:
+```
+passwd
+```
+5. Run the Steam Deck prepare script and enter the sudo password set previously:
+```
+./scripts/prepare-steamdeck.sh
+```
+6. Compile the m8c application:
+```
+make
+```
+7. Reboot the Steam Deck and switch back to Decktop Mode to pick up the permissions required to access the M8 over serial USB.
+8. Connect your M8
+9. Launch the app from Konsole
+```
+cd ~/code/m8c
+./m8c
+```
+9. Make music
+
 -----------
 
 ## Keyboard mappings
