@@ -22,7 +22,7 @@ sudo pacman -S --noconfirm sdl2
 
 # Install glibc
 echo "Installing glibC"
-sudo pacman -S noconfirm glibc
+sudo pacman -S --noconfirm glibc
 
 # Add deck user to uucp group to allow access to m8 serial
 echo "Enabling serial port access"
