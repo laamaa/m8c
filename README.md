@@ -131,7 +131,7 @@ $ ls -la /dev/ttyACM1
 crw-rw---- 1 root dialout 166, 0 Jan  8 14:51 /dev/ttyACM0
 ```
 
-This shows that the serial port is owned by the user 'root' and the grou 'dialout'. Both the user and the group have read/write permissions. To add a user to the group, run this command, replacing 'dialout' with the group shown on your own system:
+This shows that the serial port is owned by the user 'root' and the group 'dialout'. Both the user and the group have read/write permissions. To add a user to the group, run this command, replacing 'dialout' with the group shown on your own system:
 
     sudo adduser $USER dialout
 
