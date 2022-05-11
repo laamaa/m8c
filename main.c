@@ -58,10 +58,10 @@ int main(int argc, char *argv[]) {
   if (port == NULL)
     return -1;
 
-  if (enable_and_reset_display(port) == -1)
+  if (initialize_sdl(conf.init_fullscreen, conf.init_use_gpu) == -1)
     run = 0;
 
-  if (initialize_sdl(conf.init_fullscreen, conf.init_use_gpu) == -1)
+  if (enable_and_reset_display(port) == -1)
     run = 0;
 
   uint8_t prev_input = 0;
@@ -138,6 +138,6 @@ int main(int argc, char *argv[]) {
   sp_close(port);
   sp_free_port(port);
   free(serial_buf);
-
+  SDL_Quit();
   return 0;
 }
