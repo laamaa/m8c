@@ -106,26 +106,35 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    // read serial port
-    int bytes_read = sp_blocking_read(port, serial_buf, serial_read_size, 3);
-    if (bytes_read < 0) {
-      SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %d reading serial. \n",
-                      (int)bytes_read);
-      run = 0;
-    }
-    if (bytes_read > 0) {
-      for (int i = 0; i < bytes_read; i++) {
-        uint8_t rx = serial_buf[i];
-        // process the incoming bytes into commands and draw them
-        int n = slip_read_byte(&slip, rx);
-        if (n != SLIP_NO_ERROR) {
-          if (n == SLIP_ERROR_INVALID_PACKET) {
-            reset_display(port);
-          } else {
-            SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SLIP error %d\n", n);
+
+    int total_received_bytes = 0;
+    while (1) {
+      // read serial port
+      int bytes_read = sp_blocking_read(port, serial_buf, serial_read_size, 1);
+      if (bytes_read < 0) {
+        SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %d reading serial. \n",
+                        (int)bytes_read);
+        run = 0;
+        break;
+      } else if (bytes_read > 0) {
+        total_received_bytes += bytes_read;
+        for (int i = 0; i < bytes_read; i++) {
+          uint8_t rx = serial_buf[i];
+          // process the incoming bytes into commands and draw them
+          int n = slip_read_byte(&slip, rx);
+          if (n != SLIP_NO_ERROR) {
+            if (n == SLIP_ERROR_INVALID_PACKET) {
+              reset_display(port);
+            } else {
+              SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SLIP error %d\n", n);
+            }
           }
         }
+      } else {
+        break;
       }
+    }
+    if (total_received_bytes > 0) {
       render_screen();
     }
   }
