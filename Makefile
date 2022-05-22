@@ -10,7 +10,7 @@ INCLUDES = $(shell pkg-config --libs sdl2 libserialport)
 
 
 #Set any compiler flags you want to use (e.g. -I/usr/include/somefolder `pkg-config --cflags gtk+-3.0` ), or leave blank
-CFLAGS = $(shell pkg-config --cflags sdl2 libserialport) -Wall -O2 -pipe -I.
+local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl2 libserialport) -Wall -O2 -pipe -I.
 
 #Set the compiler you are using ( gcc for C or g++ for C++ )
 CC = gcc
@@ -20,12 +20,12 @@ EXTENSION = .c
 
 #define a rule that applies to all files ending in the .o suffix, which says that the .o file depends upon the .c version of the file and all the .h files included in the DEPS macro.  Compile each object file
 %.o: %$(EXTENSION) $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS)
+	$(CC) -c -o $@ $< $(local_CFLAGS)
 
 #Combine them into the output file
 #Set your desired exe output file name here
 m8c: $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(INCLUDES)
+	$(CC) -o $@ $^ $(local_CFLAGS) $(INCLUDES)
 
 font.c: inline_font.h
 	@echo "#include <SDL.h>" > $@-tmp1
@@ -35,7 +35,7 @@ font.c: inline_font.h
 	@rm $@-tmp2
 	@mv $@-tmp1 $@
 	@echo "[~cat] inline_font.h inprint2.c > font.c"
-#	$(CC) -c -o font.o font.c $(CFLAGS)
+#	$(CC) -c -o font.o font.c $(local_CFLAGS)
 
 #Cleanup
 .PHONY: clean

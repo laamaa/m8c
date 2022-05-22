@@ -20,6 +20,8 @@ static uint32_t ticks_fps;
 static int fps;
 uint8_t fullscreen = 0;
 
+static uint8_t dirty = 0;
+
 // Initializes SDL and creates a renderer and required surfaces
 int initialize_sdl(int init_fullscreen, int init_use_gpu) {
   ticks = SDL_GetTicks();
@@ -55,8 +57,7 @@ int initialize_sdl(int init_fullscreen, int init_use_gpu) {
 
   SDL_LogSetAllPriority(SDL_LOG_PRIORITY_INFO);
 
-  // Uncomment this for debug level logging
-  // SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
+  dirty = 1;
 
   return 1;
 }
@@ -73,6 +74,8 @@ void toggle_fullscreen() {
 
   SDL_SetWindowFullscreen(win, fullscreen_state ? 0 : SDL_WINDOW_FULLSCREEN);
   SDL_ShowCursor(fullscreen_state);
+
+  dirty = 1;
 }
 
 int draw_character(struct draw_character_command *command) {
@@ -90,6 +93,8 @@ int draw_character(struct draw_character_command *command) {
     inprint(rend, (char *)&command->c, command->pos.x, command->pos.y + 3,
             fgcolor, bgcolor);
   }
+
+  dirty = 1;
 
   return 1;
 }
@@ -115,31 +120,49 @@ void draw_rectangle(struct draw_rectangle_command *command) {
   SDL_SetRenderDrawColor(rend, command->color.r, command->color.g,
                          command->color.b, 0xFF);
   SDL_RenderFillRect(rend, &render_rect);
+
+  dirty = 1;
 }
 
 void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
 
-  const SDL_Rect wf_rect = {0, 0, 320, 21};
+  static uint8_t wfm_cleared = 0;
 
-  SDL_SetRenderDrawColor(rend, background_color.r, background_color.g,
-                         background_color.b, background_color.a);
-  SDL_RenderFillRect(rend, &wf_rect);
+  // If the waveform is not being displayed and it's already been cleared, skip rendering it
+  if (! (wfm_cleared && command->waveform_size == 0)) {
 
-  SDL_SetRenderDrawColor(rend, command->color.r, command->color.g,
-                         command->color.b, 255);
+    const SDL_Rect wf_rect = {0, 0, 320, 21};
 
-  // Create a SDL_Point array of the waveform pixels for batch drawing
-  SDL_Point waveform_points[command->waveform_size];
+    SDL_SetRenderDrawColor(rend, background_color.r, background_color.g,
+                          background_color.b, background_color.a);
+    SDL_RenderFillRect(rend, &wf_rect);
 
-  for (int i = 0; i < command->waveform_size; i++) {
-    // Limit value because the oscilloscope commands seem to glitch occasionally
-    if (command->waveform[i] > 20)
-      command->waveform[i] = 20;
-    waveform_points[i].x = i;
-    waveform_points[i].y = command->waveform[i];
+    SDL_SetRenderDrawColor(rend, command->color.r, command->color.g,
+                          command->color.b, 255);
+
+    // Create a SDL_Point array of the waveform pixels for batch drawing
+    SDL_Point waveform_points[command->waveform_size];
+
+    for (int i = 0; i < command->waveform_size; i++) {
+      // Limit value because the oscilloscope commands seem to glitch occasionally
+      if (command->waveform[i] > 20)
+        command->waveform[i] = 20;
+      waveform_points[i].x = i;
+      waveform_points[i].y = command->waveform[i];
+    }
+
+    SDL_RenderDrawPoints(rend, waveform_points, command->waveform_size);
+
+    // The packet we just drew was an empty waveform
+    if (command->waveform_size == 0) {
+      wfm_cleared = 1;
+    }
+    else {
+      wfm_cleared = 0;
+    }
+
+    dirty = 1;
   }
-
-  SDL_RenderDrawPoints(rend, waveform_points, command->waveform_size);
 }
 
 void display_keyjazz_overlay(uint8_t show, uint8_t base_octave) {
@@ -175,10 +198,13 @@ void display_keyjazz_overlay(uint8_t show, uint8_t base_octave) {
 
     draw_rectangle(&drc);
   }
+
+  dirty = 1;
 }
 
 void render_screen() {
-  if (SDL_GetTicks() - ticks > 14) {
+  if (dirty && (SDL_GetTicks() - ticks > 14)) {
+    dirty = 0;
     ticks = SDL_GetTicks();
     SDL_SetRenderTarget(rend, NULL);
     SDL_SetRenderDrawColor(rend, 0, 0, 0, 0);
