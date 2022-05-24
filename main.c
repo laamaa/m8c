@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
 
     while (1) {
       // read serial port
-      int bytes_read = sp_blocking_read(port, serial_buf, serial_read_size, 1);
+      int bytes_read = sp_nonblocking_read(port, serial_buf, serial_read_size);
       if (bytes_read < 0) {
         SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %d reading serial. \n",
                         (int)bytes_read);
@@ -140,6 +140,7 @@ int main(int argc, char *argv[]) {
       }
     }
     render_screen();
+    SDL_Delay(conf.idle_ms);
   }
 
   // exit, clean up
