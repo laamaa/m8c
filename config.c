@@ -23,6 +23,7 @@ config_params_s init_config() {
 
   c.init_fullscreen = 0;  // default fullscreen state at load
   c.init_use_gpu = 1;     // default to use hardware acceleration
+  c.idle_ms = 10;         // default to high performance
 
   c.key_up = SDL_SCANCODE_UP;
   c.key_left = SDL_SCANCODE_LEFT;
@@ -78,6 +79,7 @@ void write_config(config_params_s *conf) {
           conf->init_fullscreen ? "true" : "false");
   sprintf(ini_values[initPointer++], "use_gpu=%s\n",
           conf->init_use_gpu ? "true" : "false");
+  sprintf(ini_values[initPointer++], "idle_ms=%d\n", conf->idle_ms);
   sprintf(ini_values[initPointer++], "[keyboard]\n");
   sprintf(ini_values[initPointer++], "key_up=%d\n", conf->key_up);
   sprintf(ini_values[initPointer++], "key_left=%d\n", conf->key_left);
@@ -164,6 +166,7 @@ void read_config(config_params_s *conf) {
 void read_graphics_config(ini_t *ini, config_params_s *conf) {
   const char *param_fs = ini_get(ini, "graphics", "fullscreen");
   const char *param_gpu = ini_get(ini, "graphics", "use_gpu");
+  const char *idle_ms = ini_get(ini, "graphics", "idle_ms");
 
   if (strcmpci(param_fs, "true") == 0) {
     conf->init_fullscreen = 1;
@@ -176,6 +179,9 @@ void read_graphics_config(ini_t *ini, config_params_s *conf) {
     } else
       conf->init_use_gpu = 0;
   }
+
+  if (idle_ms)
+    conf->idle_ms = SDL_atoi(idle_ms);
 
 }
 
