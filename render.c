@@ -203,7 +203,7 @@ void display_keyjazz_overlay(uint8_t show, uint8_t base_octave) {
 }
 
 void render_screen() {
-  if (dirty && (SDL_GetTicks() - ticks > 14)) {
+  if (dirty) {
     dirty = 0;
     ticks = SDL_GetTicks();
     SDL_SetRenderTarget(rend, NULL);
