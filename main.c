@@ -1,6 +1,9 @@
 // Copyright 2021 Jonne Kokkonen
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
+// Uncomment this line to enable debug messages or call make with `make CFLAGS=-DDEBUG_MSG`
+// #define DEBUG_MSG
+
 #include <SDL.h>
 #include <libserialport.h>
 #include <signal.h>
@@ -64,6 +67,10 @@ int main(int argc, char *argv[]) {
   if (initialize_sdl(conf.init_fullscreen, conf.init_use_gpu) == -1)
     run = 0;
 
+  #ifdef DEBUG_MSG
+  SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
+  #endif
+
   uint8_t prev_input = 0;
 
   // main loop
@@ -106,8 +113,6 @@ int main(int argc, char *argv[]) {
       }
     }
 
-
-    int total_received_bytes = 0;
     while (1) {
       // read serial port
       int bytes_read = sp_blocking_read(port, serial_buf, serial_read_size, 1);
@@ -117,11 +122,11 @@ int main(int argc, char *argv[]) {
         run = 0;
         break;
       } else if (bytes_read > 0) {
-        total_received_bytes += bytes_read;
-        for (int i = 0; i < bytes_read; i++) {
-          uint8_t rx = serial_buf[i];
+        uint8_t *cur = serial_buf;
+        const uint8_t *end = serial_buf+bytes_read;
+        while (cur<end) {
           // process the incoming bytes into commands and draw them
-          int n = slip_read_byte(&slip, rx);
+          int n = slip_read_byte(&slip, *(cur++));
           if (n != SLIP_NO_ERROR) {
             if (n == SLIP_ERROR_INVALID_PACKET) {
               reset_display(port);
@@ -134,9 +139,7 @@ int main(int argc, char *argv[]) {
         break;
       }
     }
-    if (total_received_bytes > 0) {
-      render_screen();
-    }
+    render_screen();
   }
 
   // exit, clean up
