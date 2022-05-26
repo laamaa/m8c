@@ -419,6 +419,11 @@ input_msg_s get_input_msg(config_params_s *conf) {
     key = (input_msg_s){special, msg_reset_display};
   }
 
+  // Quit app key-combo: useful when running onhandheld game consoles
+  if (keycode == (key_start | key_select)) {
+     key = (input_msg_s){special, msg_quit};
+  } 
+
   if (key.type == normal) {
     /* Normal input keys go through some event-based manipulation in
        handle_sdl_events(), the value is stored in keycode variable */
