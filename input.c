@@ -91,7 +91,7 @@ void close_game_controllers() {
 }
 
 static input_msg_s handle_keyjazz(SDL_Event *event, uint8_t keyvalue) {
-  input_msg_s key = {keyjazz, keyvalue};
+  input_msg_s key = {keyjazz, keyvalue, event->type};
   switch (event->key.keysym.scancode) {
   case SDL_SCANCODE_Z:
     key.value = keyjazz_base_octave * 12;
