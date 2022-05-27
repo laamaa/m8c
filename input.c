@@ -344,14 +344,6 @@ void handle_sdl_events(config_params_s *conf) {
     key = (input_msg_s){special, msg_quit};
     break;
 
-  case SDL_WINDOWEVENT:
-    if (event.window.event == SDL_WINDOWEVENT_RESIZED)
-    {
-      SDL_Log("Resizing window...");
-      key = (input_msg_s){special, msg_reset_display};      
-    }
-    break;
-
   // Keyboard events. Special events are handled within SDL_KEYDOWN.
   case SDL_KEYDOWN:
 

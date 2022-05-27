@@ -72,7 +72,7 @@ void toggle_fullscreen() {
 
   int fullscreen_state = SDL_GetWindowFlags(win) & SDL_WINDOW_FULLSCREEN;
 
-  SDL_SetWindowFullscreen(win, fullscreen_state ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+  SDL_SetWindowFullscreen(win, fullscreen_state ? 0 : SDL_WINDOW_FULLSCREEN);
   SDL_ShowCursor(fullscreen_state);
 
   dirty = 1;
