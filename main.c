@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
     case keyjazz:
       if (input.value != 0) {
         if (input.eventType == SDL_KEYDOWN && input.value != prev_input) {
-          send_msg_keyjazz(port, input.value, 0xFF);
+          send_msg_keyjazz(port, input.value, input.value2);
           prev_note = input.value;
         } else if (input.eventType == SDL_KEYUP && input.value == prev_note) {
           send_msg_keyjazz(port, 0xFF, 0);
