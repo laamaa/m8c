@@ -72,6 +72,7 @@ int main(int argc, char *argv[]) {
   #endif
 
   uint8_t prev_input = 0;
+  uint8_t prev_note = 0;
 
   // main loop
   while (run) {
@@ -87,14 +88,15 @@ int main(int argc, char *argv[]) {
       }
       break;
     case keyjazz:
-      if (input.value != prev_input) {
-        prev_input = input.value;
-        if (input.value != 0) {
-          send_msg_keyjazz(port, input.value, 0xFF);
-        } else {
-          send_msg_keyjazz(port, 0, 0);
+      if (input.value != 0) {
+        if (input.eventType == SDL_KEYDOWN && input.value != prev_input) {
+          send_msg_keyjazz(port, input.value, input.value2);
+          prev_note = input.value;
+        } else if (input.eventType == SDL_KEYUP && input.value == prev_note) {
+          send_msg_keyjazz(port, 0xFF, 0);
         }
       }
+      prev_input = input.value;
       break;
     case special:
       if (input.value != prev_input) {

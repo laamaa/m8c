@@ -71,8 +71,8 @@ int send_msg_controller(struct sp_port *port, uint8_t input) {
 }
 
 int send_msg_keyjazz(struct sp_port *port, uint8_t note, uint8_t velocity) {
-  if (velocity > 64)
-    velocity = 64;
+  if (velocity > 0x7F)
+    velocity = 0x7F;
   char buf[3] = {'K',note,velocity};
   size_t nbytes = 3;
   int result;

@@ -27,6 +27,7 @@ enum keycodes {
 
 uint8_t keyjazz_enabled = 0;
 uint8_t keyjazz_base_octave = 2;
+uint8_t keyjazz_velocity = 0x64;
 
 static uint8_t keycode = 0; // value of the pressed key
 static int num_joysticks = 0;
@@ -91,7 +92,7 @@ void close_game_controllers() {
 }
 
 static input_msg_s handle_keyjazz(SDL_Event *event, uint8_t keyvalue) {
-  input_msg_s key = {keyjazz, keyvalue};
+  input_msg_s key = {keyjazz, keyvalue, keyjazz_velocity, event->type};
   switch (event->key.keysym.scancode) {
   case SDL_SCANCODE_Z:
     key.value = keyjazz_base_octave * 12;
@@ -184,14 +185,40 @@ static input_msg_s handle_keyjazz(SDL_Event *event, uint8_t keyvalue) {
     key.type = normal;
     if (event->type == SDL_KEYDOWN && keyjazz_base_octave > 0) {
       keyjazz_base_octave--;
-      display_keyjazz_overlay(1, keyjazz_base_octave);
+      display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
     }
     break;
   case SDL_SCANCODE_KP_MULTIPLY:
     key.type = normal;
     if (event->type == SDL_KEYDOWN && keyjazz_base_octave < 8) {
       keyjazz_base_octave++;
-      display_keyjazz_overlay(1, keyjazz_base_octave);
+      display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
+    }
+    break;
+  case SDL_SCANCODE_KP_MINUS:
+    key.type = normal;
+    if (event->type == SDL_KEYDOWN) {
+      if ((event->key.keysym.mod & KMOD_ALT) > 0) {
+        if (keyjazz_velocity > 1)
+          keyjazz_velocity -= 1;
+      } else {
+        if (keyjazz_velocity > 0x10)
+          keyjazz_velocity -= 0x10;
+      }
+      display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
+    }
+    break;
+  case SDL_SCANCODE_KP_PLUS:
+    key.type = normal;
+    if (event->type == SDL_KEYDOWN) {
+      if ((event->key.keysym.mod & KMOD_ALT) > 0) {
+        if (keyjazz_velocity < 0x7F)
+          keyjazz_velocity += 1;
+      } else {
+        if (keyjazz_velocity < 0x6F)
+          keyjazz_velocity += 0x10;
+      }
+      display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
     }
     break;
   default:
@@ -370,7 +397,7 @@ void handle_sdl_events(config_params_s *conf) {
 
     // ESC = toggle keyjazz
     if (event.key.keysym.sym == SDLK_ESCAPE) {
-      display_keyjazz_overlay(toggle_input_keyjazz(), keyjazz_base_octave);
+      display_keyjazz_overlay(toggle_input_keyjazz(), keyjazz_base_octave, keyjazz_velocity);
     }
 
   // Normal keyboard inputs

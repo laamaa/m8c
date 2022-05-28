@@ -165,7 +165,7 @@ void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
   }
 }
 
-void display_keyjazz_overlay(uint8_t show, uint8_t base_octave) {
+void display_keyjazz_overlay(uint8_t show, uint8_t base_octave, uint8_t velocity) {
 
   if (show) {
     struct draw_rectangle_command drc;
@@ -181,19 +181,27 @@ void display_keyjazz_overlay(uint8_t show, uint8_t base_octave) {
     dcc.background = (struct color){background_color.r, background_color.g,
                                     background_color.b};
     dcc.foreground = (struct color){200, 200, 200};
-    dcc.c = base_octave + 48;
-    dcc.pos.x = 300;
+    dcc.pos.x = 296;
     dcc.pos.y = 226;
 
     draw_character(&dcc);
+
+    char buf[8];
+    sprintf(buf, "%02X %u", velocity, base_octave);
+
+    for (int i = 3; i >= 0; i--){
+      dcc.c = buf[i];
+      draw_character(&dcc);
+      dcc.pos.x -= 8;
+    }
 
   } else {
     struct draw_rectangle_command drc;
     drc.color = (struct color){background_color.r, background_color.g,
                                background_color.b};
-    drc.pos.x = 300;
+    drc.pos.x = 272;
     drc.pos.y = 226;
-    drc.size.width = 20;
+    drc.size.width = 45;
     drc.size.height = 14;
 
     draw_rectangle(&drc);
