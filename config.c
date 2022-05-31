@@ -22,9 +22,11 @@ config_params_s init_config() {
 
   c.filename = "config.ini"; // default config file to load
 
-  c.init_fullscreen = 0;  // default fullscreen state at load
-  c.init_use_gpu = 1;     // default to use hardware acceleration
-  c.idle_ms = 10;         // default to high performance
+  c.init_fullscreen = 0; // default fullscreen state at load
+  c.init_use_gpu = 1;    // default to use hardware acceleration
+  c.idle_ms = 10;        // default to high performance
+  c.wait_for_device =
+      1; // default to classic startup behaviour (exit if device disconnected)
 
   c.key_up = SDL_SCANCODE_UP;
   c.key_left = SDL_SCANCODE_LEFT;
@@ -72,7 +74,7 @@ void write_config(config_params_s *conf) {
 
   SDL_Log("Writing config file to %s", config_path);
 
-  const unsigned int INI_LINE_COUNT = 36;
+  const unsigned int INI_LINE_COUNT = 37;
 
   // Entries for the config file
   char ini_values[INI_LINE_COUNT][50];
@@ -82,6 +84,8 @@ void write_config(config_params_s *conf) {
           conf->init_fullscreen ? "true" : "false");
   sprintf(ini_values[initPointer++], "use_gpu=%s\n",
           conf->init_use_gpu ? "true" : "false");
+  sprintf(ini_values[initPointer++], "wait_for_device=%s\n",
+          conf->wait_for_device ? "true" : "false");
   sprintf(ini_values[initPointer++], "idle_ms=%d\n", conf->idle_ms);
   sprintf(ini_values[initPointer++], "[keyboard]\n");
   sprintf(ini_values[initPointer++], "key_up=%d\n", conf->key_up);
@@ -89,7 +93,8 @@ void write_config(config_params_s *conf) {
   sprintf(ini_values[initPointer++], "key_down=%d\n", conf->key_down);
   sprintf(ini_values[initPointer++], "key_right=%d\n", conf->key_right);
   sprintf(ini_values[initPointer++], "key_select=%d\n", conf->key_select);
-  sprintf(ini_values[initPointer++], "key_select_alt=%d\n", conf->key_select_alt);
+  sprintf(ini_values[initPointer++], "key_select_alt=%d\n",
+          conf->key_select_alt);
   sprintf(ini_values[initPointer++], "key_start=%d\n", conf->key_start);
   sprintf(ini_values[initPointer++], "key_start_alt=%d\n", conf->key_start_alt);
   sprintf(ini_values[initPointer++], "key_opt=%d\n", conf->key_opt);
@@ -103,7 +108,8 @@ void write_config(config_params_s *conf) {
   sprintf(ini_values[initPointer++], "gamepad_left=%d\n", conf->gamepad_left);
   sprintf(ini_values[initPointer++], "gamepad_down=%d\n", conf->gamepad_down);
   sprintf(ini_values[initPointer++], "gamepad_right=%d\n", conf->gamepad_right);
-  sprintf(ini_values[initPointer++], "gamepad_select=%d\n", conf->gamepad_select);
+  sprintf(ini_values[initPointer++], "gamepad_select=%d\n",
+          conf->gamepad_select);
   sprintf(ini_values[initPointer++], "gamepad_start=%d\n", conf->gamepad_start);
   sprintf(ini_values[initPointer++], "gamepad_opt=%d\n", conf->gamepad_opt);
   sprintf(ini_values[initPointer++], "gamepad_edit=%d\n", conf->gamepad_edit);
@@ -165,7 +171,7 @@ void read_config(config_params_s *conf) {
   // Frees the mem used for the config
   ini_free(ini);
 
-  //Write any new default options after loading
+  // Write any new default options after loading
   write_config(conf);
 }
 
@@ -173,22 +179,30 @@ void read_graphics_config(ini_t *ini, config_params_s *conf) {
   const char *param_fs = ini_get(ini, "graphics", "fullscreen");
   const char *param_gpu = ini_get(ini, "graphics", "use_gpu");
   const char *idle_ms = ini_get(ini, "graphics", "idle_ms");
+  const char *param_wait = ini_get(ini, "graphics", "wait_for_device");
 
   if (strcmpci(param_fs, "true") == 0) {
     conf->init_fullscreen = 1;
   } else
     conf->init_fullscreen = 0;
 
-  if(param_gpu != NULL){
+  if (param_gpu != NULL) {
     if (strcmpci(param_gpu, "true") == 0) {
       conf->init_use_gpu = 1;
     } else
       conf->init_use_gpu = 0;
   }
 
-  if (idle_ms)
+  if (idle_ms != NULL)
     conf->idle_ms = SDL_atoi(idle_ms);
 
+  if (param_wait != NULL) {
+    if (strcmpci(param_wait, "true") == 0) {
+      conf->wait_for_device = 1;
+    } else {
+      conf->wait_for_device = 0;
+    }
+  }
 }
 
 void read_key_config(ini_t *ini, config_params_s *conf) {
@@ -291,10 +305,17 @@ void read_gamepad_config(ini_t *ini, config_params_s *conf) {
   else
     conf->gamepad_analog_invert = 0;
 
-  if (gamepad_analog_axis_updown) conf->gamepad_analog_axis_updown = SDL_atoi(gamepad_analog_axis_updown);
-  if (gamepad_analog_axis_leftright) conf->gamepad_analog_axis_leftright = SDL_atoi(gamepad_analog_axis_leftright);
-  if (gamepad_analog_axis_select) conf->gamepad_analog_axis_select = SDL_atoi(gamepad_analog_axis_select);
-  if (gamepad_analog_axis_start) conf->gamepad_analog_axis_start = SDL_atoi(gamepad_analog_axis_start);
-  if (gamepad_analog_axis_opt) conf->gamepad_analog_axis_opt = SDL_atoi(gamepad_analog_axis_opt);
-  if (gamepad_analog_axis_edit) conf->gamepad_analog_axis_edit = SDL_atoi(gamepad_analog_axis_edit);
+  if (gamepad_analog_axis_updown)
+    conf->gamepad_analog_axis_updown = SDL_atoi(gamepad_analog_axis_updown);
+  if (gamepad_analog_axis_leftright)
+    conf->gamepad_analog_axis_leftright =
+        SDL_atoi(gamepad_analog_axis_leftright);
+  if (gamepad_analog_axis_select)
+    conf->gamepad_analog_axis_select = SDL_atoi(gamepad_analog_axis_select);
+  if (gamepad_analog_axis_start)
+    conf->gamepad_analog_axis_start = SDL_atoi(gamepad_analog_axis_start);
+  if (gamepad_analog_axis_opt)
+    conf->gamepad_analog_axis_opt = SDL_atoi(gamepad_analog_axis_opt);
+  if (gamepad_analog_axis_edit)
+    conf->gamepad_analog_axis_edit = SDL_atoi(gamepad_analog_axis_edit);
 }
