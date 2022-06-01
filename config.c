@@ -25,8 +25,7 @@ config_params_s init_config() {
   c.init_fullscreen = 0; // default fullscreen state at load
   c.init_use_gpu = 1;    // default to use hardware acceleration
   c.idle_ms = 10;        // default to high performance
-  c.wait_for_device =
-      1; // default to classic startup behaviour (exit if device disconnected)
+  c.wait_for_device = 0; // default to exit if device disconnected
 
   c.key_up = SDL_SCANCODE_UP;
   c.key_left = SDL_SCANCODE_LEFT;

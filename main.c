@@ -7,8 +7,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "SDL_log.h"
-#include "SDL_timer.h"
 #include "command.h"
 #include "config.h"
 #include "input.h"
@@ -109,7 +107,7 @@ int main(int argc, char *argv[]) {
         if (!port && SDL_GetTicks() - ticks_poll_device > 1000) {
           ticks_poll_device = SDL_GetTicks();
           port = init_serial(0);
-          if (port != NULL) {
+          if (run == WAIT_FOR_DEVICE && port != NULL) {
             // Device was found; enable display and proceed to the main loop
             if (enable_and_reset_display(port)) {
               run = RUN;
@@ -125,8 +123,12 @@ int main(int argc, char *argv[]) {
 
     } else {
       // classic startup behaviour, exit if device is not found
-      if (port == NULL)
+      if (port == NULL) {
+        close_game_controllers();
+        close_renderer();
+        SDL_Quit();
         return -1;
+      }
     }
 
     // main loop

@@ -17,7 +17,6 @@ SDL_Renderer *rend;
 SDL_Texture *maintexture;
 SDL_Color background_color = (SDL_Color){0, 0, 0, 0};
 
-static uint32_t ticks_screensaver;
 static uint32_t ticks_fps;
 static int fps;
 uint8_t fullscreen = 0;

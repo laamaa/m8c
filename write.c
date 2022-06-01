@@ -7,19 +7,6 @@
 #include <stdio.h>
 #include <unistd.h>
 
-int send_msg_dummy(struct sp_port *port){
-  SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Sending dummy packet to M8");
-  uint8_t buf[1];
-  int result;
-  buf[0] = 0x00;
-  result = sp_blocking_write(port, buf, 2, 5);
-  if (result == 1){
-    return 1;
-  } else {
-    return 0;
-  }
-}
-
 int reset_display(struct sp_port *port){
   SDL_Log("Reset display\n");
   uint8_t buf[2];
