@@ -63,7 +63,8 @@ int initialize_game_controllers() {
 
   // Try to load the game controller database file
   char db_filename[1024] = {0};
-  sprintf(db_filename, "%sgamecontrollerdb.txt", SDL_GetPrefPath("", "m8c"));
+  snprintf(db_filename, sizeof(db_filename), "%sgamecontrollerdb.txt",
+           SDL_GetPrefPath("", "m8c"));
   SDL_Log("Trying to open game controller database from %s", db_filename);
   SDL_RWops *db_rw = SDL_RWFromFile(db_filename, "rb");
 

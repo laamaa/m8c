@@ -67,61 +67,83 @@ void write_config(config_params_s *conf) {
 
   // Open the default config file for writing
   char config_path[1024] = {0};
-  sprintf(config_path, "%s%s", SDL_GetPrefPath("", "m8c"), conf->filename);
+  snprintf(config_path, sizeof(config_path), "%s%s", SDL_GetPrefPath("", "m8c"),
+           conf->filename);
   SDL_RWops *rw = SDL_RWFromFile(config_path, "w");
 
   SDL_Log("Writing config file to %s", config_path);
 
   const unsigned int INI_LINE_COUNT = 36;
+  const unsigned int LINELEN = 50;
 
   // Entries for the config file
-  char ini_values[INI_LINE_COUNT][50];
+  char ini_values[INI_LINE_COUNT][LINELEN];
   int initPointer = 0;
-  sprintf(ini_values[initPointer++], "[graphics]\n");
-  sprintf(ini_values[initPointer++], "fullscreen=%s\n",
-          conf->init_fullscreen ? "true" : "false");
-  sprintf(ini_values[initPointer++], "use_gpu=%s\n",
-          conf->init_use_gpu ? "true" : "false");
-  sprintf(ini_values[initPointer++], "idle_ms=%d\n", conf->idle_ms);
-  sprintf(ini_values[initPointer++], "[keyboard]\n");
-  sprintf(ini_values[initPointer++], "key_up=%d\n", conf->key_up);
-  sprintf(ini_values[initPointer++], "key_left=%d\n", conf->key_left);
-  sprintf(ini_values[initPointer++], "key_down=%d\n", conf->key_down);
-  sprintf(ini_values[initPointer++], "key_right=%d\n", conf->key_right);
-  sprintf(ini_values[initPointer++], "key_select=%d\n", conf->key_select);
-  sprintf(ini_values[initPointer++], "key_select_alt=%d\n", conf->key_select_alt);
-  sprintf(ini_values[initPointer++], "key_start=%d\n", conf->key_start);
-  sprintf(ini_values[initPointer++], "key_start_alt=%d\n", conf->key_start_alt);
-  sprintf(ini_values[initPointer++], "key_opt=%d\n", conf->key_opt);
-  sprintf(ini_values[initPointer++], "key_opt_alt=%d\n", conf->key_opt_alt);
-  sprintf(ini_values[initPointer++], "key_edit=%d\n", conf->key_edit);
-  sprintf(ini_values[initPointer++], "key_edit_alt=%d\n", conf->key_edit_alt);
-  sprintf(ini_values[initPointer++], "key_delete=%d\n", conf->key_delete);
-  sprintf(ini_values[initPointer++], "key_reset=%d\n", conf->key_reset);
-  sprintf(ini_values[initPointer++], "[gamepad]\n");
-  sprintf(ini_values[initPointer++], "gamepad_up=%d\n", conf->gamepad_up);
-  sprintf(ini_values[initPointer++], "gamepad_left=%d\n", conf->gamepad_left);
-  sprintf(ini_values[initPointer++], "gamepad_down=%d\n", conf->gamepad_down);
-  sprintf(ini_values[initPointer++], "gamepad_right=%d\n", conf->gamepad_right);
-  sprintf(ini_values[initPointer++], "gamepad_select=%d\n", conf->gamepad_select);
-  sprintf(ini_values[initPointer++], "gamepad_start=%d\n", conf->gamepad_start);
-  sprintf(ini_values[initPointer++], "gamepad_opt=%d\n", conf->gamepad_opt);
-  sprintf(ini_values[initPointer++], "gamepad_edit=%d\n", conf->gamepad_edit);
-  sprintf(ini_values[initPointer++], "gamepad_analog_threshold=%d\n",
-          conf->gamepad_analog_threshold);
-  sprintf(ini_values[initPointer++], "gamepad_analog_invert=%s\n",
-          conf->gamepad_analog_invert ? "true" : "false");
-  sprintf(ini_values[initPointer++], "gamepad_analog_axis_updown=%d\n",
-          conf->gamepad_analog_axis_updown);
-  sprintf(ini_values[initPointer++], "gamepad_analog_axis_leftright=%d\n",
-          conf->gamepad_analog_axis_leftright);
-  sprintf(ini_values[initPointer++], "gamepad_analog_axis_select=%d\n",
-          conf->gamepad_analog_axis_select);
-  sprintf(ini_values[initPointer++], "gamepad_analog_axis_start=%d\n",
-          conf->gamepad_analog_axis_start);
-  sprintf(ini_values[initPointer++], "gamepad_analog_axis_opt=%d\n",
+  snprintf(ini_values[initPointer++], LINELEN, "[graphics]\n");
+  snprintf(ini_values[initPointer++], LINELEN, "fullscreen=%s\n",
+           conf->init_fullscreen ? "true" : "false");
+  snprintf(ini_values[initPointer++], LINELEN, "use_gpu=%s\n",
+           conf->init_use_gpu ? "true" : "false");
+  snprintf(ini_values[initPointer++], LINELEN, "idle_ms=%d\n", conf->idle_ms);
+  snprintf(ini_values[initPointer++], LINELEN, "[keyboard]\n");
+  snprintf(ini_values[initPointer++], LINELEN, "key_up=%d\n", conf->key_up);
+  snprintf(ini_values[initPointer++], LINELEN, "key_left=%d\n", conf->key_left);
+  snprintf(ini_values[initPointer++], LINELEN, "key_down=%d\n", conf->key_down);
+  snprintf(ini_values[initPointer++], LINELEN, "key_right=%d\n",
+          conf->key_right);
+  snprintf(ini_values[initPointer++], LINELEN, "key_select=%d\n",
+           conf->key_select);
+  snprintf(ini_values[initPointer++], LINELEN, "key_select_alt=%d\n",
+           conf->key_select_alt);
+  snprintf(ini_values[initPointer++], LINELEN, "key_start=%d\n",
+           conf->key_start);
+  snprintf(ini_values[initPointer++], LINELEN, "key_start_alt=%d\n",
+           conf->key_start_alt);
+  snprintf(ini_values[initPointer++], LINELEN, "key_opt=%d\n",
+           conf->key_opt);
+  snprintf(ini_values[initPointer++], LINELEN, "key_opt_alt=%d\n",
+           conf->key_opt_alt);
+  snprintf(ini_values[initPointer++], LINELEN, "key_edit=%d\n", conf->key_edit);
+  snprintf(ini_values[initPointer++], LINELEN, "key_edit_alt=%d\n",
+           conf->key_edit_alt);
+  snprintf(ini_values[initPointer++], LINELEN, "key_delete=%d\n",
+           conf->key_delete);
+  snprintf(ini_values[initPointer++], LINELEN, "key_reset=%d\n",
+           conf->key_reset);
+  snprintf(ini_values[initPointer++], LINELEN, "[gamepad]\n");
+  snprintf(ini_values[initPointer++], LINELEN, "gamepad_up=%d\n",
+           conf->gamepad_up);
+  snprintf(ini_values[initPointer++], LINELEN, "gamepad_left=%d\n",
+           conf->gamepad_left);
+  snprintf(ini_values[initPointer++], LINELEN, "gamepad_down=%d\n",
+           conf->gamepad_down);
+  snprintf(ini_values[initPointer++], LINELEN, "gamepad_right=%d\n",
+           conf->gamepad_right);
+  snprintf(ini_values[initPointer++], LINELEN, "gamepad_select=%d\n",
+           conf->gamepad_select);
+  snprintf(ini_values[initPointer++], LINELEN, "gamepad_start=%d\n",
+           conf->gamepad_start);
+  snprintf(ini_values[initPointer++], LINELEN, "gamepad_opt=%d\n",
+           conf->gamepad_opt);
+  snprintf(ini_values[initPointer++], LINELEN, "gamepad_edit=%d\n",
+           conf->gamepad_edit);
+  snprintf(ini_values[initPointer++], LINELEN, "gamepad_analog_threshold=%d\n",
+           conf->gamepad_analog_threshold);
+  snprintf(ini_values[initPointer++], LINELEN, "gamepad_analog_invert=%s\n",
+           conf->gamepad_analog_invert ? "true" : "false");
+  snprintf(ini_values[initPointer++], LINELEN,
+           "gamepad_analog_axis_updown=%d\n", conf->gamepad_analog_axis_updown);
+  snprintf(ini_values[initPointer++], LINELEN,
+           "gamepad_analog_axis_leftright=%d\n",
+           conf->gamepad_analog_axis_leftright);
+  snprintf(ini_values[initPointer++], LINELEN,
+           "gamepad_analog_axis_select=%d\n",
+           conf->gamepad_analog_axis_select);
+  snprintf(ini_values[initPointer++], LINELEN, "gamepad_analog_axis_start=%d\n",
+           conf->gamepad_analog_axis_start);
+  snprintf(ini_values[initPointer++], LINELEN, "gamepad_analog_axis_opt=%d\n",
           conf->gamepad_analog_axis_opt);
-  sprintf(ini_values[initPointer++], "gamepad_analog_axis_edit=%d\n",
+  snprintf(ini_values[initPointer++], LINELEN, "gamepad_analog_axis_edit=%d\n",
           conf->gamepad_analog_axis_edit);
 
   // Ensure we aren't writing off the end of the array
@@ -149,7 +171,8 @@ void write_config(config_params_s *conf) {
 void read_config(config_params_s *conf) {
 
   char config_path[1024] = {0};
-  sprintf(config_path, "%s%s", SDL_GetPrefPath("", "m8c"), conf->filename);
+  snprintf(config_path, sizeof(config_path), "%s%s", SDL_GetPrefPath("", "m8c"),
+           conf->filename);
   SDL_Log("Reading config %s", config_path);
   ini_t *ini = ini_load(config_path);
   if (ini == NULL) {
