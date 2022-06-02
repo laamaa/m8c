@@ -394,6 +394,7 @@ void handle_sdl_events(config_params_s *conf) {
     if (event.key.keysym.sym == SDLK_F4 &&
         (event.key.keysym.mod & KMOD_ALT) > 0) {
       key = (input_msg_s){special, msg_quit};
+      break;
     }
 
     // ESC = toggle keyjazz

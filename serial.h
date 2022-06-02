@@ -6,6 +6,6 @@
 
 #include <libserialport.h>
 
-struct sp_port *init_serial();
+struct sp_port *init_serial(int verbose);
 
 #endif

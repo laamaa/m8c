@@ -7,14 +7,15 @@
 #include <stdio.h>
 
 #include "SDL2_inprint.h"
+#include "SDL_log.h"
+#include "SDL_render.h"
 #include "command.h"
+#include "fx_cube.h"
 
 SDL_Window *win;
 SDL_Renderer *rend;
 SDL_Texture *maintexture;
 SDL_Color background_color = (SDL_Color){0, 0, 0, 0};
-static uint32_t ticks;
-
 
 static uint32_t ticks_fps;
 static int fps;
@@ -24,7 +25,7 @@ static uint8_t dirty = 0;
 
 // Initializes SDL and creates a renderer and required surfaces
 int initialize_sdl(int init_fullscreen, int init_use_gpu) {
-  ticks = SDL_GetTicks();
+  //ticks = SDL_GetTicks();
 
   const int window_width = 640;  // SDL window width
   const int window_height = 480; // SDL window height
@@ -33,13 +34,16 @@ int initialize_sdl(int init_fullscreen, int init_use_gpu) {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "SDL_Init: %s\n", SDL_GetError());
     return -1;
   }
+  // SDL documentation recommends this
+  atexit(SDL_Quit);
 
   win = SDL_CreateWindow("m8c", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                          window_width, window_height,
                          SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL |
                              SDL_WINDOW_RESIZABLE | init_fullscreen);
 
-  rend = SDL_CreateRenderer(win, -1, init_use_gpu ? SDL_RENDERER_ACCELERATED : SDL_RENDERER_SOFTWARE);
+  rend = SDL_CreateRenderer(
+      win, -1, init_use_gpu ? SDL_RENDERER_ACCELERATED : SDL_RENDERER_SOFTWARE);
 
   SDL_RenderSetLogicalSize(rend, 320, 240);
 
@@ -72,7 +76,8 @@ void toggle_fullscreen() {
 
   int fullscreen_state = SDL_GetWindowFlags(win) & SDL_WINDOW_FULLSCREEN;
 
-  SDL_SetWindowFullscreen(win, fullscreen_state ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+  SDL_SetWindowFullscreen(win,
+                          fullscreen_state ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
   SDL_ShowCursor(fullscreen_state);
 
   dirty = 1;
@@ -128,23 +133,25 @@ void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
 
   static uint8_t wfm_cleared = 0;
 
-  // If the waveform is not being displayed and it's already been cleared, skip rendering it
-  if (! (wfm_cleared && command->waveform_size == 0)) {
+  // If the waveform is not being displayed and it's already been cleared, skip
+  // rendering it
+  if (!(wfm_cleared && command->waveform_size == 0)) {
 
     const SDL_Rect wf_rect = {0, 0, 320, 21};
 
     SDL_SetRenderDrawColor(rend, background_color.r, background_color.g,
-                          background_color.b, background_color.a);
+                           background_color.b, background_color.a);
     SDL_RenderFillRect(rend, &wf_rect);
 
     SDL_SetRenderDrawColor(rend, command->color.r, command->color.g,
-                          command->color.b, 255);
+                           command->color.b, 255);
 
     // Create a SDL_Point array of the waveform pixels for batch drawing
     SDL_Point waveform_points[command->waveform_size];
 
     for (int i = 0; i < command->waveform_size; i++) {
-      // Limit value because the oscilloscope commands seem to glitch occasionally
+      // Limit value because the oscilloscope commands seem to glitch
+      // occasionally
       if (command->waveform[i] > 20)
         command->waveform[i] = 20;
       waveform_points[i].x = i;
@@ -156,8 +163,7 @@ void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
     // The packet we just drew was an empty waveform
     if (command->waveform_size == 0) {
       wfm_cleared = 1;
-    }
-    else {
+    } else {
       wfm_cleared = 0;
     }
 
@@ -165,7 +171,8 @@ void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
   }
 }
 
-void display_keyjazz_overlay(uint8_t show, uint8_t base_octave, uint8_t velocity) {
+void display_keyjazz_overlay(uint8_t show, uint8_t base_octave,
+                             uint8_t velocity) {
 
   if (show) {
     struct draw_rectangle_command drc;
@@ -189,7 +196,7 @@ void display_keyjazz_overlay(uint8_t show, uint8_t base_octave, uint8_t velocity
     char buf[8];
     snprintf(buf, sizeof(buf), "%02X %u", velocity, base_octave);
 
-    for (int i = 3; i >= 0; i--){
+    for (int i = 3; i >= 0; i--) {
       dcc.c = buf[i];
       draw_character(&dcc);
       dcc.pos.x -= 8;
@@ -213,7 +220,7 @@ void display_keyjazz_overlay(uint8_t show, uint8_t base_octave, uint8_t velocity
 void render_screen() {
   if (dirty) {
     dirty = 0;
-    ticks = SDL_GetTicks();
+    //ticks = SDL_GetTicks();
     SDL_SetRenderTarget(rend, NULL);
     SDL_SetRenderDrawColor(rend, 0, 0, 0, 0);
     SDL_RenderClear(rend);
@@ -229,4 +236,19 @@ void render_screen() {
       fps = 0;
     }
   }
+}
+
+void screensaver_init() {
+  fx_cube_init(rend, (SDL_Color){255, 255, 255, 255});
+  SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Screensaver initialized");
+}
+
+void screensaver_draw() {
+  fx_cube_update();
+  dirty = 1;
+}
+
+void screensaver_destroy() {
+  fx_cube_destroy();
+  SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Screensaver destroyed");
 }
