@@ -1,6 +1,10 @@
 // Copyright 2021 Jonne Kokkonen
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
+/* Uncomment this line to enable debug messages or call make with `make
+   CFLAGS=-DDEBUG_MSG` */
+// #define DEBUG_MSG
+
 #include <SDL.h>
 #include <libserialport.h>
 #include <signal.h>
@@ -69,8 +73,6 @@ int main(int argc, char *argv[]) {
   if (initialize_sdl(conf.init_fullscreen, conf.init_use_gpu) == -1)
     run = QUIT;
 
-/* Uncomment this line to enable debug messages or call make with `make
-   CFLAGS=-DDEBUG_MSG` #define DEBUG_MSG */
 #ifdef DEBUG_MSG
   SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
 #endif
@@ -78,8 +80,14 @@ int main(int argc, char *argv[]) {
   // main loop begin
   do {
     port = init_serial(1);
-    if (port != NULL && enable_and_reset_display(port)) {
-      run = RUN;
+    if (port != NULL) {
+      int result;
+      result = enable_and_reset_display(port);
+      if (result == 1) {
+        run = RUN;
+      } else {
+        run = QUIT;
+      }
     }
 
     // wait until device is connected
@@ -94,7 +102,7 @@ int main(int argc, char *argv[]) {
         // get current inputs
         input_msg_s input = get_input_msg(&conf);
         if (input.type == special && input.value == msg_quit) {
-          run = 0;
+          run = QUIT;
         }
 
         if (SDL_GetTicks() - ticks_update_screen > 16) {
@@ -104,16 +112,19 @@ int main(int argc, char *argv[]) {
         }
 
         // Poll for M8 device every second
-        if (!port && SDL_GetTicks() - ticks_poll_device > 1000) {
+        if (!port && (SDL_GetTicks() - ticks_poll_device > 1000)) {
           ticks_poll_device = SDL_GetTicks();
           port = init_serial(0);
           if (run == WAIT_FOR_DEVICE && port != NULL) {
+            int result = enable_and_reset_display(port);
+            SDL_Delay(100);
             // Device was found; enable display and proceed to the main loop
-            if (enable_and_reset_display(port)) {
+            if (result == 1) {
               run = RUN;
               screensaver_destroy();
             } else {
               run = QUIT;
+              screensaver_destroy();
             }
           }
         }
@@ -218,7 +229,7 @@ int main(int argc, char *argv[]) {
       render_screen();
       SDL_Delay(conf.idle_ms);
     }
-  } while (run);
+  } while (run > QUIT);
   // main loop end
 
   // exit, clean up
