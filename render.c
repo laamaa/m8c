@@ -194,7 +194,7 @@ void display_keyjazz_overlay(uint8_t show, uint8_t base_octave,
     draw_character(&dcc);
 
     char buf[8];
-    sprintf(buf, "%02X %u", velocity, base_octave);
+    snprintf(buf, sizeof(buf), "%02X %u", velocity, base_octave);
 
     for (int i = 3; i >= 0; i--) {
       dcc.c = buf[i];
