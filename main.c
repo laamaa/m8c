@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
   };
 
   static slip_handler_s slip;
-  struct sp_port *port;
+  struct sp_port *port = NULL;
 
   uint8_t prev_input = 0;
   uint8_t prev_note = 0;
@@ -68,6 +68,15 @@ int main(int argc, char *argv[]) {
   signal(SIGTERM, intHandler);
 
   slip_init(&slip, &slip_descriptor);
+
+  // First device detection to avoid SDL init if it isn't necessary
+  if (conf.wait_for_device == 0) {
+    port = init_serial(1);
+    if (port == NULL) {
+      free(serial_buf);
+      return -1;
+    }
+  }
 
   // initialize all SDL systems
   if (initialize_sdl(conf.init_fullscreen, conf.init_use_gpu) == -1)
@@ -79,7 +88,8 @@ int main(int argc, char *argv[]) {
 
   // main loop begin
   do {
-    port = init_serial(1);
+    if (port == NULL)
+      port = init_serial(1);
     if (port != NULL) {
       int result;
       result = enable_and_reset_display(port);
@@ -138,6 +148,7 @@ int main(int argc, char *argv[]) {
         close_game_controllers();
         close_renderer();
         SDL_Quit();
+        free(serial_buf);
         return -1;
       }
     }
