@@ -4,15 +4,15 @@ m8c is a client for Dirtywave M8 tracker's headless mode. The application should
 
 Please note that routing the headless M8 USB audio isn't in the scope of this program -- if this is needed, it can be achieved with tools like Pipewire, Pulseaudio, Jack w/ alsa\_in and alsa\_out just to name a few. The file AUDIOGUIDE.md contains some examples for routing the audio.
 
+If you want to route audio with the headless client you could try https://github.com/booss/rm8 which is a great native client with audio support (among other user features)!
+
 Many thanks to:
 
-Trash80 for the great M8 hardware and the original font (stealth57.ttf) that was converted to a bitmap for use in the progam.
-
-driedfruit for a wonderful little routine to blit inline bitmap fonts, https://github.com/driedfruit/SDL_inprint/
-
-marcinbor85 for the slip handling routine, https://github.com/marcinbor85/slip
-
-turbolent for the great Golang-based g0m8 application, which I used as reference on how the M8 serial protocol works.
+* Trash80 for the great M8 hardware and the original font (stealth57.ttf) that was converted to a bitmap for use in the progam.
+* driedfruit for a wonderful little routine to blit inline bitmap fonts, https://github.com/driedfruit/SDL_inprint/
+* marcinbor85 for the slip handling routine, https://github.com/marcinbor85/slip
+* turbolent for the great Golang-based g0m8 application, which I used as reference on how the M8 serial protocol works.
+* *Everyone who's contributed to m8c!*
 
 Disclaimer: I'm not a coder and hardly understand C, use at your own risk :)
 
@@ -103,8 +103,6 @@ When keyjazz is active, regular a/s/z/x keys are disabled. The base octave can b
 
 The program uses SDL's game controller system, which should make it work automagically with most gamepads. On startup, the program tries to load a SDL game controller database named gamecontrollerdb.txt from the same directory as the config file. If your joypad doesn't work out of the box, you might need to create custom bindings to this file, for example with [SDL2 Gamepad Tool](https://generalarcade.com/gamepadtool/).
 
-Enjoy making some nice music!
-
 ## Config
 
 Keyboard and game controller bindings can be configured via `config.ini`.
@@ -115,6 +113,8 @@ If not found, the file will be created in one of these locations:
 * MacOS: `/Users/<username>/Library/Application Support/m8c/config.ini`
 
 See the `config.ini.sample` file to see the available options.
+
+Enjoy making some nice music!
 
 -----------
 
