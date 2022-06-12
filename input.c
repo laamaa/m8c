@@ -12,6 +12,7 @@
 #define MAX_CONTROLLERS 4
 
 SDL_GameController *game_controllers[MAX_CONTROLLERS];
+SDL_Joystick* joysticks[MAX_CONTROLLERS];
 
 // Bits for M8 input messages
 enum keycodes {
@@ -51,14 +52,22 @@ int initialize_game_controllers() {
 
   // Open all available game controllers
   for (int i = 0; i < num_joysticks; i++) {
-    if (!SDL_IsGameController(i))
-      continue;
     if (controller_index >= MAX_CONTROLLERS)
       break;
-    game_controllers[controller_index] = SDL_GameControllerOpen(i);
-    SDL_Log("Controller %d: %s", controller_index + 1,
-            SDL_GameControllerName(game_controllers[controller_index]));
-    controller_index++;
+    if (SDL_IsGameController(i)) {
+      game_controllers[controller_index] = SDL_GameControllerOpen(i);
+      SDL_Log("Controller %d: %s", controller_index + 1,
+              SDL_GameControllerName(game_controllers[controller_index]));
+      controller_index++;
+    } else {
+      SDL_Joystick *p_joystick = SDL_JoystickOpen(i);
+      if (p_joystick != NULL) {
+        joysticks[controller_index] = p_joystick;
+        SDL_Log("Controller %d: %s", controller_index + 1,
+                SDL_JoystickName(joysticks[controller_index]));
+        controller_index++;
+      }
+    }
   }
 
   // Try to load the game controller database file
@@ -89,6 +98,8 @@ void close_game_controllers() {
   for (int i = 0; i < MAX_CONTROLLERS; i++) {
     if (game_controllers[i])
       SDL_GameControllerClose(game_controllers[i]);
+    if (joysticks[i])
+      SDL_JoystickClose(joysticks[i]);
   }
 }
 
@@ -319,6 +330,62 @@ static int get_game_controller_button(config_params_s *conf,
   return 0;
 }
 
+// Check whether a button is pressed on a gamepad and return 1 if pressed.
+static int get_joystick_button(config_params_s *conf,
+                                      SDL_Joystick *controller,
+                                      int button) {
+
+  const int button_mappings[8] = {conf->gamepad_up,     conf->gamepad_down,
+                                  conf->gamepad_left,   conf->gamepad_right,
+                                  conf->gamepad_opt,    conf->gamepad_edit,
+                                  conf->gamepad_select, conf->gamepad_start};
+
+  // Check digital buttons
+  if (SDL_JoystickGetButton(controller, button_mappings[button])) {
+    return 1;
+  } else {
+    // If digital button isn't pressed, check the corresponding analog control
+    switch (button) {
+    case INPUT_UP:
+      return SDL_JoystickGetAxis(controller,
+                                       conf->gamepad_analog_axis_updown) <
+             -conf->gamepad_analog_threshold;
+    case INPUT_DOWN:
+      return SDL_JoystickGetAxis(controller,
+                                       conf->gamepad_analog_axis_updown) >
+             conf->gamepad_analog_threshold;
+    case INPUT_LEFT:
+      return SDL_JoystickGetAxis(controller,
+                                       conf->gamepad_analog_axis_leftright) <
+             -conf->gamepad_analog_threshold;
+    case INPUT_RIGHT:
+      return SDL_JoystickGetAxis(controller,
+                                       conf->gamepad_analog_axis_leftright) >
+             conf->gamepad_analog_threshold;
+    case INPUT_OPT:
+      return SDL_JoystickGetAxis(controller,
+                                       conf->gamepad_analog_axis_opt) >
+             conf->gamepad_analog_threshold;
+    case INPUT_EDIT:
+      return SDL_JoystickGetAxis(controller,
+                                       conf->gamepad_analog_axis_edit) >
+             conf->gamepad_analog_threshold;
+    case INPUT_SELECT:
+      return SDL_JoystickGetAxis(controller,
+                                       conf->gamepad_analog_axis_select) >
+             conf->gamepad_analog_threshold;
+    case INPUT_START:
+      return SDL_JoystickGetAxis(controller,
+                                       conf->gamepad_analog_axis_start) >
+             conf->gamepad_analog_threshold;
+    default:
+      return 0;
+    }
+  }
+  return 0;
+}
+
+
 // Handle game controllers, simply check all buttons and analog axis on every
 // cycle
 static int handle_game_controller_buttons(config_params_s *conf) {
@@ -334,7 +401,9 @@ static int handle_game_controller_buttons(config_params_s *conf) {
     for (int button = 0; button < (input_buttons_t)INPUT_MAX; button++) {
       // If the button is active, add the keycode to the variable containing
       // active keys
-      if (get_game_controller_button(conf, game_controllers[gc], button)) {
+      int game_controller_pressed = game_controllers[gc] && get_game_controller_button(conf, game_controllers[gc], button);
+      int joystick_pressed = joysticks[gc] && get_joystick_button(conf, joysticks[gc], button);
+      if (game_controller_pressed || joystick_pressed) {
         key |= keycodes[button];
       }
     }

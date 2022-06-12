@@ -82,6 +82,8 @@ int main(int argc, char *argv[]) {
   if (initialize_sdl(conf.init_fullscreen, conf.init_use_gpu) == -1)
     run = QUIT;
 
+  // initial scan for (existing) game controllers
+  initialize_game_controllers();
 #ifdef DEBUG_MSG
   SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
 #endif
