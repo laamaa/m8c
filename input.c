@@ -3,6 +3,7 @@
 
 #include <SDL.h>
 #include <stdio.h>
+#include <sys/stat.h>
 
 #include "config.h"
 #include "input.h"
@@ -49,22 +50,14 @@ int initialize_game_controllers() {
   SDL_Delay(
       10); // Some controllers like XBone wired need a little while to get ready
 
-  // Open all available game controllers
-  for (int i = 0; i < num_joysticks; i++) {
-    if (!SDL_IsGameController(i))
-      continue;
-    if (controller_index >= MAX_CONTROLLERS)
-      break;
-    game_controllers[controller_index] = SDL_GameControllerOpen(i);
-    SDL_Log("Controller %d: %s", controller_index + 1,
-            SDL_GameControllerName(game_controllers[controller_index]));
-    controller_index++;
-  }
-
   // Try to load the game controller database file
   char db_filename[1024] = {0};
   snprintf(db_filename, sizeof(db_filename), "%sgamecontrollerdb.txt",
            SDL_GetPrefPath("", "m8c"));
+  SDL_Log("Looking for game controller database at %s", db_filename);
+  struct stat buffer;   
+  if ( (stat (db_filename, &buffer) != 0))   snprintf(db_filename, sizeof(db_filename), "%sgamecontrollerdb.txt",
+           SDL_GetBasePath());
   SDL_Log("Trying to open game controller database from %s", db_filename);
   SDL_RWops *db_rw = SDL_RWFromFile(db_filename, "rb");
 
@@ -78,6 +71,18 @@ int initialize_game_controllers() {
   } else {
     SDL_LogError(SDL_LOG_CATEGORY_INPUT,
                  "Unable to open game controller database file.");
+  }
+
+  // Open all available game controllers
+  for (int i = 0; i < num_joysticks; i++) {
+    if (!SDL_IsGameController(i))
+      continue;
+    if (controller_index >= MAX_CONTROLLERS)
+      break;
+    game_controllers[controller_index] = SDL_GameControllerOpen(i);
+    SDL_Log("Controller %d: %s", controller_index + 1,
+            SDL_GameControllerName(game_controllers[controller_index]));
+    controller_index++;
   }
 
   return controller_index;
