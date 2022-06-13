@@ -357,6 +357,17 @@ void handle_sdl_events(config_params_s *conf) {
     prev_key_analog = key_analog;
   }
 
+  // Read special case game controller buttons quit and reset
+  for (int gc = 0; gc < num_joysticks; gc++) {
+   if (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_quit) && 
+       SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_select)) {
+    key = (input_msg_s){special, msg_quit};
+   } else if (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_reset) && 
+       SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_select)) {
+    key = (input_msg_s){special, msg_reset_display};
+   }
+  }
+
   SDL_PollEvent(&event);
 
   switch (event.type) {
@@ -443,10 +454,6 @@ input_msg_s get_input_msg(config_params_s *conf) {
 
   // Query for SDL events
   handle_sdl_events(conf);
-
-  if (keycode == (key_start | key_select | key_opt | key_edit)) {
-    key = (input_msg_s){special, msg_reset_display};
-  }
 
   if (key.type == normal) {
     /* Normal input keys go through some event-based manipulation in

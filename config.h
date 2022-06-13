@@ -36,6 +36,8 @@ typedef struct config_params_s {
   int gamepad_start;
   int gamepad_opt;
   int gamepad_edit;
+  int gamepad_quit;
+  int gamepad_reset;
 
   int gamepad_analog_threshold;
   int gamepad_analog_invert;

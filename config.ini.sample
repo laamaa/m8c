@@ -42,6 +42,8 @@ gamepad_select=4
 gamepad_start=6
 gamepad_opt=1
 gamepad_edit=0
+gamepad_quit=8
+gamepad_reset=7
 
 gamepad_analog_threshold=32766 ;the threshold for analog sticks to trigger cursor movement (working values: 1-32766)
 gamepad_analog_invert=false ;NOT IMPLEMENTED YET: invert up/down and left/right axis (true/false)
