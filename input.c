@@ -3,7 +3,6 @@
 
 #include <SDL.h>
 #include <stdio.h>
-#include <sys/stat.h>
 
 #include "config.h"
 #include "input.h"
@@ -54,12 +53,14 @@ int initialize_game_controllers() {
   char db_filename[1024] = {0};
   snprintf(db_filename, sizeof(db_filename), "%sgamecontrollerdb.txt",
            SDL_GetPrefPath("", "m8c"));
-  SDL_Log("Looking for game controller database at %s", db_filename);
-  struct stat buffer;   
-  if ( (stat (db_filename, &buffer) != 0))   snprintf(db_filename, sizeof(db_filename), "%sgamecontrollerdb.txt",
-           SDL_GetBasePath());
   SDL_Log("Trying to open game controller database from %s", db_filename);
-  SDL_RWops *db_rw = SDL_RWFromFile(db_filename, "rb");
+  SDL_RWops* db_rw = SDL_RWFromFile(db_filename, "rb");
+  if (db_rw == NULL) {
+    snprintf(db_filename, sizeof(db_filename), "%sgamecontrollerdb.txt",
+    SDL_GetBasePath());
+    SDL_Log("Trying to open game controller database from %s", db_filename);
+    db_rw = SDL_RWFromFile(db_filename, "rb");
+  }
 
   if (db_rw != NULL) {
     int mappings = SDL_GameControllerAddMappingsFromRW(db_rw, 1);
