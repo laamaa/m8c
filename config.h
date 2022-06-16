@@ -12,6 +12,7 @@ typedef struct config_params_s {
   int init_use_gpu;
   int idle_ms;
   int wait_for_device;
+  int wait_packets;
 
   int key_up;
   int key_left;

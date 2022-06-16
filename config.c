@@ -26,6 +26,7 @@ config_params_s init_config() {
   c.init_use_gpu = 1;    // default to use hardware acceleration
   c.idle_ms = 10;        // default to high performance
   c.wait_for_device = 0; // default to exit if device disconnected
+  c.wait_packets = 1500;   // default zero-byte attempts to disconnect (about 15 sec for default idle_ms)
 
   c.key_up = SDL_SCANCODE_UP;
   c.key_left = SDL_SCANCODE_LEFT;
@@ -76,7 +77,7 @@ void write_config(config_params_s *conf) {
 
   SDL_Log("Writing config file to %s", config_path);
 
-  const unsigned int INI_LINE_COUNT = 39;
+  const unsigned int INI_LINE_COUNT = 40;
   const unsigned int LINELEN = 50;
 
   // Entries for the config file
@@ -90,6 +91,7 @@ void write_config(config_params_s *conf) {
   snprintf(ini_values[initPointer++], LINELEN, "idle_ms=%d\n", conf->idle_ms);
   snprintf(ini_values[initPointer++], LINELEN, "wait_for_device=%s\n",
            conf->wait_for_device ? "true" : "false");
+  snprintf(ini_values[initPointer++], LINELEN, "wait_packets=%d\n", conf->wait_packets);
   snprintf(ini_values[initPointer++], LINELEN, "[keyboard]\n");
   snprintf(ini_values[initPointer++], LINELEN, "key_up=%d\n", conf->key_up);
   snprintf(ini_values[initPointer++], LINELEN, "key_left=%d\n", conf->key_left);
@@ -204,6 +206,7 @@ void read_graphics_config(ini_t *ini, config_params_s *conf) {
   const char *param_gpu = ini_get(ini, "graphics", "use_gpu");
   const char *idle_ms = ini_get(ini, "graphics", "idle_ms");
   const char *param_wait = ini_get(ini, "graphics", "wait_for_device");
+  const char *wait_packets = ini_get(ini, "graphics", "wait_packets");
 
   if (strcmpci(param_fs, "true") == 0) {
     conf->init_fullscreen = 1;
@@ -227,6 +230,8 @@ void read_graphics_config(ini_t *ini, config_params_s *conf) {
       conf->wait_for_device = 0;
     }
   }
+  if (wait_packets != NULL)
+    conf->wait_packets = SDL_atoi(wait_packets);
 }
 
 void read_key_config(ini_t *ini, config_params_s *conf) {

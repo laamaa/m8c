@@ -99,6 +99,7 @@ int main(int argc, char *argv[]) {
       if (result == 1) {
         run = RUN;
       } else {
+        SDL_LogCritical(SDL_LOG_CATEGORY_ERROR,"Device not detected on begin loop.");
         run = QUIT;
       }
     }
@@ -115,6 +116,7 @@ int main(int argc, char *argv[]) {
         // get current inputs
         input_msg_s input = get_input_msg(&conf);
         if (input.type == special && input.value == msg_quit) {
+          SDL_LogCritical(SDL_LOG_CATEGORY_ERROR,"Input message QUIT.");
           run = QUIT;
         }
 
@@ -136,6 +138,7 @@ int main(int argc, char *argv[]) {
               run = RUN;
               screensaver_destroy();
             } else {
+              SDL_LogCritical(SDL_LOG_CATEGORY_ERROR,"Device not detected.");
               run = QUIT;
               screensaver_destroy();
             }
@@ -185,6 +188,7 @@ int main(int argc, char *argv[]) {
           prev_input = input.value;
           switch (input.value) {
           case msg_quit:
+            SDL_Log("Received msg_quit from input device.");
             run = 0;
             break;
           case msg_reset_display:
@@ -226,14 +230,16 @@ int main(int argc, char *argv[]) {
         } else {
           // zero byte packet, increment counter
           zerobyte_packets++;
-          if (zerobyte_packets > 128) {
+          if (zerobyte_packets > conf.wait_packets) {
             // i guess it can be assumed that the device has been disconnected
             if (conf.wait_for_device) {
+              zerobyte_packets = 0; // reset so we dont constantly reset the device if waiting
               run = WAIT_FOR_DEVICE;
               close_serial_port(port);
               port = NULL;
               break;
             } else {
+              SDL_LogCritical(SDL_LOG_CATEGORY_ERROR,"Device disconnect detected.");
               run = QUIT;
             }
           }
