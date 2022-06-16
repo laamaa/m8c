@@ -165,6 +165,7 @@ int main(int argc, char *argv[]) {
       // get current inputs
       input_msg_s input = get_input_msg(&conf);
 
+      if (input.value != 0) zerobyte_packets = 0; // don't try to detect disconnect until user stops pressing buttons 
       switch (input.type) {
       case normal:
         if (input.value != prev_input) {
