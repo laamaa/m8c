@@ -224,14 +224,20 @@ int main(int argc, char *argv[]) {
           // zero byte packet, increment counter
           zerobyte_packets++;
           if (zerobyte_packets > 128) {
-            // i guess it can be assumed that the device has been disconnected
-            if (conf.wait_for_device) {
-              run = WAIT_FOR_DEVICE;
-              close_serial_port(port);
-              port = NULL;
-              break;
+            char *name = sp_get_port_name(port);
+            if (!access(name, F_OK)) {
+              zerobyte_packets = 0; // patience...
             } else {
-              run = QUIT;
+              SDL_LogInfo(SDL_LOG_CATEGORY_SYSTEM, "%s: disconnected\n", name);
+              // i guess it can be assumed that the device has been disconnected
+              if (conf.wait_for_device) {
+                run = WAIT_FOR_DEVICE;
+                close_serial_port(port);
+                port = NULL;
+                break;
+              } else {
+                run = QUIT;
+              }
             }
           }
           break;
