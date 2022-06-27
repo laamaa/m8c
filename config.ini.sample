@@ -12,6 +12,8 @@ use_gpu=true
 idle_ms = 10
 ; show a spinning cube if device is not inserted
 wait_for_device = true
+; number of zero-byte attempts to disconnect if wait_for_device = false (128 = about 2 sec for default idle_ms)
+wait_packets = 128
 
 [keyboard]
 ; these need to be the decimal value of the SDL scancodes.
