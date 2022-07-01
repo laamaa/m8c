@@ -165,7 +165,6 @@ int main(int argc, char *argv[]) {
       // get current inputs
       input_msg_s input = get_input_msg(&conf);
 
-      if (input.value != 0) zerobyte_packets = 0; // don't try to detect disconnect until user stops pressing buttons 
       switch (input.type) {
       case normal:
         if (input.value != prev_input) {
@@ -233,16 +232,12 @@ int main(int argc, char *argv[]) {
           zerobyte_packets++;
           if (zerobyte_packets > conf.wait_packets) {
             // i guess it can be assumed that the device has been disconnected
-            if (conf.wait_for_device) {
-              zerobyte_packets = 0; // reset so we dont constantly reset the device if waiting
-              run = WAIT_FOR_DEVICE;
-              close_serial_port(port);
-              port = NULL;
-              break;
-            } else {
-              SDL_LogCritical(SDL_LOG_CATEGORY_ERROR,"Device disconnect detected.");
-              run = QUIT;
-            }
+            zerobyte_packets = 0; // reset so we dont constantly reset the device if waiting
+            run = WAIT_FOR_DEVICE;
+            close_serial_port(port);
+            port = NULL;
+            // we'll make one more loop to see if the device is still there but just sending zero bytes
+            // if it doesn't get detected when resetting the port, it will disconnect
           }
           break;
         }
