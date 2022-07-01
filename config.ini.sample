@@ -12,6 +12,8 @@ use_gpu=true
 idle_ms = 10
 ; show a spinning cube if device is not inserted
 wait_for_device = true
+; number of zero-byte attempts to disconnect if wait_for_device = false (128 = about 2 sec for default idle_ms)
+wait_packets = 128
 
 [keyboard]
 ; these need to be the decimal value of the SDL scancodes.
@@ -42,6 +44,8 @@ gamepad_select=4
 gamepad_start=6
 gamepad_opt=1
 gamepad_edit=0
+gamepad_quit=8
+gamepad_reset=7
 
 gamepad_analog_threshold=32766 ;the threshold for analog sticks to trigger cursor movement (working values: 1-32766)
 gamepad_analog_invert=false ;NOT IMPLEMENTED YET: invert up/down and left/right axis (true/false)

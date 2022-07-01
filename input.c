@@ -49,24 +49,18 @@ int initialize_game_controllers() {
   SDL_Delay(
       10); // Some controllers like XBone wired need a little while to get ready
 
-  // Open all available game controllers
-  for (int i = 0; i < num_joysticks; i++) {
-    if (!SDL_IsGameController(i))
-      continue;
-    if (controller_index >= MAX_CONTROLLERS)
-      break;
-    game_controllers[controller_index] = SDL_GameControllerOpen(i);
-    SDL_Log("Controller %d: %s", controller_index + 1,
-            SDL_GameControllerName(game_controllers[controller_index]));
-    controller_index++;
-  }
-
   // Try to load the game controller database file
   char db_filename[1024] = {0};
   snprintf(db_filename, sizeof(db_filename), "%sgamecontrollerdb.txt",
            SDL_GetPrefPath("", "m8c"));
   SDL_Log("Trying to open game controller database from %s", db_filename);
-  SDL_RWops *db_rw = SDL_RWFromFile(db_filename, "rb");
+  SDL_RWops* db_rw = SDL_RWFromFile(db_filename, "rb");
+  if (db_rw == NULL) {
+    snprintf(db_filename, sizeof(db_filename), "%sgamecontrollerdb.txt",
+    SDL_GetBasePath());
+    SDL_Log("Trying to open game controller database from %s", db_filename);
+    db_rw = SDL_RWFromFile(db_filename, "rb");
+  }
 
   if (db_rw != NULL) {
     int mappings = SDL_GameControllerAddMappingsFromRW(db_rw, 1);
@@ -78,6 +72,18 @@ int initialize_game_controllers() {
   } else {
     SDL_LogError(SDL_LOG_CATEGORY_INPUT,
                  "Unable to open game controller database file.");
+  }
+
+  // Open all available game controllers
+  for (int i = 0; i < num_joysticks; i++) {
+    if (!SDL_IsGameController(i))
+      continue;
+    if (controller_index >= MAX_CONTROLLERS)
+      break;
+    game_controllers[controller_index] = SDL_GameControllerOpen(i);
+    SDL_Log("Controller %d: %s", controller_index + 1,
+            SDL_GameControllerName(game_controllers[controller_index]));
+    controller_index++;
   }
 
   return controller_index;
@@ -355,6 +361,17 @@ void handle_sdl_events(config_params_s *conf) {
   if (prev_key_analog != key_analog) {
     keycode = key_analog;
     prev_key_analog = key_analog;
+  }
+
+  // Read special case game controller buttons quit and reset
+  for (int gc = 0; gc < num_joysticks; gc++) {
+   if (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_quit) && 
+       SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_select)) {
+    key = (input_msg_s){special, msg_quit};
+   } else if (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_reset) && 
+       SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_select)) {
+    key = (input_msg_s){special, msg_reset_display};
+   }
   }
 
   SDL_PollEvent(&event);
