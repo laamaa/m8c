@@ -365,12 +365,12 @@ void handle_sdl_events(config_params_s *conf) {
 
   // Read special case game controller buttons quit and reset
   for (int gc = 0; gc < num_joysticks; gc++) {
-   if (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_quit) && 
-       SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_select)) {
-    key = (input_msg_s){special, msg_quit};
-   } else if (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_reset) && 
-       SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_select)) {
-    key = (input_msg_s){special, msg_reset_display};
+   if (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_select) || 
+       SDL_GameControllerGetAxis(game_controllers[gc], conf->gamepad_analog_axis_select)) {
+        if (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_quit))
+          key = (input_msg_s){special, msg_quit};
+        else if (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_reset))
+          key = (input_msg_s){special, msg_reset_display};
    }
   }
 
