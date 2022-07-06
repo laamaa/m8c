@@ -30,6 +30,19 @@ static int detect_m8_serial_device(struct sp_port *port) {
   return 0;
 }
 
+int check_serial_port(struct sp_port *m8_port) {
+  int buf[1] = {0x01};
+  int result;
+  SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Checking serial port");
+  result = sp_blocking_write(m8_port, buf, 1, 5);
+  if (result != 1) {
+    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM,
+                 "Cannot send test packet to device, code %d", result);
+    return 0;
+  }
+  return 1;
+}
+
 struct sp_port *init_serial(int verbose) {
   /* A pointer to a null-terminated array of pointers to
    * struct sp_port, which will contain the ports found.*/

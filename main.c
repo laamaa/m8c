@@ -8,8 +8,6 @@
 #include <SDL.h>
 #include <libserialport.h>
 #include <signal.h>
-#include <string.h>
-#include <unistd.h>
 
 #include "command.h"
 #include "config.h"
@@ -99,7 +97,8 @@ int main(int argc, char *argv[]) {
       if (result == 1) {
         run = RUN;
       } else {
-        SDL_LogCritical(SDL_LOG_CATEGORY_ERROR,"Device not detected on begin loop.");
+        SDL_LogCritical(SDL_LOG_CATEGORY_ERROR,
+                        "Device not detected on begin loop.");
         run = QUIT;
       }
     }
@@ -116,7 +115,7 @@ int main(int argc, char *argv[]) {
         // get current inputs
         input_msg_s input = get_input_msg(&conf);
         if (input.type == special && input.value == msg_quit) {
-          SDL_LogCritical(SDL_LOG_CATEGORY_ERROR,"Input message QUIT.");
+          SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Input message QUIT.");
           run = QUIT;
         }
 
@@ -138,7 +137,7 @@ int main(int argc, char *argv[]) {
               run = RUN;
               screensaver_destroy();
             } else {
-              SDL_LogCritical(SDL_LOG_CATEGORY_ERROR,"Device not detected.");
+              SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected.");
               run = QUIT;
               screensaver_destroy();
             }
@@ -231,13 +230,20 @@ int main(int argc, char *argv[]) {
           // zero byte packet, increment counter
           zerobyte_packets++;
           if (zerobyte_packets > conf.wait_packets) {
-            // i guess it can be assumed that the device has been disconnected
-            zerobyte_packets = 0; // reset so we dont constantly reset the device if waiting
-            run = WAIT_FOR_DEVICE;
-            close_serial_port(port);
-            port = NULL;
-            // we'll make one more loop to see if the device is still there but just sending zero bytes
-            // if it doesn't get detected when resetting the port, it will disconnect
+            zerobyte_packets = 0;
+
+            // try opening the serial port to check if it's alive
+            if (check_serial_port(port)) {
+              // the device is still there, carry on
+              break;
+            } else {
+              run = WAIT_FOR_DEVICE;
+              close_serial_port(port);
+              port = NULL;
+              /* we'll make one more loop to see if the device is still there
+               * but just sending zero bytes. if it doesn't get detected when
+               * resetting the port, it will disconnect */
+            }
           }
           break;
         }
