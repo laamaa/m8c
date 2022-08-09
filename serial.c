@@ -8,6 +8,7 @@
 #include <libserialport.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "serial.h"
 
@@ -30,17 +31,38 @@ static int detect_m8_serial_device(struct sp_port *port) {
   return 0;
 }
 
+// Checks for connected devices and whether the specified device still exists
 int check_serial_port(struct sp_port *m8_port) {
-  int buf[1] = {0x01};
-  int result;
-  SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Checking serial port");
-  result = sp_blocking_write(m8_port, buf, 1, 5);
-  if (result != 1) {
-    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM,
-                 "Cannot send test packet to device, code %d", result);
-    return 0;
+
+  int device_found = 0;
+
+  /* A pointer to a null-terminated array of pointers to
+   * struct sp_port, which will contain the ports found.*/
+  struct sp_port **port_list;
+
+  /* Call sp_list_ports() to get the ports. The port_list
+   * pointer will be updated to refer to the array created. */
+  enum sp_return result = sp_list_ports(&port_list);
+
+  if (result != SP_OK) {
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "sp_list_ports() failed!\n");
+    abort();
   }
-  return 1;
+
+  /* Iterate through the ports. When port_list[i] is NULL
+   * this indicates the end of the list. */
+  for (int i = 0; port_list[i] != NULL; i++) {
+    struct sp_port *port = port_list[i];
+
+    if (detect_m8_serial_device(port)) {
+      if (strcmp(sp_get_port_name(port), sp_get_port_name(m8_port)) == 0)
+        device_found = 1;
+    }
+  }
+
+  sp_free_port_list(port_list);
+  return device_found;
+
 }
 
 struct sp_port *init_serial(int verbose) {
