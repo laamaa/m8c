@@ -7,7 +7,6 @@
 #include "config.h"
 #include "input.h"
 #include "render.h"
-#include "write.h"
 
 #define MAX_CONTROLLERS 4
 
@@ -365,12 +364,12 @@ void handle_sdl_events(config_params_s *conf) {
 
   // Read special case game controller buttons quit and reset
   for (int gc = 0; gc < num_joysticks; gc++) {
-    if (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_quit) && 
-        (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_select) || 
+    if (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_quit) &&
+        (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_select) ||
         SDL_GameControllerGetAxis(game_controllers[gc], conf->gamepad_analog_axis_select)))
       key = (input_msg_s){special, msg_quit};
-    else if (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_reset) && 
-            (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_select) || 
+    else if (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_reset) &&
+            (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_select) ||
               SDL_GameControllerGetAxis(game_controllers[gc], conf->gamepad_analog_axis_select)))
       key = (input_msg_s){special, msg_reset_display};
   }
@@ -394,7 +393,7 @@ void handle_sdl_events(config_params_s *conf) {
     if (event.window.event == SDL_WINDOWEVENT_RESIZED)
     {
       SDL_Log("Resizing window...");
-      key = (input_msg_s){special, msg_reset_display};      
+      key = (input_msg_s){special, msg_reset_display};
     }
     break;
 
