@@ -15,9 +15,6 @@
 #include "serial.h"
 #include "slip.h"
 
-// maximum amount of bytes to read from the serial in one read()
-#define serial_read_size 324
-
 enum state { QUIT, WAIT_FOR_DEVICE, RUN };
 
 enum state run = WAIT_FOR_DEVICE;

@@ -4,6 +4,15 @@
 #ifndef _SERIAL_H_
 #define _SERIAL_H_
 
+#ifdef USE_LIBUSB
+// Not sure about this value but it seems to work
+#define serial_read_size 512
+void set_file_descriptor(int fd);
+#else
+// maximum amount of bytes to read from the serial in one read()
+#define serial_read_size 324
+#endif
+
 int init_serial(int verbose);
 int check_serial_port();
 int reset_display();
