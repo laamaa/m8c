@@ -16,9 +16,6 @@
 #ifdef USE_LIBUSB
 
 #include <libusb.h>
-#include "audio.h"
-
-#define UNUSED __attribute__((unused))
 
 static int ep_out_addr = 0x03;
 static int ep_in_addr = 0x83;
@@ -91,6 +88,10 @@ int handle_from_file_descriptor(int fileDescriptor) {
     return 0;
 }
 
+libusb_device_handle *get_handle() {
+    return devh;
+}
+
 int init_serial(int verbose) {
 
     if (devh != NULL) {
@@ -152,7 +153,7 @@ int init_serial(int verbose) {
         return 0;
     }
 
-    return audio_setup(devh);
+    return 1;
 }
 
 int reset_display() {
