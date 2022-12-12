@@ -16,6 +16,9 @@
 #ifdef USE_LIBUSB
 
 #include <libusb.h>
+#include "audio.h"
+
+#define UNUSED __attribute__((unused))
 
 static int ep_out_addr = 0x03;
 static int ep_in_addr = 0x83;
@@ -149,7 +152,7 @@ int init_serial(int verbose) {
         return 0;
     }
 
-    return 1;
+    return audio_setup(devh);
 }
 
 int reset_display() {
@@ -234,6 +237,7 @@ int send_msg_keyjazz(uint8_t note, uint8_t velocity) {
 
     return 1;
 }
+
 
 #else
 #include <libserialport.h>
@@ -481,4 +485,5 @@ int send_msg_keyjazz(uint8_t note, uint8_t velocity) {
   return 1;
 }
 #endif
+
 
