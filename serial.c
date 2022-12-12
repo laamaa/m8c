@@ -65,19 +65,18 @@ int check_serial_port() {
 }
 
 int handle_from_file_descriptor(int fileDescriptor) {
-    libusb_context *ctx = NULL;
     int r;
-    r = libusb_set_option(ctx, LIBUSB_OPTION_NO_DEVICE_DISCOVERY, NULL);
+    r = libusb_set_option(NULL, LIBUSB_OPTION_NO_DEVICE_DISCOVERY, NULL);
     if (r != LIBUSB_SUCCESS) {
         SDL_Log("libusb_init failed: %d\n", r);
         return r;
     }
-    r = libusb_init(&ctx);
+    r = libusb_init(NULL);
     if (r < 0) {
         SDL_Log("libusb_init failed: %d\n", r);
         return r;
     }
-    r = libusb_wrap_sys_device(ctx, (intptr_t) fileDescriptor, &devh);
+    r = libusb_wrap_sys_device(NULL, (intptr_t) fileDescriptor, &devh);
     if (r < 0) {
         SDL_Log("libusb_wrap_sys_device failed: %d\n", r);
         return r;
@@ -111,6 +110,18 @@ int init_serial(int verbose) {
 
     if (rc < 0) {
         return rc;
+    }
+
+    for (int if_num = 0; if_num < 2; if_num++) {
+        if (libusb_kernel_driver_active(devh, if_num)) {
+            libusb_detach_kernel_driver(devh, if_num);
+        }
+        rc = libusb_claim_interface(devh, if_num);
+        if (rc < 0) {
+            fprintf(stderr, "Error claiming interface: %s\n",
+                    libusb_error_name(rc));
+            return rc;
+        }
     }
 
     /* Start configuring the device:
