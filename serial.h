@@ -7,7 +7,9 @@
 #ifdef USE_LIBUSB
 // Not sure about this value but it seems to work
 #define serial_read_size 512
+#include <libusb.h>
 void set_file_descriptor(int fd);
+libusb_device_handle *get_handle();
 #else
 // maximum amount of bytes to read from the serial in one read()
 #define serial_read_size 324

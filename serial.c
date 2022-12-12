@@ -88,6 +88,10 @@ int handle_from_file_descriptor(int fileDescriptor) {
     return 0;
 }
 
+libusb_device_handle *get_handle() {
+    return devh;
+}
+
 int init_serial(int verbose) {
 
     if (devh != NULL) {
@@ -234,6 +238,7 @@ int send_msg_keyjazz(uint8_t note, uint8_t velocity) {
 
     return 1;
 }
+
 
 #else
 #include <libserialport.h>
@@ -481,4 +486,5 @@ int send_msg_keyjazz(uint8_t note, uint8_t velocity) {
   return 1;
 }
 #endif
+
 
