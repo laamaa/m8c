@@ -26,7 +26,11 @@ static int ep_in_addr = 0x83;
 usb_callback_t init_callback = NULL;
 usb_callback_t destroy_callback = NULL;
 libusb_device_handle *devh = NULL;
-int file_descriptor = -1;
+
+void usb_destroy() {
+    devh = NULL;
+    libusb_exit(NULL);
+}
 
 void set_usb_init_callback(usb_callback_t callback) {
     init_callback = callback;
@@ -34,14 +38,6 @@ void set_usb_init_callback(usb_callback_t callback) {
 
 void set_usb_destroy_callback(usb_callback_t callback) {
     destroy_callback = callback;
-}
-
-void set_file_descriptor(int fd) {
-    file_descriptor = fd;
-    if (fd == -1) {
-        libusb_exit(NULL);
-        devh = NULL;
-    }
 }
 
 int blocking_write(void *buf,
@@ -70,71 +66,18 @@ int serial_read(uint8_t *serial_buf, int count) {
 }
 
 int check_serial_port() {
-    libusb_device *device;
-    device = libusb_get_device(devh);
-    return device != NULL;
+    // Reading will fail anyway when the device is not present anymore
+    return 1;
 }
 
-int handle_from_file_descriptor(int fileDescriptor) {
-    int r;
-    r = libusb_set_option(NULL, LIBUSB_OPTION_NO_DEVICE_DISCOVERY, NULL);
-    if (r != LIBUSB_SUCCESS) {
-        SDL_Log("libusb_init failed: %d\n", r);
-        return r;
-    }
-    r = libusb_init(NULL);
-    if (r < 0) {
-        SDL_Log("libusb_init failed: %d\n", r);
-        return r;
-    }
-    r = libusb_wrap_sys_device(NULL, (intptr_t) fileDescriptor, &devh);
-    if (r < 0) {
-        SDL_Log("libusb_wrap_sys_device failed: %d\n", r);
-        return r;
-    } else if (devh == NULL) {
-        SDL_Log("libusb_wrap_sys_device returned invalid handle\n");
-        return r;
-    }
-    SDL_Log("USB device init success");
-    return 0;
-}
+int init_interface() {
 
-libusb_device_handle *get_handle() {
-    return devh;
-}
-
-int init_serial(int verbose) {
-
-    if (devh != NULL) {
-        if (verbose)
-            SDL_Log("Device already initialised");
-        return 1;
+    if (devh == NULL) {
+        SDL_Log("Device not initialised!");
+        return -1;
     }
-
-    if (file_descriptor == -1) {
-        SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "File descriptor was not set!\n");
-        abort();
-    }
-
-    if (verbose)
-        SDL_Log("Initialising USB device for %d", file_descriptor);
 
     int rc;
-
-    rc = handle_from_file_descriptor(file_descriptor);
-
-    if (rc < 0) {
-        return rc;
-    }
-
-    if (init_callback != NULL) {
-        rc = init_callback(devh);
-
-        if (rc < 0) {
-            SDL_Log("Init callback failed: %d", rc);
-            return rc;
-        }
-    }
 
     for (int if_num = 0; if_num < 2; if_num++) {
         if (libusb_kernel_driver_active(devh, if_num)) {
@@ -157,7 +100,7 @@ int init_serial(int verbose) {
     if (rc < 0) {
         SDL_Log("Error during control transfer: %s\n",
                 libusb_error_name(rc));
-        return 0;
+        return rc;
     }
 
     /* - set line encoding: here 115200 8N1
@@ -170,9 +113,79 @@ int init_serial(int verbose) {
     if (rc < 0) {
         SDL_Log("Error during control transfer: %s\n",
                 libusb_error_name(rc));
-        return 0;
+        return rc;
     }
 
+    return 1;
+}
+
+int init_serial_with_file_descriptor(int file_descriptor) {
+    SDL_Log("Initialising serial with file descriptor");
+    int r;
+    r = libusb_set_option(NULL, LIBUSB_OPTION_NO_DEVICE_DISCOVERY, NULL);
+    if (r != LIBUSB_SUCCESS) {
+        SDL_Log("libusb_init failed: %d\n", r);
+        return r;
+    }
+    r = libusb_init(NULL);
+    if (r < 0) {
+        SDL_Log("libusb_init failed: %d\n", r);
+        return r;
+    }
+    r = libusb_wrap_sys_device(NULL, (intptr_t) file_descriptor, &devh);
+    if (r < 0) {
+        SDL_Log("libusb_wrap_sys_device failed: %d\n", r);
+        return r;
+    } else if (devh == NULL) {
+        SDL_Log("libusb_wrap_sys_device returned invalid handle\n");
+        return r;
+    }
+    SDL_Log("USB device init success");
+
+    if (init_callback != NULL) {
+        r = init_callback(devh);
+
+        if (r < 0) {
+            SDL_Log("Init callback failed: %d", r);
+            return r;
+        }
+    }
+
+    return init_interface();
+}
+
+int init_serial(int verbose) {
+
+    if (devh != NULL) {
+        return 1;
+    }
+
+    int r;
+    r = libusb_set_option(NULL, LIBUSB_OPTION_NO_DEVICE_DISCOVERY, NULL);
+    if (r != LIBUSB_SUCCESS) {
+        SDL_Log("libusb_init failed: %d\n", r);
+        return r;
+    }
+    r = libusb_init(NULL);
+    if (r < 0) {
+        SDL_Log("libusb_init failed: %d\n", r);
+        return r;
+    }
+    devh = libusb_open_device_with_vid_pid(NULL, 0x16c0, 0x048a);
+    if (devh == NULL) {
+        SDL_Log("libusb_open_device_with_vid_pid returned invalid handle\n");
+        return r;
+    }
+    SDL_Log("USB device init success");
+
+    if (init_callback != NULL) {
+        r = init_callback(devh);
+
+        if (r < 0) {
+            SDL_Log("Init callback failed: %d", r);
+            return r;
+        }
+    }
     return 1;
 }
 
