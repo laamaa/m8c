@@ -8,8 +8,10 @@
 // Not sure about this value but it seems to work
 #define serial_read_size 512
 #include <libusb.h>
+typedef int (*usb_callback_t)(libusb_device_handle *devh);
+void set_usb_init_callback(usb_callback_t callback);
+void set_usb_destroy_callback(usb_callback_t callback);
 void set_file_descriptor(int fd);
-libusb_device_handle *get_handle();
 #else
 // maximum amount of bytes to read from the serial in one read()
 #define serial_read_size 324

@@ -23,12 +23,23 @@ static int ep_in_addr = 0x83;
 #define ACM_CTRL_DTR   0x01
 #define ACM_CTRL_RTS   0x02
 
+usb_callback_t init_callback = NULL;
+usb_callback_t destroy_callback = NULL;
 libusb_device_handle *devh = NULL;
 int file_descriptor = -1;
+
+void set_usb_init_callback(usb_callback_t callback) {
+    init_callback = callback;
+}
+
+void set_usb_destroy_callback(usb_callback_t callback) {
+    destroy_callback = callback;
+}
 
 void set_file_descriptor(int fd) {
     file_descriptor = fd;
     if (fd == -1) {
+        libusb_exit(NULL);
         devh = NULL;
     }
 }
@@ -116,6 +127,15 @@ int init_serial(int verbose) {
         return rc;
     }
 
+    if (init_callback != NULL) {
+        rc = init_callback(devh);
+
+        if (rc < 0) {
+            SDL_Log("Init callback failed: %d", rc);
+            return rc;
+        }
+    }
+
     for (int if_num = 0; if_num < 2; if_num++) {
         if (libusb_kernel_driver_active(devh, if_num)) {
             libusb_detach_kernel_driver(devh, if_num);
@@ -196,8 +216,18 @@ int enable_and_reset_display() {
 }
 
 int disconnect() {
+
     char buf[1] = {'D'};
     int result;
+
+    if (destroy_callback != NULL) {
+        result = destroy_callback(devh);
+
+        if (result < 0) {
+            SDL_Log("Destroy callback failed: %d", result);
+            return result;
+        }
+    }
 
     SDL_Log("Disconnecting M8\n");
 

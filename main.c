@@ -56,6 +56,7 @@ int main(int argc, char *argv[]) {
 
   signal(SIGINT, intHandler);
   signal(SIGTERM, intHandler);
+  signal(SIGQUIT, intHandler);
 
   slip_init(&slip, &slip_descriptor);
 
