@@ -4,11 +4,10 @@
 // Contains portions of code from libserialport's examples released to the
 // public domain
 
-#include <SDL_log.h>
+#include <SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "SDL_timer.h"
 #include <unistd.h>
 
 #include "serial.h"
@@ -26,11 +25,6 @@ static int ep_in_addr = 0x83;
 usb_callback_t init_callback = NULL;
 usb_callback_t destroy_callback = NULL;
 libusb_device_handle *devh = NULL;
-
-void usb_destroy() {
-    devh = NULL;
-    libusb_exit(NULL);
-}
 
 void set_usb_init_callback(usb_callback_t callback) {
     init_callback = callback;
@@ -74,7 +68,7 @@ int init_interface() {
 
     if (devh == NULL) {
         SDL_Log("Device not initialised!");
-        return -1;
+        return 0;
     }
 
     int rc;
@@ -85,9 +79,8 @@ int init_interface() {
         }
         rc = libusb_claim_interface(devh, if_num);
         if (rc < 0) {
-            fprintf(stderr, "Error claiming interface: %s\n",
-                    libusb_error_name(rc));
-            return rc;
+            SDL_Log("Error claiming interface: %s", libusb_error_name(rc));
+            return 0;
         }
     }
 
@@ -98,9 +91,8 @@ int init_interface() {
     rc = libusb_control_transfer(devh, 0x21, 0x22, ACM_CTRL_DTR | ACM_CTRL_RTS,
                                  0, NULL, 0, 0);
     if (rc < 0) {
-        SDL_Log("Error during control transfer: %s\n",
-                libusb_error_name(rc));
-        return rc;
+        SDL_Log("Error during control transfer: %s", libusb_error_name(rc));
+        return 0;
     }
 
     /* - set line encoding: here 115200 8N1
@@ -111,9 +103,8 @@ int init_interface() {
     rc = libusb_control_transfer(devh, 0x21, 0x20, 0, 0, encoding,
                                  sizeof(encoding), 0);
     if (rc < 0) {
-        SDL_Log("Error during control transfer: %s\n",
-                libusb_error_name(rc));
-        return rc;
+        SDL_Log("Error during control transfer: %s", libusb_error_name(rc));
+        return 0;
     }
 
     return 1;
@@ -121,24 +112,30 @@ int init_interface() {
 
 int init_serial_with_file_descriptor(int file_descriptor) {
     SDL_Log("Initialising serial with file descriptor");
+
+    if (file_descriptor <= 0) {
+        SDL_Log("Invalid file descriptor: %d", file_descriptor);
+        return 0;
+    }
+
     int r;
     r = libusb_set_option(NULL, LIBUSB_OPTION_NO_DEVICE_DISCOVERY, NULL);
     if (r != LIBUSB_SUCCESS) {
-        SDL_Log("libusb_init failed: %d\n", r);
-        return r;
+        SDL_Log("libusb_init failed: %s", libusb_error_name(r));
+        return 0;
     }
     r = libusb_init(NULL);
     if (r < 0) {
-        SDL_Log("libusb_init failed: %d\n", r);
-        return r;
+        SDL_Log("libusb_init failed: %s", libusb_error_name(r));
+        return 0;
     }
     r = libusb_wrap_sys_device(NULL, (intptr_t) file_descriptor, &devh);
     if (r < 0) {
-        SDL_Log("libusb_wrap_sys_device failed: %d\n", r);
-        return r;
+        SDL_Log("libusb_wrap_sys_device failed: %s", libusb_error_name(r));
+        return 0;
     } else if (devh == NULL) {
-        SDL_Log("libusb_wrap_sys_device returned invalid handle\n");
-        return r;
+        SDL_Log("libusb_wrap_sys_device returned invalid handle");
+        return 0;
     }
     SDL_Log("USB device init success");
 
@@ -147,7 +144,7 @@ int init_serial_with_file_descriptor(int file_descriptor) {
 
         if (r < 0) {
             SDL_Log("Init callback failed: %d", r);
-            return r;
+            return 0;
         }
     }
 
@@ -163,18 +160,18 @@ int init_serial(int verbose) {
     int r;
     r = libusb_set_option(NULL, LIBUSB_OPTION_NO_DEVICE_DISCOVERY, NULL);
     if (r != LIBUSB_SUCCESS) {
-        SDL_Log("libusb_init failed: %d\n", r);
-        return r;
+        SDL_Log("libusb_init failed: %s", libusb_error_name(r));
+        return 0;
     }
     r = libusb_init(NULL);
     if (r < 0) {
-        SDL_Log("libusb_init failed: %d\n", r);
-        return r;
+        SDL_Log("libusb_init failed: %s", libusb_error_name(r));
+        return 0;
     }
     devh = libusb_open_device_with_vid_pid(NULL, 0x16c0, 0x048a);
     if (devh == NULL) {
-        SDL_Log("libusb_open_device_with_vid_pid returned invalid handle\n");
-        return r;
+        SDL_Log("libusb_open_device_with_vid_pid returned invalid handle");
+        return 0;
     }
     SDL_Log("USB device init success");
 
@@ -183,7 +180,7 @@ int init_serial(int verbose) {
 
         if (r < 0) {
             SDL_Log("Init callback failed: %d", r);
-            return r;
+            return 0;
         }
     }
     return 1;
