@@ -37,9 +37,11 @@ void set_usb_destroy_callback(usb_callback_t callback) {
 int blocking_write(void *buf,
                    int count, unsigned int timeout_ms) {
     int actual_length;
-    if (libusb_bulk_transfer(devh, ep_out_addr, buf, count,
-                             &actual_length, timeout_ms) < 0) {
-        SDL_Log("Error while sending char\n");
+    int rc;
+    rc = libusb_bulk_transfer(devh, ep_out_addr, buf, count,
+                         &actual_length, timeout_ms);
+    if (rc < 0) {
+        SDL_Log("Error while sending char: %s", libusb_error_name(rc));
         return -1;
     }
     return actual_length;
@@ -52,7 +54,7 @@ int serial_read(uint8_t *serial_buf, int count) {
     if (rc == LIBUSB_ERROR_TIMEOUT) {
         return 0;
     } else if (rc < 0) {
-        SDL_Log("Error while waiting for char: %d\n", rc);
+        SDL_Log("Error while waiting for char: %s", libusb_error_name(rc));
         return -1;
     }
 
@@ -75,6 +77,7 @@ int init_interface() {
 
     for (int if_num = 0; if_num < 2; if_num++) {
         if (libusb_kernel_driver_active(devh, if_num)) {
+            SDL_Log("Detaching kernel driver for interface %d", if_num);
             libusb_detach_kernel_driver(devh, if_num);
         }
         rc = libusb_claim_interface(devh, if_num);
@@ -121,7 +124,7 @@ int init_serial_with_file_descriptor(int file_descriptor) {
     int r;
     r = libusb_set_option(NULL, LIBUSB_OPTION_NO_DEVICE_DISCOVERY, NULL);
     if (r != LIBUSB_SUCCESS) {
-        SDL_Log("libusb_init failed: %s", libusb_error_name(r));
+        SDL_Log("libusb_set_option failed: %s", libusb_error_name(r));
         return 0;
     }
     r = libusb_init(NULL);
@@ -158,11 +161,6 @@ int init_serial(int verbose) {
     }
 
     int r;
-    r = libusb_set_option(NULL, LIBUSB_OPTION_NO_DEVICE_DISCOVERY, NULL);
-    if (r != LIBUSB_SUCCESS) {
-        SDL_Log("libusb_init failed: %s", libusb_error_name(r));
-        return 0;
-    }
     r = libusb_init(NULL);
     if (r < 0) {
         SDL_Log("libusb_init failed: %s", libusb_error_name(r));
@@ -183,7 +181,8 @@ int init_serial(int verbose) {
             return 0;
         }
     }
-    return 1;
+
+    return init_interface();
 }
 
 int reset_display() {
