@@ -27,6 +27,10 @@ EXTENSION = .c
 m8c: $(OBJ)
 	$(CC) -o $@ $^ $(local_CFLAGS) $(INCLUDES)
 
+libusb: INCLUDES = $(shell pkg-config --libs sdl2 libusb)
+libusb: local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl2 libusb) -Wall -O2 -pipe -I.
+libusb: m8c
+
 font.c: inline_font.h
 	@echo "#include <SDL.h>" > $@-tmp1
 	@cat inline_font.h >> $@-tmp1
