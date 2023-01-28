@@ -246,6 +246,23 @@ int disconnect() {
                      result);
         return -1;
     }
+
+    int rc;
+
+    for (int if_num = 0; if_num < 2; if_num++) {
+        rc = libusb_release_interface(devh, if_num);
+        if (rc < 0) {
+            SDL_Log("Error releasing interface: %s", libusb_error_name(rc));
+            return 0;
+        }
+    }
+
+    if (devh != NULL) {
+        libusb_close(devh);
+    }
+
+    libusb_exit(NULL);
+
     return 1;
 }
 
