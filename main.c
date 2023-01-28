@@ -56,8 +56,9 @@ int main(int argc, char *argv[]) {
 
   signal(SIGINT, intHandler);
   signal(SIGTERM, intHandler);
+#ifdef SIGQUIT
   signal(SIGQUIT, intHandler);
-
+#endif
   slip_init(&slip, &slip_descriptor);
 
   // First device detection to avoid SDL init if it isn't necessary
