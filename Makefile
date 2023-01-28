@@ -1,8 +1,8 @@
 #Set all your object files (the object files of all the .c files in your project, e.g. main.o my_sub_functions.o )
-OBJ = main.o serial.o slip.o command.o write.o render.o ini.o config.o input.o font.o fx_cube.o
+OBJ = main.o serial.o slip.o command.o render.o ini.o config.o input.o font.o fx_cube.o usb.o
 
 #Set any dependant header files so that if they are edited they cause a complete re-compile (e.g. main.h some_subfunctions.h some_definitions_file.h ), or leave blank
-DEPS = serial.h slip.h command.h write.h render.h ini.h config.h input.h fx_cube.h
+DEPS = serial.h slip.h command.h render.h ini.h config.h input.h fx_cube.h
 
 #Any special libraries you are using in your project (e.g. -lbcm2835 -lrt `pkg-config --libs gtk+-3.0` ), or leave blank
 INCLUDES = $(shell pkg-config --libs sdl2 libserialport)
@@ -26,6 +26,10 @@ EXTENSION = .c
 #Set your desired exe output file name here
 m8c: $(OBJ)
 	$(CC) -o $@ $^ $(local_CFLAGS) $(INCLUDES)
+
+libusb: INCLUDES = $(shell pkg-config --libs sdl2 libusb-1.0)
+libusb: local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl2 libusb-1.0) -Wall -O2 -pipe -I. -DUSE_LIBUSB=1
+libusb: m8c
 
 font.c: inline_font.h
 	@echo "#include <SDL.h>" > $@-tmp1
