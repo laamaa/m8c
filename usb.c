@@ -294,5 +294,4 @@ int send_msg_keyjazz(uint8_t note, uint8_t velocity) {
     return 1;
 }
 
-
-
+#endif
