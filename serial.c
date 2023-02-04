@@ -168,15 +168,13 @@ static int check(enum sp_return result) {
 }
 
 int reset_display() {
-  SDL_Log("Reset display\n");
-  uint8_t buf[2];
   int result;
 
-  buf[0] = 0x45;
-  buf[1] = 0x52;
+  SDL_Log("Reset display\n");
 
-  result = sp_blocking_write(m8_port, buf, 2, 5);
-  if (result != 2) {
+  char buf[1] = {'R'};
+  result = sp_blocking_write(m8_port, buf, 1, 5);
+  if (result != 1) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error resetting M8 display, code %d",
                  result);
     return 0;
@@ -185,12 +183,11 @@ int reset_display() {
 }
 
 int enable_and_reset_display() {
-  uint8_t buf[1];
   int result;
 
   SDL_Log("Enabling and resetting M8 display\n");
 
-  buf[0] = 0x44;
+  char buf[1] = {'E'};
   result = sp_blocking_write(m8_port, buf, 1, 5);
   if (result != 1) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error enabling M8 display, code %d",
@@ -200,18 +197,15 @@ int enable_and_reset_display() {
 
   SDL_Delay(5);
   result = reset_display();
-  if (result == 1)
-    return 1;
-  else
-    return 0;
+  return result;
 }
 
 int disconnect() {
-  char buf[1] = {'D'};
   int result;
 
   SDL_Log("Disconnecting M8\n");
 
+  char buf[1] = {'D'};
   result = sp_blocking_write(m8_port, buf, 1, 5);
   if (result != 1) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error sending disconnect, code %d",
