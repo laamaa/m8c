@@ -14,6 +14,7 @@
 #include "render.h"
 #include "serial.h"
 #include "slip.h"
+#include "SDL2_inprint.h"
 
 enum state { QUIT, WAIT_FOR_DEVICE, RUN };
 
@@ -39,6 +40,8 @@ int main(int argc, char *argv[]) {
   uint8_t *serial_buf = malloc(serial_read_size);
 
   static uint8_t slip_buffer[serial_read_size]; // SLIP command buffer
+
+  SDL_zero(slip_buffer);
 
   // settings for the slip packet handler
   static const slip_descriptor_s slip_descriptor = {
@@ -250,6 +253,7 @@ int main(int argc, char *argv[]) {
   close_renderer();
   close_serial_port();
   free(serial_buf);
+  kill_inline_font();
   SDL_Quit();
   return 0;
 }
