@@ -6,7 +6,7 @@ find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(SDL2 REQUIRED sdl2)
 if (USE_LIBUSB)
-    pkg_check_modules(LIBUSB REQUIRED libusb)
+    pkg_check_modules(LIBUSB REQUIRED libusb-1.0)
     link_directories(${SDL2_LIBRARY_DIRS} ${LIBUSB_LIBRARY_DIRS})
     add_compile_definitions(USE_LIBUSB)
 else ()
