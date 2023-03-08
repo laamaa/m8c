@@ -257,7 +257,9 @@ int main(int argc, char *argv[]) {
 
   // exit, clean up
   SDL_Log("Shutting down\n");
-  audio_destroy();
+  if (conf.audio_enabled == 1){
+    audio_destroy();
+  }
   close_game_controllers();
   close_renderer();
   close_serial_port();
