@@ -2,9 +2,11 @@
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
 #include "config.h"
+#include "SDL_stdinc.h"
 #include "ini.h"
 #include <SDL.h>
 #include <assert.h>
+#include <stdio.h>
 
 /* Case insensitive string compare from ini.h library */
 static int strcmpci(const char *a, const char *b) {
@@ -26,7 +28,10 @@ config_params_s init_config() {
   c.init_use_gpu = 1;    // default to use hardware acceleration
   c.idle_ms = 10;        // default to high performance
   c.wait_for_device = 1; // default to exit if device disconnected
-  c.wait_packets = 1024;   // default zero-byte attempts to disconnect (about 2 sec for default idle_ms)
+  c.wait_packets = 1024; // default zero-byte attempts to disconnect (about 2
+                         // sec for default idle_ms)
+  c.audio_enabled = 0;   // route M8 audio to default output
+  c.audio_buffer_size = 1024; // requested audio buffer size in samples
 
   c.key_up = SDL_SCANCODE_UP;
   c.key_left = SDL_SCANCODE_LEFT;
@@ -77,7 +82,7 @@ void write_config(config_params_s *conf) {
 
   SDL_Log("Writing config file to %s", config_path);
 
-  const unsigned int INI_LINE_COUNT = 40;
+  const unsigned int INI_LINE_COUNT = 43;
   const unsigned int LINELEN = 50;
 
   // Entries for the config file
@@ -91,7 +96,13 @@ void write_config(config_params_s *conf) {
   snprintf(ini_values[initPointer++], LINELEN, "idle_ms=%d\n", conf->idle_ms);
   snprintf(ini_values[initPointer++], LINELEN, "wait_for_device=%s\n",
            conf->wait_for_device ? "true" : "false");
-  snprintf(ini_values[initPointer++], LINELEN, "wait_packets=%d\n", conf->wait_packets);
+  snprintf(ini_values[initPointer++], LINELEN, "wait_packets=%d\n",
+           conf->wait_packets);
+  snprintf(ini_values[initPointer++], LINELEN, "[audio]\n");
+  snprintf(ini_values[initPointer++], LINELEN, "audio_enabled=%s\n",
+           conf->audio_enabled ? "true" : "false");
+  snprintf(ini_values[initPointer++], LINELEN, "audio_buffer_size=%d\n",
+           conf->audio_buffer_size);
   snprintf(ini_values[initPointer++], LINELEN, "[keyboard]\n");
   snprintf(ini_values[initPointer++], LINELEN, "key_up=%d\n", conf->key_up);
   snprintf(ini_values[initPointer++], LINELEN, "key_left=%d\n", conf->key_left);
@@ -190,6 +201,7 @@ void read_config(config_params_s *conf) {
     return;
   }
 
+  read_audio_config(ini, conf);
   read_graphics_config(ini, conf);
   read_key_config(ini, conf);
   read_gamepad_config(ini, conf);
@@ -199,6 +211,24 @@ void read_config(config_params_s *conf) {
 
   // Write any new default options after loading
   write_config(conf);
+}
+
+void read_audio_config(ini_t *ini, config_params_s *conf) {
+  const char *param_audio_enabled = ini_get(ini, "audio", "audio_enabled");
+  const char *param_audio_buffer_size =
+      ini_get(ini, "audio", "audio_buffer_size");
+
+  if (param_audio_enabled != NULL) {
+    if (strcmpci(param_audio_enabled, "true") == 0) {
+      conf->audio_enabled = 1;
+    } else {
+      conf->audio_enabled = 0;
+    }
+  }
+
+  if (param_audio_buffer_size != NULL) {
+    conf->audio_buffer_size = SDL_atoi(param_audio_buffer_size);
+  }
 }
 
 void read_graphics_config(ini_t *ini, config_params_s *conf) {

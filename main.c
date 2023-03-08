@@ -8,6 +8,7 @@
 #include <SDL.h>
 #include <signal.h>
 
+#include "audio.h"
 #include "command.h"
 #include "config.h"
 #include "input.h"
@@ -78,6 +79,13 @@ int main(int argc, char *argv[]) {
 
   // initial scan for (existing) game controllers
   initialize_game_controllers();
+
+  if (conf.audio_enabled == 1) {
+      if (audio_init(conf.audio_buffer_size) == 0){
+        SDL_Log("Cannot initialize audio, exiting.");
+        run = QUIT;
+      }
+  }
 
 #ifdef DEBUG_MSG
   SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
@@ -249,6 +257,7 @@ int main(int argc, char *argv[]) {
 
   // exit, clean up
   SDL_Log("Shutting down\n");
+  audio_destroy();
   close_game_controllers();
   close_renderer();
   close_serial_port();
