@@ -123,7 +123,7 @@ jobs:
     
     steps:
       - name: 'Install dependencies'
-        run: brew install sdl2 libserialport pkg-config
+        run: brew install cmake sdl2 libserialport pkg-config
 
       - name: 'Checkout'
         uses: actions/checkout@v2
@@ -134,18 +134,13 @@ jobs:
 
       - name: 'Build package'
         run: |
-          make
-          chmod 755 m8c
-          cd macos/m8c.app/Contents/
-          mkdir MacOS
-          cd MacOS
-          cp ../../../../m8c .
-          cp /usr/local/opt/sdl2/lib/libSDL2* .
-          cp /usr/local/opt/libserialport/lib/libserialport.* .
-          install_name_tool -change /usr/local/opt/libserialport/lib/libserialport.0.dylib @executable_path/libserialport.0.dylib m8c
-          install_name_tool -change /usr/local/opt/sdl2/lib/libSDL2-2.0.0.dylib @executable_path/libSDL2-2.0.0.dylib m8c
-          cd ../../../../
-          cp -r macos/m8c.app .
+          INSTALL_PREFIX=/tmp/
+          mkdir build && cd build
+          cmake ..
+          cmake --build .
+          cmake --install . --prefix=$INSTALL_PREFIX
+          codesign --deep --force --verify --verbose --timestamp --sign - "$INSTALL_PREFIX/m8c.app" "$INSTALL_PREFIX/m8c.app/Contents/Frameworks/libSDL2-2.0.0.dylib" "$INSTALL_PREFIX/m8c.app/Contents/Frameworks/libserialport.0.dylib"
+          cp -r /tmp/m8c.app .
           zip -r m8c.zip m8c.app LICENSE README.md AUDIOGUIDE.md config.ini.sample gamecontrollerdb.txt
       - name: 'Upload artifact'
         uses: actions/upload-artifact@v2
