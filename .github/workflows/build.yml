@@ -38,9 +38,8 @@ jobs:
         update: true
         install: mingw-w64-${{ matrix.env }}-toolchain make mingw-w64-${{ matrix.env }}-SDL2 mingw-w64-${{ matrix.env }}-libserialport zip dos2unix
   
-    - name: 'Get current date'
-      id: date
-      run: echo "::set-output name=date::$(date +%Y%m%d)"
+    - name: Set current date as env variable
+      run: echo "NOW=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
     - name: 'Build package'
       run: |
@@ -61,7 +60,7 @@ jobs:
       if: matrix.win == 'win32'
       uses: actions/upload-artifact@v3
       with:
-        name: m8c-${{ steps.date.outputs.date }}-${{ matrix.win }}
+        name: m8c-${{ env.NOW }}-${{ matrix.win }}
         path: |
           m8c.exe
           SDL2.dll
@@ -99,9 +98,8 @@ jobs:
       - name: 'Checkout'
         uses: actions/checkout@v3
 
-      - name: 'Get current date'
-        id: date
-        run: echo "::set-output name=date::$(date +%Y%m%d)"
+      - name: Set current date as env variable
+        run: echo "NOW=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
       - name: 'Build package'
         run: |
@@ -109,7 +107,7 @@ jobs:
       - name: 'Upload artifact'
         uses: actions/upload-artifact@v3
         with:
-          name: m8c-${{ steps.date.outputs.date }}-linux
+          name: m8c-${{ env.NOW }}-linux
           path: |
             LICENSE
             README.md
