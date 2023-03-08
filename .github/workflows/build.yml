@@ -27,7 +27,7 @@ jobs:
       shell: bash
 
     - name: 'Checkout'
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
@@ -38,9 +38,8 @@ jobs:
         update: true
         install: mingw-w64-${{ matrix.env }}-toolchain make mingw-w64-${{ matrix.env }}-SDL2 mingw-w64-${{ matrix.env }}-libserialport zip dos2unix
   
-    - name: 'Get current date'
-      id: date
-      run: echo "::set-output name=date::$(date +%Y%m%d)"
+    - name: Set current date as env variable
+      run: echo "NOW=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
     - name: 'Build package'
       run: |
@@ -59,9 +58,9 @@ jobs:
         unix2dos README.md config.ini.sample LICENSE AUDIOGUIDE.md
     - name: 'Upload artifact (win32)'
       if: matrix.win == 'win32'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
-        name: m8c-${{ steps.date.outputs.date }}-${{ matrix.win }}
+        name: m8c-${{ env.NOW }}-${{ matrix.win }}
         path: |
           m8c.exe
           SDL2.dll
@@ -75,9 +74,9 @@ jobs:
           config.ini.sample
     - name: 'Upload artifact (win64)'
       if: matrix.win == 'win64'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
-        name: m8c-${{ steps.date.outputs.date }}-${{ matrix.win }}
+        name: m8c-${{ env.NOW }}-${{ matrix.win }}
         path: |
           m8c.exe
           SDL2.dll
@@ -97,19 +96,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install --fix-missing build-essential libsdl2-dev libserialport-dev zip
       - name: 'Checkout'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      - name: 'Get current date'
-        id: date
-        run: echo "::set-output name=date::$(date +%Y%m%d)"
+      - name: Set current date as env variable
+        run: echo "NOW=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
       - name: 'Build package'
         run: |
           make
       - name: 'Upload artifact'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
-          name: m8c-${{ steps.date.outputs.date }}-linux
+          name: m8c-${{ env.NOW }}-linux
           path: |
             LICENSE
             README.md
@@ -123,33 +121,27 @@ jobs:
     
     steps:
       - name: 'Install dependencies'
-        run: brew install sdl2 libserialport pkg-config
+        run: brew install cmake sdl2 libserialport pkg-config
 
       - name: 'Checkout'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      - name: 'Get current date'
-        id: date
-        run: echo "::set-output name=date::$(date +%Y%m%d)"
+      - name: Set current date as env variable
+        run: echo "NOW=$(date +'%Y-%m-%d')" >> $GITHUB_ENV        
 
       - name: 'Build package'
         run: |
-          make
-          chmod 755 m8c
-          cd macos/m8c.app/Contents/
-          mkdir MacOS
-          cd MacOS
-          cp ../../../../m8c .
-          cp /usr/local/opt/sdl2/lib/libSDL2* .
-          cp /usr/local/opt/libserialport/lib/libserialport.* .
-          install_name_tool -change /usr/local/opt/libserialport/lib/libserialport.0.dylib @executable_path/libserialport.0.dylib m8c
-          install_name_tool -change /usr/local/opt/sdl2/lib/libSDL2-2.0.0.dylib @executable_path/libSDL2-2.0.0.dylib m8c
-          cd ../../../../
-          cp -r macos/m8c.app .
+          INSTALL_PREFIX=/tmp/
+          mkdir build && cd build
+          cmake ..
+          cmake --build .
+          cmake --install . --prefix=$INSTALL_PREFIX
+          codesign --deep --force --verify --verbose --timestamp --sign - "$INSTALL_PREFIX/m8c.app" "$INSTALL_PREFIX/m8c.app/Contents/Frameworks/libSDL2-2.0.0.dylib" "$INSTALL_PREFIX/m8c.app/Contents/Frameworks/libserialport.0.dylib"
+          cd ..
+          cp -r /tmp/m8c.app .
           zip -r m8c.zip m8c.app LICENSE README.md AUDIOGUIDE.md config.ini.sample gamecontrollerdb.txt
       - name: 'Upload artifact'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
-          name: m8c-${{ steps.date.outputs.date }}-macos
-          path: m8c.zip
-            
+          name: m8c-${{ env.NOW }}-macos
+          path: m8c.zip           
