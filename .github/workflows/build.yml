@@ -76,7 +76,7 @@ jobs:
       if: matrix.win == 'win64'
       uses: actions/upload-artifact@v3
       with:
-        name: m8c-${{ steps.date.outputs.date }}-${{ matrix.win }}
+        name: m8c-${{ env.NOW }}-${{ matrix.win }}
         path: |
           m8c.exe
           SDL2.dll
