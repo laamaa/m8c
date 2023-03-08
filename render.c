@@ -120,6 +120,12 @@ void draw_rectangle(struct draw_rectangle_command *command) {
     background_color.g = command->color.g;
     background_color.b = command->color.b;
     background_color.a = 0xFF;
+
+#ifdef __ANDROID__
+      int bgcolor = (command->color.r << 16) |
+                           (command->color.g << 8) | command->color.b;
+      SDL_AndroidSendMessage(0x8001, bgcolor);
+#endif
   }
 
   SDL_SetRenderDrawColor(rend, command->color.r, command->color.g,
