@@ -146,7 +146,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: m8c-${{ env.NOW }}-macos
-          path: m8c.zip
-          env:
-            Date:
-            
+          path: m8c.zip           
