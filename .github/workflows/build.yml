@@ -140,6 +140,7 @@ jobs:
           cmake --build .
           cmake --install . --prefix=$INSTALL_PREFIX
           codesign --deep --force --verify --verbose --timestamp --sign - "$INSTALL_PREFIX/m8c.app" "$INSTALL_PREFIX/m8c.app/Contents/Frameworks/libSDL2-2.0.0.dylib" "$INSTALL_PREFIX/m8c.app/Contents/Frameworks/libserialport.0.dylib"
+          cd ..
           cp -r /tmp/m8c.app .
           zip -r m8c.zip m8c.app LICENSE README.md AUDIOGUIDE.md config.ini.sample gamecontrollerdb.txt
       - name: 'Upload artifact'
