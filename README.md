@@ -10,9 +10,7 @@ If you like the M8 and you gel with the tracker workflow, please support [Dirtyw
 
 *m8c* is a client for Dirtywave M8 tracker's headless mode. The application should be cross-platform ready and can be built in Linux, Windows (with MSYS2/MINGW64) and Mac OS.
 
-Please note that routing the headless M8 USB audio isn't in the scope of this program -- if this is needed, it can be achieved with tools like Pipewire, Pulseaudio, Jack w/ alsa\_in and alsa\_out just to name a few. The file AUDIOGUIDE.md contains some examples for routing the audio.
-
-If you want to route audio with the headless client you could try https://github.com/booss/rm8 which is a great native client with audio support (among other user features)!
+Experimental audio routing support can be enabled by setting the config value "audio_enabled" to "true". The audio buffer size can also be tweaked from the config file for possible lower latencies.
 
 Many thanks to:
 
