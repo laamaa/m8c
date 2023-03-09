@@ -1,6 +1,6 @@
 // Copyright 2021 Jonne Kokkonen
 // Released under the MIT licence, https://opensource.org/licenses/MIT
-
+#ifndef USE_LIBUSB
 #include "audio.h"
 #include <SDL.h>
 #include <stdint.h>
@@ -12,7 +12,7 @@ void audio_cb_in(void *userdata, uint8_t *stream, int len) {
   SDL_QueueAudio(devid_out, stream, len);
 }
 
-int audio_init(int audio_buffer_size) {
+int audio_init(int audio_buffer_size, const char* output_device_name) {
 
   int i = 0;
   int m8_device_id = -1;
@@ -46,8 +46,7 @@ int audio_init(int audio_buffer_size) {
     want_out.format = AUDIO_S16;
     want_out.channels = 2;
     want_out.samples = audio_buffer_size;
-    // Opening device NULL specifies that we want to use a reasonable system default device
-    devid_out = SDL_OpenAudioDevice(NULL, 0, &want_out, &have_out,
+    devid_out = SDL_OpenAudioDevice(output_device_name, 0, &want_out, &have_out,
                                     SDL_AUDIO_ALLOW_ANY_CHANGE);
     if (devid_out == 0) {
       SDL_Log("Failed to open output: %s", SDL_GetError());
@@ -84,3 +83,4 @@ void audio_destroy() {
   SDL_CloseAudioDevice(devid_in);
   SDL_CloseAudioDevice(devid_out);
 }
+#endif
