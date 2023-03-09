@@ -10,8 +10,6 @@ If you like the M8 and you gel with the tracker workflow, please support [Dirtyw
 
 *m8c* is a client for Dirtywave M8 tracker's headless mode. The application should be cross-platform ready and can be built in Linux, Windows (with MSYS2/MINGW64) and Mac OS.
 
-Experimental audio routing support can be enabled by setting the config value "audio_enabled" to "true". The audio buffer size can also be tweaked from the config file for possible lower latencies.
-
 Many thanks to:
 
 * Trash80 for the great M8 hardware and the original font (stealth57.ttf) that was converted to a bitmap for use in the progam.
@@ -109,9 +107,13 @@ When keyjazz is active, regular a/s/z/x keys are disabled. The base octave can b
 
 The program uses SDL's game controller system, which should make it work automagically with most gamepads. On startup, the program tries to load a SDL game controller database named gamecontrollerdb.txt from the same directory as the config file. If your joypad doesn't work out of the box, you might need to create custom bindings to this file, for example with [SDL2 Gamepad Tool](https://generalarcade.com/gamepadtool/).
 
+## Audio
+
+Experimental audio routing support can be enabled by setting the config value `"audio_enabled"` to `"true"`. The audio buffer size can also be tweaked from the config file for possible lower latencies.
+
 ## Config
 
-Keyboard and game controller bindings can be configured via `config.ini`.
+Application settings and keyboard/game controller bindings can be configured via `config.ini`.
 
 If not found, the file will be created in one of these locations:
 * Windows: `C:\Users\<username>\AppData\Roaming\m8c\config.ini`
