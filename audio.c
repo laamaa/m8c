@@ -2,7 +2,6 @@
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
 #include "audio.h"
-#include "SDL_audio.h"
 #include <SDL.h>
 #include <stdint.h>
 
@@ -16,7 +15,7 @@ void audio_cb_in(void *userdata, uint8_t *stream, int len) {
 int audio_init(int audio_buffer_size) {
 
   int i = 0;
-  int m8_found = 0;
+  int m8_device_id = -1;
   int devcount_in = 0; // audio input device count
 
   devcount_in = SDL_GetNumAudioDevices(SDL_TRUE);
@@ -27,14 +26,15 @@ int audio_init(int audio_buffer_size) {
   } else {
     for (i = 0; i < devcount_in; i++) {
       // Check if input device exists before doing anything else
-      if (strcmp(SDL_GetAudioDeviceName(i, SDL_TRUE), "M8 Analog Stereo") ==
-          0) {
-        SDL_Log("M8 Audio Input device found");
-        m8_found = 1;
+      if (SDL_strstr(SDL_GetAudioDeviceName(i, SDL_TRUE), "M8") != NULL) {
+        SDL_Log("M8 Audio Input device found: %s",
+                SDL_GetAudioDeviceName(i, SDL_TRUE));
+        m8_device_id = i;
       }
     }
-    if (m8_found == 0) {
+    if (m8_device_id == -1) {
       // forget about it
+      SDL_Log("Cannot find M8 audio input device");
       return 0;
     }
 
@@ -46,13 +46,13 @@ int audio_init(int audio_buffer_size) {
     want_out.format = AUDIO_S16;
     want_out.channels = 2;
     want_out.samples = audio_buffer_size;
+    // Opening device NULL specifies that we want to use a reasonable system default device
     devid_out = SDL_OpenAudioDevice(NULL, 0, &want_out, &have_out,
                                     SDL_AUDIO_ALLOW_ANY_CHANGE);
     if (devid_out == 0) {
       SDL_Log("Failed to open output: %s", SDL_GetError());
       return 0;
     }
-    SDL_Log("Using default audio output device: %s",SDL_GetAudioDeviceName(0, 0));
 
     SDL_zero(want_in);
     want_in.freq = 44100;
@@ -60,8 +60,9 @@ int audio_init(int audio_buffer_size) {
     want_in.channels = 2;
     want_in.samples = audio_buffer_size;
     want_in.callback = audio_cb_in;
-    devid_in = SDL_OpenAudioDevice("M8 Analog Stereo", SDL_TRUE, &want_in,
-                                   &have_in, SDL_AUDIO_ALLOW_ANY_CHANGE);
+    devid_in = SDL_OpenAudioDevice(
+        SDL_GetAudioDeviceName(m8_device_id, SDL_TRUE), SDL_TRUE, &want_in,
+        &have_in, SDL_AUDIO_ALLOW_ANY_CHANGE);
     if (devid_in == 0) {
       SDL_Log("Failed to open M8 audio device, SDL Error: %s", SDL_GetError());
       return 0;
