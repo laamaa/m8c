@@ -8,6 +8,7 @@
 #include <SDL.h>
 #include <signal.h>
 
+#include "SDL2_inprint.h"
 #include "audio.h"
 #include "command.h"
 #include "config.h"
@@ -15,7 +16,6 @@
 #include "render.h"
 #include "serial.h"
 #include "slip.h"
-#include "SDL2_inprint.h"
 
 enum state { QUIT, WAIT_FOR_DEVICE, RUN };
 
@@ -25,9 +25,7 @@ uint8_t need_display_reset = 0;
 // Handles CTRL+C / SIGINT
 void intHandler(int dummy) { run = QUIT; }
 
-void close_serial_port() {
-  disconnect();
-}
+void close_serial_port() { disconnect(); }
 
 int main(int argc, char *argv[]) {
   // Initialize the config to defaults read in the params from the
@@ -38,7 +36,7 @@ int main(int argc, char *argv[]) {
   read_config(&conf);
 
   // allocate memory for serial buffer
-  uint8_t *serial_buf = malloc(serial_read_size);
+  uint8_t *serial_buf = SDL_malloc(serial_read_size);
 
   static uint8_t slip_buffer[serial_read_size]; // SLIP command buffer
 
@@ -65,10 +63,11 @@ int main(int argc, char *argv[]) {
 #endif
   slip_init(&slip, &slip_descriptor);
 
-  // First device detection to avoid SDL init if it isn't necessary
+  // First device detection to avoid SDL init if it isn't necessary. To be run
+  // only if we shouldn't wait for M8 to be connected.
   if (conf.wait_for_device == 0) {
-    if (!init_serial(1)) {
-      free(serial_buf);
+    if (init_serial(1) == 0) {
+      SDL_free(serial_buf);
       return -1;
     }
   }
@@ -80,42 +79,42 @@ int main(int argc, char *argv[]) {
   // initial scan for (existing) game controllers
   initialize_game_controllers();
 
-  if (conf.audio_enabled == 1) {
-      if (audio_init(conf.audio_buffer_size) == 0){
-        SDL_Log("Cannot initialize audio, exiting.");
-        run = QUIT;
-      }
-  }
-
 #ifdef DEBUG_MSG
   SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
 #endif
 
   // main loop begin
   do {
+    // try to init serial port
     int port_inited = init_serial(1);
-    if (port_inited) {
-      int result;
-      result = enable_and_reset_display();
-      if (result == 1) {
-        run = RUN;
+    // if port init was successful, try to reset display
+    if (port_inited == 1 && enable_and_reset_display() == 1) {
+      // if audio routing is enabled, try to initialize audio devices
+      if (conf.audio_enabled == 1) {
+        audio_init(conf.audio_buffer_size);
+      }
+      run = RUN;
+    } else {
+      SDL_LogCritical(SDL_LOG_CATEGORY_ERROR,
+                      "Device not detected on begin loop.");
+      if (conf.wait_for_device == 1) {
+        run = WAIT_FOR_DEVICE;
       } else {
-        SDL_LogCritical(SDL_LOG_CATEGORY_ERROR,
-                        "Device not detected on begin loop.");
         run = QUIT;
       }
     }
 
     // wait until device is connected
-    if (conf.wait_for_device) {
+    if (conf.wait_for_device == 1) {
       static uint32_t ticks_poll_device = 0;
       static uint32_t ticks_update_screen = 0;
 
-      if (!port_inited)
+      if (port_inited == 0) {
         screensaver_init();
+      }
 
       while (run == WAIT_FOR_DEVICE) {
-        // get current inputs
+        // get current input
         input_msg_s input = get_input_msg(&conf);
         if (input.type == special && input.value == msg_quit) {
           SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Input message QUIT.");
@@ -129,14 +128,23 @@ int main(int argc, char *argv[]) {
         }
 
         // Poll for M8 device every second
-        if (!port_inited && (SDL_GetTicks() - ticks_poll_device > 1000)) {
+        if (port_inited == 0 && (SDL_GetTicks() - ticks_poll_device > 1000)) {
           ticks_poll_device = SDL_GetTicks();
-          if (run == WAIT_FOR_DEVICE && init_serial(0)) {
+          if (run == WAIT_FOR_DEVICE && init_serial(0) == 1) {
+
+            if (conf.audio_enabled == 1) {
+              if (audio_init(conf.audio_buffer_size) == 0) {
+                SDL_Log("Cannot initialize audio, exiting.");
+                run = QUIT;
+              }
+            }
+
             int result = enable_and_reset_display();
             SDL_Delay(100);
             // Device was found; enable display and proceed to the main loop
             if (result == 1) {
               run = RUN;
+              port_inited = 1;
               screensaver_destroy();
             } else {
               SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected.");
@@ -145,17 +153,19 @@ int main(int argc, char *argv[]) {
             }
           }
         }
-
         SDL_Delay(conf.idle_ms);
       }
-
     } else {
       // classic startup behaviour, exit if device is not found
-      if (!port_inited) {
+      if (port_inited == 0) {
+        if (conf.audio_enabled == 1) {
+          audio_destroy();
+        }
         close_game_controllers();
         close_renderer();
+        kill_inline_font();
+        SDL_free(serial_buf);
         SDL_Quit();
-        free(serial_buf);
         return -1;
       }
     }
@@ -204,8 +214,7 @@ int main(int argc, char *argv[]) {
 
       while (1) {
         // read serial port
-        int bytes_read =
-            serial_read(serial_buf, serial_read_size);
+        int bytes_read = serial_read(serial_buf, serial_read_size);
         if (bytes_read < 0) {
           SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %d reading serial. \n",
                           (int)bytes_read);
@@ -239,6 +248,7 @@ int main(int argc, char *argv[]) {
               // the device is still there, carry on
               break;
             } else {
+              port_inited = 0;
               run = WAIT_FOR_DEVICE;
               close_serial_port();
               /* we'll make one more loop to see if the device is still there
@@ -257,13 +267,13 @@ int main(int argc, char *argv[]) {
 
   // exit, clean up
   SDL_Log("Shutting down\n");
-  if (conf.audio_enabled == 1){
+  if (conf.audio_enabled == 1) {
     audio_destroy();
   }
   close_game_controllers();
   close_renderer();
   close_serial_port();
-  free(serial_buf);
+  SDL_free(serial_buf);
   kill_inline_font();
   SDL_Quit();
   return 0;

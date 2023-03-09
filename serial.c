@@ -5,8 +5,8 @@
 // public domain
 
 #ifndef USE_LIBUSB
-#include <libserialport.h>
 #include <SDL.h>
+#include <libserialport.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -66,11 +66,11 @@ int check_serial_port() {
 
   sp_free_port_list(port_list);
   return device_found;
-
 }
 
 int init_serial(int verbose) {
-  if(m8_port != NULL) {
+  if (m8_port != NULL) {
+    // Port is already initialized
     return 1;
   }
   /* A pointer to a null-terminated array of pointers to
@@ -131,8 +131,10 @@ int init_serial(int verbose) {
     if (check(result) != SP_OK)
       return 0;
   } else {
-    if (verbose)
+    if (verbose) {
       SDL_LogCritical(SDL_LOG_CATEGORY_SYSTEM, "Cannot find a M8.\n");
+    }
+    return 0;
   }
 
   return 1;
@@ -206,16 +208,17 @@ int disconnect() {
   SDL_Log("Disconnecting M8\n");
 
   char buf[1] = {'D'};
+  
   result = sp_blocking_write(m8_port, buf, 1, 5);
   if (result != 1) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error sending disconnect, code %d",
                  result);
-    return -1;
+    result = 0;
   }
   sp_close(m8_port);
   sp_free_port(m8_port);
   m8_port = NULL;
-  return 1;
+  return result;
 }
 
 int serial_read(uint8_t *serial_buf, int count) {
@@ -251,5 +254,3 @@ int send_msg_keyjazz(uint8_t note, uint8_t velocity) {
   return 1;
 }
 #endif
-
-
