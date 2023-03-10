@@ -1,5 +1,4 @@
 #include "ringbuffer.h"
-#include <stdlib.h>
 #include <SDL.h>
 
 RingBuffer *ring_buffer_create(uint32_t size) {

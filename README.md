@@ -110,6 +110,7 @@ The program uses SDL's game controller system, which should make it work automag
 ## Audio
 
 Experimental audio routing support can be enabled by setting the config value `"audio_enabled"` to `"true"`. The audio buffer size can also be tweaked from the config file for possible lower latencies.
+If the right audio device is not picked up by default, you can use a specific audio device by using `"audio_output_device"` config parameter.
 
 ## Config
 

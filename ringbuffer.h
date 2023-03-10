@@ -1,7 +1,7 @@
 #ifndef M8C_RINGBUFFER_H
 #define M8C_RINGBUFFER_H
 
-#include <stdlib.h>
+#include <stdint.h>
 
 typedef struct {
     uint8_t *buffer;
