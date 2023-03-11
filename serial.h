@@ -5,12 +5,8 @@
 #define _SERIAL_H_
 
 #ifdef USE_LIBUSB
-// Not sure about this value but it seems to work
+// Max packet length of the USB endpoint
 #define serial_read_size 512
-#include <libusb.h>
-typedef int (*usb_callback_t)(libusb_device_handle *devh);
-void set_usb_init_callback(usb_callback_t callback);
-void set_usb_destroy_callback(usb_callback_t callback);
 int init_serial_with_file_descriptor(int file_descriptor);
 #else
 // maximum amount of bytes to read from the serial in one read()

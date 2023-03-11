@@ -15,6 +15,7 @@ typedef struct config_params_s {
   int wait_packets;
   int audio_enabled;
   int audio_buffer_size;
+  const char *audio_device_name;
 
   int key_up;
   int key_left;

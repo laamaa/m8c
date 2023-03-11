@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
     if (port_inited == 1 && enable_and_reset_display() == 1) {
       // if audio routing is enabled, try to initialize audio devices
       if (conf.audio_enabled == 1) {
-        audio_init(conf.audio_buffer_size);
+        audio_init(conf.audio_buffer_size, conf.audio_device_name);
       }
       run = RUN;
     } else {
@@ -133,7 +133,7 @@ int main(int argc, char *argv[]) {
           if (run == WAIT_FOR_DEVICE && init_serial(0) == 1) {
 
             if (conf.audio_enabled == 1) {
-              if (audio_init(conf.audio_buffer_size) == 0) {
+              if (audio_init(conf.audio_buffer_size, conf.audio_device_name) == 0) {
                 SDL_Log("Cannot initialize audio, exiting.");
                 run = QUIT;
               }

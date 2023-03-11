@@ -6,14 +6,11 @@
 #ifdef USE_LIBUSB
 
 #include <SDL.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <libusb.h>
 
-#include "serial.h"
-
+#include "usb.h"
 
 static int ep_out_addr = 0x03;
 static int ep_in_addr = 0x83;
@@ -21,47 +18,74 @@ static int ep_in_addr = 0x83;
 #define ACM_CTRL_DTR   0x01
 #define ACM_CTRL_RTS   0x02
 
-usb_callback_t init_callback = NULL;
-usb_callback_t destroy_callback = NULL;
+libusb_context *ctx = NULL;
 libusb_device_handle *devh = NULL;
 
-void set_usb_init_callback(usb_callback_t callback) {
-  init_callback = callback;
+static int do_exit = 0;
+
+int usb_loop(void *data) {
+  SDL_SetThreadPriority(SDL_THREAD_PRIORITY_TIME_CRITICAL);
+  while (!do_exit) {
+    int rc = libusb_handle_events(ctx);
+    if (rc != LIBUSB_SUCCESS) {
+      SDL_Log("Audio loop error: %s\n", libusb_error_name(rc));
+      break;
+    }
+  }
+  return 0;
 }
 
-void set_usb_destroy_callback(usb_callback_t callback) {
-  destroy_callback = callback;
+static SDL_Thread *usb_thread;
+
+static void LIBUSB_CALL xfr_cb_in(struct libusb_transfer *transfer) {
+  int *completed = transfer->user_data;
+  *completed = 1;
+}
+
+int bulk_transfer(int endpoint, uint8_t *serial_buf, int count, unsigned int timeout_ms) {
+  int completed = 0;
+
+  struct libusb_transfer *transfer;
+  transfer = libusb_alloc_transfer(0);
+  libusb_fill_bulk_transfer(transfer, devh, endpoint, serial_buf, count,
+                            xfr_cb_in, &completed, timeout_ms);
+  int r = libusb_submit_transfer(transfer);
+
+  if (r < 0) {
+    SDL_Log("Error");
+    libusb_free_transfer(transfer);
+    return r;
+  }
+
+  retry:
+  libusb_lock_event_waiters(ctx);
+  while (!completed) {
+    if (!libusb_event_handler_active(ctx)) {
+      libusb_unlock_event_waiters(ctx);
+      goto retry;
+    }
+    libusb_wait_for_event(ctx, NULL);
+  }
+  libusb_unlock_event_waiters(ctx);
+
+  int actual_length = transfer->actual_length;
+
+  libusb_free_transfer(transfer);
+
+  return actual_length;
 }
 
 int blocking_write(void *buf,
- int count, unsigned int timeout_ms) {
-  int actual_length;
-  int rc;
-  rc = libusb_bulk_transfer(devh, ep_out_addr, buf, count,
-   &actual_length, timeout_ms);
-  if (rc < 0) {
-    SDL_Log("Error while sending char: %s", libusb_error_name(rc));
-    return -1;
-  }
-  return actual_length;
+                   int count, unsigned int timeout_ms) {
+  return bulk_transfer(ep_out_addr, buf, count, timeout_ms);
 }
 
 int serial_read(uint8_t *serial_buf, int count) {
-  int actual_length;
-  int rc = libusb_bulk_transfer(devh, ep_in_addr, serial_buf, count, &actual_length,
-    10);
-  if (rc == LIBUSB_ERROR_TIMEOUT) {
-    return 0;
-  } else if (rc < 0) {
-    SDL_Log("Error while waiting for char: %s", libusb_error_name(rc));
-    return -1;
-  }
-
-  return actual_length;
+  return bulk_transfer(ep_in_addr, serial_buf, count, 1);
 }
 
 int check_serial_port() {
-    // Reading will fail anyway when the device is not present anymore
+  // Reading will fail anyway when the device is not present anymore
   return 1;
 }
 
@@ -86,28 +110,30 @@ int init_interface() {
     }
   }
 
-    /* Start configuring the device:
-     * - set line state
-     */
+  /* Start configuring the device:
+   * - set line state
+   */
   SDL_Log("Setting line state");
   rc = libusb_control_transfer(devh, 0x21, 0x22, ACM_CTRL_DTR | ACM_CTRL_RTS,
-   0, NULL, 0, 0);
+                               0, NULL, 0, 0);
   if (rc < 0) {
     SDL_Log("Error during control transfer: %s", libusb_error_name(rc));
     return 0;
   }
 
-    /* - set line encoding: here 115200 8N1
-     * 115200 = 0x01C200 ~> 0x00, 0xC2, 0x01, 0x00 in little endian
-     */
+  /* - set line encoding: here 115200 8N1
+   * 115200 = 0x01C200 ~> 0x00, 0xC2, 0x01, 0x00 in little endian
+   */
   SDL_Log("Set line encoding");
   unsigned char encoding[] = {0x00, 0xC2, 0x01, 0x00, 0x00, 0x00, 0x08};
   rc = libusb_control_transfer(devh, 0x21, 0x20, 0, 0, encoding,
-   sizeof(encoding), 0);
+                               sizeof(encoding), 0);
   if (rc < 0) {
     SDL_Log("Error during control transfer: %s", libusb_error_name(rc));
     return 0;
   }
+
+  usb_thread = SDL_CreateThread(&usb_loop, "USB", NULL);
 
   return 1;
 }
@@ -126,12 +152,12 @@ int init_serial_with_file_descriptor(int file_descriptor) {
     SDL_Log("libusb_set_option failed: %s", libusb_error_name(r));
     return 0;
   }
-  r = libusb_init(NULL);
+  r = libusb_init(&ctx);
   if (r < 0) {
     SDL_Log("libusb_init failed: %s", libusb_error_name(r));
     return 0;
   }
-  r = libusb_wrap_sys_device(NULL, (intptr_t) file_descriptor, &devh);
+  r = libusb_wrap_sys_device(ctx, (intptr_t) file_descriptor, &devh);
   if (r < 0) {
     SDL_Log("libusb_wrap_sys_device failed: %s", libusb_error_name(r));
     return 0;
@@ -140,15 +166,6 @@ int init_serial_with_file_descriptor(int file_descriptor) {
     return 0;
   }
   SDL_Log("USB device init success");
-
-  if (init_callback != NULL) {
-    r = init_callback(devh);
-
-    if (r < 0) {
-      SDL_Log("Init callback failed: %d", r);
-      return 0;
-    }
-  }
 
   return init_interface();
 }
@@ -160,26 +177,17 @@ int init_serial(int verbose) {
   }
 
   int r;
-  r = libusb_init(NULL);
+  r = libusb_init(&ctx);
   if (r < 0) {
     SDL_Log("libusb_init failed: %s", libusb_error_name(r));
     return 0;
   }
-  devh = libusb_open_device_with_vid_pid(NULL, 0x16c0, 0x048a);
+  devh = libusb_open_device_with_vid_pid(ctx, 0x16c0, 0x048a);
   if (devh == NULL) {
     SDL_Log("libusb_open_device_with_vid_pid returned invalid handle");
     return 0;
   }
   SDL_Log("USB device init success");
-
-  if (init_callback != NULL) {
-    r = init_callback(devh);
-
-    if (r < 0) {
-      SDL_Log("Init callback failed: %d", r);
-      return 0;
-    }
-  }
 
   return init_interface();
 }
@@ -194,7 +202,7 @@ int reset_display() {
   result = blocking_write(buf, 1, 5);
   if (result != 1) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error resetting M8 display, code %d",
-     result);
+                 result);
     return 0;
   }
   return 1;
@@ -223,21 +231,12 @@ int disconnect() {
   char buf[1] = {'D'};
   int result;
 
-  if (destroy_callback != NULL) {
-    result = destroy_callback(devh);
-
-    if (result < 0) {
-      SDL_Log("Destroy callback failed: %d", result);
-      return result;
-    }
-  }
-
   SDL_Log("Disconnecting M8\n");
 
   result = blocking_write(buf, 1, 5);
   if (result != 1) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error sending disconnect, code %d",
-     result);
+                 result);
     return -1;
   }
 
@@ -251,11 +250,15 @@ int disconnect() {
     }
   }
 
+  do_exit = 1;
+
   if (devh != NULL) {
     libusb_close(devh);
   }
 
-  libusb_exit(NULL);
+  SDL_WaitThread(usb_thread, NULL);
+
+  libusb_exit(ctx);
 
   return 1;
 }
@@ -267,7 +270,7 @@ int send_msg_controller(uint8_t input) {
   result = blocking_write(buf, nbytes, 5);
   if (result != nbytes) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error sending input, code %d",
-     result);
+                 result);
     return -1;
   }
   return 1;
@@ -282,7 +285,7 @@ int send_msg_keyjazz(uint8_t note, uint8_t velocity) {
   result = blocking_write(buf, nbytes, 5);
   if (result != nbytes) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error sending keyjazz, code %d",
-     result);
+                 result);
     return -1;
   }
 

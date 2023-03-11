@@ -29,9 +29,10 @@ config_params_s init_config() {
   c.idle_ms = 10;        // default to high performance
   c.wait_for_device = 1; // default to exit if device disconnected
   c.wait_packets = 1024; // default zero-byte attempts to disconnect (about 2
-                         // sec for default idle_ms)
+  // sec for default idle_ms)
   c.audio_enabled = 0;   // route M8 audio to default output
   c.audio_buffer_size = 1024; // requested audio buffer size in samples
+  c.audio_device_name = NULL; // Use this device, leave NULL to use the default output device
 
   c.key_up = SDL_SCANCODE_UP;
   c.key_left = SDL_SCANCODE_LEFT;
@@ -82,7 +83,7 @@ void write_config(config_params_s *conf) {
 
   SDL_Log("Writing config file to %s", config_path);
 
-  const unsigned int INI_LINE_COUNT = 43;
+  const unsigned int INI_LINE_COUNT = 44;
   const unsigned int LINELEN = 50;
 
   // Entries for the config file
@@ -103,6 +104,8 @@ void write_config(config_params_s *conf) {
            conf->audio_enabled ? "true" : "false");
   snprintf(ini_values[initPointer++], LINELEN, "audio_buffer_size=%d\n",
            conf->audio_buffer_size);
+  snprintf(ini_values[initPointer++], LINELEN, "audio_device_name=%s\n",
+           conf->audio_device_name ? conf->audio_device_name : "Default");
   snprintf(ini_values[initPointer++], LINELEN, "[keyboard]\n");
   snprintf(ini_values[initPointer++], LINELEN, "key_up=%d\n", conf->key_up);
   snprintf(ini_values[initPointer++], LINELEN, "key_left=%d\n", conf->key_left);
@@ -216,7 +219,9 @@ void read_config(config_params_s *conf) {
 void read_audio_config(ini_t *ini, config_params_s *conf) {
   const char *param_audio_enabled = ini_get(ini, "audio", "audio_enabled");
   const char *param_audio_buffer_size =
-      ini_get(ini, "audio", "audio_buffer_size");
+          ini_get(ini, "audio", "audio_buffer_size");
+  const char *param_audio_device_name =
+          ini_get(ini, "audio", "audio_device_name");
 
   if (param_audio_enabled != NULL) {
     if (strcmpci(param_audio_enabled, "true") == 0) {
@@ -224,6 +229,10 @@ void read_audio_config(ini_t *ini, config_params_s *conf) {
     } else {
       conf->audio_enabled = 0;
     }
+  }
+
+  if (param_audio_device_name != NULL && SDL_strcmp(param_audio_device_name, "Default") != 0) {
+    conf->audio_device_name = SDL_strdup(param_audio_device_name);
   }
 
   if (param_audio_buffer_size != NULL) {
@@ -326,21 +335,21 @@ void read_gamepad_config(ini_t *ini, config_params_s *conf) {
   const char *gamepad_quit = ini_get(ini, "gamepad", "gamepad_quit");
   const char *gamepad_reset = ini_get(ini, "gamepad", "gamepad_reset");
   const char *gamepad_analog_threshold =
-      ini_get(ini, "gamepad", "gamepad_analog_threshold");
+          ini_get(ini, "gamepad", "gamepad_analog_threshold");
   const char *gamepad_analog_invert =
-      ini_get(ini, "gamepad", "gamepad_analog_invert");
+          ini_get(ini, "gamepad", "gamepad_analog_invert");
   const char *gamepad_analog_axis_updown =
-      ini_get(ini, "gamepad", "gamepad_analog_axis_updown");
+          ini_get(ini, "gamepad", "gamepad_analog_axis_updown");
   const char *gamepad_analog_axis_leftright =
-      ini_get(ini, "gamepad", "gamepad_analog_axis_leftright");
+          ini_get(ini, "gamepad", "gamepad_analog_axis_leftright");
   const char *gamepad_analog_axis_select =
-      ini_get(ini, "gamepad", "gamepad_analog_axis_select");
+          ini_get(ini, "gamepad", "gamepad_analog_axis_select");
   const char *gamepad_analog_axis_start =
-      ini_get(ini, "gamepad", "gamepad_analog_axis_start");
+          ini_get(ini, "gamepad", "gamepad_analog_axis_start");
   const char *gamepad_analog_axis_opt =
-      ini_get(ini, "gamepad", "gamepad_analog_axis_opt");
+          ini_get(ini, "gamepad", "gamepad_analog_axis_opt");
   const char *gamepad_analog_axis_edit =
-      ini_get(ini, "gamepad", "gamepad_analog_axis_edit");
+          ini_get(ini, "gamepad", "gamepad_analog_axis_edit");
 
   if (gamepad_up)
     conf->gamepad_up = SDL_atoi(gamepad_up);
@@ -374,7 +383,7 @@ void read_gamepad_config(ini_t *ini, config_params_s *conf) {
     conf->gamepad_analog_axis_updown = SDL_atoi(gamepad_analog_axis_updown);
   if (gamepad_analog_axis_leftright)
     conf->gamepad_analog_axis_leftright =
-        SDL_atoi(gamepad_analog_axis_leftright);
+            SDL_atoi(gamepad_analog_axis_leftright);
   if (gamepad_analog_axis_select)
     conf->gamepad_analog_axis_select = SDL_atoi(gamepad_analog_axis_select);
   if (gamepad_analog_axis_start)

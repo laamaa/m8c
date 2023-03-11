@@ -11,5 +11,5 @@ build/
 compile_commands.json
 .clangd
 result*
-cmake-build-debug
+cmake-build-*
 .idea
