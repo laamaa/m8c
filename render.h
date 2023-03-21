@@ -6,7 +6,7 @@
 
 #include "command.h"
 
-int initialize_sdl(int init_fullscreen, int init_use_gpu);
+int initialize_sdl(int init_fullscreen, int init_use_gpu, int init_canvas_color);
 void close_renderer();
 
 int process_queues(struct command_queues *queues);
