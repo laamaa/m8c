@@ -9,9 +9,9 @@
 #define EP_ISO_IN 0x85
 #define IFACE_NUM 4
 
-#define NUM_TRANSFERS 10
+#define NUM_TRANSFERS 64
 #define PACKET_SIZE 180
-#define NUM_PACKETS 64
+#define NUM_PACKETS 2
 
 SDL_AudioDeviceID sdl_audio_device_id = 0;
 RingBuffer *audio_buffer = NULL;
@@ -21,7 +21,7 @@ static void audio_callback(void *userdata, Uint8 *stream,
   uint32_t read_len = ring_buffer_pop(audio_buffer, stream, len);
 
   if (read_len == -1) {
-    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,"Buffer underflow!");
+    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Buffer underflow!");
   }
 
   // If we didn't read the full len bytes, fill the rest with zeros
@@ -54,26 +54,27 @@ static void cb_xfr(struct libusb_transfer *xfr) {
 
   if (libusb_submit_transfer(xfr) < 0) {
     SDL_Log("error re-submitting URB\n");
+    SDL_free(xfr->buffer);
   }
 }
 
 static struct libusb_transfer *xfr[NUM_TRANSFERS];
 
-static int benchmark_in(uint8_t ep) {
-  static uint8_t buf[PACKET_SIZE * NUM_PACKETS];
-  int num_iso_pack = NUM_PACKETS;
+static int benchmark_in() {
   int i;
 
   for (i = 0; i < NUM_TRANSFERS; i++) {
-    xfr[i] = libusb_alloc_transfer(num_iso_pack);
+    xfr[i] = libusb_alloc_transfer(NUM_PACKETS);
     if (!xfr[i]) {
       SDL_Log("Could not allocate transfer");
       return -ENOMEM;
     }
 
-    libusb_fill_iso_transfer(xfr[i], devh, ep, buf,
-                             sizeof(buf), num_iso_pack, cb_xfr, NULL, 1000);
-    libusb_set_iso_packet_lengths(xfr[i], sizeof(buf) / num_iso_pack);
+    Uint8 *buffer = SDL_malloc(PACKET_SIZE * NUM_PACKETS);
+
+    libusb_fill_iso_transfer(xfr[i], devh, EP_ISO_IN, buffer,
+                             PACKET_SIZE * NUM_PACKETS, NUM_PACKETS, cb_xfr, NULL, 0);
+    libusb_set_iso_packet_lengths(xfr[i], PACKET_SIZE);
 
     libusb_submit_transfer(xfr[i]);
   }
@@ -149,7 +150,7 @@ int audio_init(int audio_buffer_size, const char *output_device_name) {
 
   // Good to go
   SDL_Log("Starting capture");
-  if ((rc = benchmark_in(EP_ISO_IN)) < 0) {
+  if ((rc = benchmark_in()) < 0) {
     SDL_Log("Capture failed to start: %d", rc);
     return rc;
   }
@@ -168,6 +169,7 @@ int audio_destroy() {
     if (rc < 0) {
       SDL_Log("Error cancelling transfer: %s\n", libusb_error_name(rc));
     }
+    SDL_free(xfr[i]->buffer);
   }
 
   SDL_Log("Freeing interface %d", IFACE_NUM);
