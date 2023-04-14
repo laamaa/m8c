@@ -9,8 +9,6 @@ fullscreen=false
 ; set this to false to run m8c in software rendering mode (may be useful for Raspberry Pi)
 use_gpu=true
 ; the delay amount in ms in the main loop, decrease value for faster operation, increase value if too much cpu usage
-canvas_color=false
-; set this to true to render m8 background color to canvas color of sdl, set to false to use default color (black)
 idle_ms = 10
 ; show a spinning cube if device is not inserted
 wait_for_device = true

@@ -10,7 +10,6 @@ typedef struct config_params_s {
   char *filename;
   int init_fullscreen;
   int init_use_gpu;
-  int canvas_color;
   int idle_ms;
   int wait_for_device;
   int wait_packets;

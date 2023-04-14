@@ -26,7 +26,6 @@ config_params_s init_config() {
 
   c.init_fullscreen = 0; // default fullscreen state at load
   c.init_use_gpu = 1;    // default to use hardware acceleration
-  c.canvas_color = 0;    // default to not render M8 background color to DSL canvas
   c.idle_ms = 10;        // default to high performance
   c.wait_for_device = 1; // default to exit if device disconnected
   c.wait_packets = 1024; // default zero-byte attempts to disconnect (about 2
@@ -84,7 +83,7 @@ void write_config(config_params_s *conf) {
 
   SDL_Log("Writing config file to %s", config_path);
 
-  const unsigned int INI_LINE_COUNT = 45;
+  const unsigned int INI_LINE_COUNT = 44;
   const unsigned int LINELEN = 50;
 
   // Entries for the config file
@@ -95,8 +94,6 @@ void write_config(config_params_s *conf) {
            conf->init_fullscreen ? "true" : "false");
   snprintf(ini_values[initPointer++], LINELEN, "use_gpu=%s\n",
            conf->init_use_gpu ? "true" : "false");
-  snprintf(ini_values[initPointer++], LINELEN, "canvas_color=%s\n",
-           conf->canvas_color ? "true" : "false");
   snprintf(ini_values[initPointer++], LINELEN, "idle_ms=%d\n", conf->idle_ms);
   snprintf(ini_values[initPointer++], LINELEN, "wait_for_device=%s\n",
            conf->wait_for_device ? "true" : "false");
@@ -246,7 +243,6 @@ void read_audio_config(ini_t *ini, config_params_s *conf) {
 void read_graphics_config(ini_t *ini, config_params_s *conf) {
   const char *param_fs = ini_get(ini, "graphics", "fullscreen");
   const char *param_gpu = ini_get(ini, "graphics", "use_gpu");
-  const char *param_canvas_color = ini_get(ini, "graphics", "canvas_color");
   const char *idle_ms = ini_get(ini, "graphics", "idle_ms");
   const char *param_wait = ini_get(ini, "graphics", "wait_for_device");
   const char *wait_packets = ini_get(ini, "graphics", "wait_packets");
@@ -261,13 +257,6 @@ void read_graphics_config(ini_t *ini, config_params_s *conf) {
       conf->init_use_gpu = 1;
     } else
       conf->init_use_gpu = 0;
-  }
-
-  if (param_canvas_color != NULL) {
-    if (strcmpci(param_canvas_color, "true") == 0) {
-      conf->canvas_color = 1;
-    } else
-      conf->canvas_color = 0;
   }
 
   if (idle_ms != NULL)
