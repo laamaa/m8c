@@ -15,10 +15,11 @@
 SDL_Window *win;
 SDL_Renderer *rend;
 SDL_Texture *maintexture;
-SDL_Color background_color = (SDL_Color){0, 0, 0, 0};
+SDL_Color background_color = (SDL_Color){.r = 0x00, .g = 0x00, .b = 0x00, .a = 0x00};
 
 static uint32_t ticks_fps;
 static int fps;
+
 uint8_t fullscreen = 0;
 
 static uint8_t dirty = 0;
@@ -52,7 +53,9 @@ int initialize_sdl(int init_fullscreen, int init_use_gpu) {
 
   SDL_SetRenderTarget(rend, maintexture);
 
-  SDL_SetRenderDrawColor(rend, 0x00, 0x00, 0x00, 0x00);
+  SDL_SetRenderDrawColor(rend, background_color.r, background_color.g,
+                              background_color.b, background_color.a);
+
   SDL_RenderClear(rend);
 
   // Initialize a texture for the font and read the inline font bitmap
@@ -228,7 +231,10 @@ void render_screen() {
     dirty = 0;
     //ticks = SDL_GetTicks();
     SDL_SetRenderTarget(rend, NULL);
-    SDL_SetRenderDrawColor(rend, 0, 0, 0, 0);
+    
+    SDL_SetRenderDrawColor(rend, background_color.r, background_color.g,
+                                background_color.b, background_color.a);
+
     SDL_RenderClear(rend);
     SDL_RenderCopy(rend, maintexture, NULL, NULL);
     SDL_RenderPresent(rend);
