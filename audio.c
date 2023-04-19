@@ -18,6 +18,9 @@ int audio_init(int audio_buffer_size, const char* output_device_name) {
   int m8_device_id = -1;
   int devcount_in = 0; // audio input device count
 
+  // wait for system to initialize possible new audio devices
+  SDL_Delay(500);
+
   devcount_in = SDL_GetNumAudioDevices(SDL_TRUE);
 
   if (devcount_in < 1) {
@@ -26,6 +29,7 @@ int audio_init(int audio_buffer_size, const char* output_device_name) {
   } else {
     for (i = 0; i < devcount_in; i++) {
       // Check if input device exists before doing anything else
+      SDL_LogDebug(SDL_LOG_CATEGORY_AUDIO, "%s", SDL_GetAudioDeviceName(i, SDL_TRUE));
       if (SDL_strstr(SDL_GetAudioDeviceName(i, SDL_TRUE), "M8") != NULL) {
         SDL_Log("M8 Audio Input device found: %s",
                 SDL_GetAudioDeviceName(i, SDL_TRUE));

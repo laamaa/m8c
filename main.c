@@ -133,9 +133,10 @@ int main(int argc, char *argv[]) {
           if (run == WAIT_FOR_DEVICE && init_serial(0) == 1) {
 
             if (conf.audio_enabled == 1) {
-              if (audio_init(conf.audio_buffer_size, conf.audio_device_name) == 0) {
-                SDL_Log("Cannot initialize audio, exiting.");
-                run = QUIT;
+              if (audio_init(conf.audio_buffer_size, conf.audio_device_name) ==
+                  0) {
+                SDL_Log("Cannot initialize audio");
+                conf.audio_enabled = 0;
               }
             }
 
@@ -251,6 +252,9 @@ int main(int argc, char *argv[]) {
               port_inited = 0;
               run = WAIT_FOR_DEVICE;
               close_serial_port();
+              if (conf.audio_enabled == 1) {
+                audio_destroy();
+              }
               /* we'll make one more loop to see if the device is still there
                * but just sending zero bytes. if it doesn't get detected when
                * resetting the port, it will disconnect */
