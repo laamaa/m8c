@@ -2,7 +2,6 @@
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
 #include "config.h"
-#include "SDL_stdinc.h"
 #include "ini.h"
 #include <SDL.h>
 #include <assert.h>
@@ -39,13 +38,13 @@ config_params_s init_config() {
   c.key_down = SDL_SCANCODE_DOWN;
   c.key_right = SDL_SCANCODE_RIGHT;
   c.key_select = SDL_SCANCODE_LSHIFT;
-  c.key_select_alt = SDL_SCANCODE_A;
+  c.key_select_alt = SDL_SCANCODE_Z;
   c.key_start = SDL_SCANCODE_SPACE;
-  c.key_start_alt = SDL_SCANCODE_S;
+  c.key_start_alt = SDL_SCANCODE_X;
   c.key_opt = SDL_SCANCODE_LALT;
-  c.key_opt_alt = SDL_SCANCODE_Z;
+  c.key_opt_alt = SDL_SCANCODE_A;
   c.key_edit = SDL_SCANCODE_LCTRL;
-  c.key_edit_alt = SDL_SCANCODE_X;
+  c.key_edit_alt = SDL_SCANCODE_S;
   c.key_delete = SDL_SCANCODE_DELETE;
   c.key_reset = SDL_SCANCODE_R;
 

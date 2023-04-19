@@ -23,13 +23,13 @@ key_left=80
 key_down=81
 key_right=79
 key_select=225
-key_select_alt=4
+key_select_alt=29
 key_start=44
-key_start_alt=22
+key_start_alt=27
 key_opt=226
-key_opt_alt=29
+key_opt_alt=4
 key_edit=224
-key_edit_alt=27
+key_edit_alt=22
 key_delete=76
 key_reset=21
 
