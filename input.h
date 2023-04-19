@@ -5,6 +5,7 @@
 #define INPUT_H_
 
 #include <stdint.h>
+#include "config.h"
 
 typedef enum input_buttons_t {
     INPUT_UP,
@@ -38,6 +39,6 @@ typedef struct input_msg_s {
 
 int initialize_game_controllers();
 void close_game_controllers();
-input_msg_s get_input_msg();
+input_msg_s get_input_msg(config_params_s *conf);
 
 #endif

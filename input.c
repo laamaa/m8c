@@ -4,6 +4,7 @@
 #include <SDL.h>
 #include <stdio.h>
 
+#include "SDL_timer.h"
 #include "config.h"
 #include "input.h"
 #include "render.h"
@@ -392,8 +393,12 @@ void handle_sdl_events(config_params_s *conf) {
   case SDL_WINDOWEVENT:
     if (event.window.event == SDL_WINDOWEVENT_RESIZED)
     {
-      SDL_Log("Resizing window...");
-      key = (input_msg_s){special, msg_reset_display};
+      static uint32_t ticks_window_resized = 0;
+      if (SDL_GetTicks() - ticks_window_resized > 500) {
+        SDL_Log("Resizing window...");
+        key = (input_msg_s){special, msg_reset_display};
+        ticks_window_resized = SDL_GetTicks();
+      }
     }
     break;
 
