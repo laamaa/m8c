@@ -82,10 +82,10 @@ Keys for controlling the progam:
 * Down arrow = down
 * Left arrow = left
 * Right arrow = right
-* a / left shift = select
-* s / space = start
-* z / left alt = opt
-* x / left ctrl = edit
+* z / left shift = shift
+* x / space = play
+* a / left alt = opt
+* s / left ctrl = edit
 
 Additional controls:
 * Alt + enter = toggle full screen / windowed
