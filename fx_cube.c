@@ -1,5 +1,6 @@
 #include <SDL.h>
 #include "SDL2_inprint.h"
+#include "SDL_pixels.h"
 
 #define target_width 320
 #define target_height 240
@@ -66,6 +67,8 @@ void fx_cube_init(SDL_Renderer *target_renderer, SDL_Color foreground_color) {
   SDL_Texture *og_target = SDL_GetRenderTarget(fx_renderer);                        
 
   SDL_SetRenderTarget(fx_renderer, texture_text);
+  SDL_SetRenderDrawColor(fx_renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+  SDL_RenderClear(fx_renderer);
 
   inprint(fx_renderer, text_disconnected, 168, 230, 0xFFFFFF, 0x000000);
   inprint(fx_renderer, text_m8c, 2, 2, 0xFFFFFF, 0x000000);
@@ -93,7 +96,7 @@ void fx_cube_update() {
   SDL_Texture *og_texture = SDL_GetRenderTarget(fx_renderer);
 
   SDL_SetRenderTarget(fx_renderer, texture_cube);
-  SDL_SetRenderDrawColor(fx_renderer, 0, 0, 0, 200);
+  SDL_SetRenderDrawColor(fx_renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
   SDL_RenderClear(fx_renderer);
 
   int seconds = SDL_GetTicks() / 1000;
