@@ -41,16 +41,6 @@ struct draw_oscilloscope_waveform_command {
   uint16_t waveform_size;
 };
 
-struct command_queues {
-  struct draw_rectangle_command rectangles[128];
-  uint8_t rectangles_queue_size;
-  struct draw_character_command characters[128];
-  uint8_t characters_queue_size;
-  struct draw_oscilloscope_waveform_command waveform;
-  uint8_t waveforms_queue_size;
-};
-
-
 int process_command(uint8_t *data, uint32_t size);
 
 #endif

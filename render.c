@@ -8,17 +8,26 @@
 
 #include "SDL2_inprint.h"
 #include "SDL_log.h"
+#include "SDL_rect.h"
 #include "SDL_render.h"
+#include "SDL_stdinc.h"
 #include "command.h"
 #include "fx_cube.h"
+
+#include "inline_font.h"
+#include "inline_font_large.h"
+#include "inline_font_small.h"
 
 SDL_Window *win;
 SDL_Renderer *rend;
 SDL_Texture *maintexture;
-SDL_Color background_color = (SDL_Color){.r = 0x00, .g = 0x00, .b = 0x00, .a = 0x00};
+SDL_Color background_color =
+    (SDL_Color){.r = 0x00, .g = 0x00, .b = 0x00, .a = 0x00};
 
 static uint32_t ticks_fps;
 static int fps;
+static int large_font_enabled = 0;
+static int screen_offset_y = 0;
 
 uint8_t fullscreen = 0;
 
@@ -26,7 +35,7 @@ static uint8_t dirty = 0;
 
 // Initializes SDL and creates a renderer and required surfaces
 int initialize_sdl(int init_fullscreen, int init_use_gpu) {
-  //ticks = SDL_GetTicks();
+  // ticks = SDL_GetTicks();
 
   const int window_width = 640;  // SDL window width
   const int window_height = 480; // SDL window height
@@ -54,13 +63,14 @@ int initialize_sdl(int init_fullscreen, int init_use_gpu) {
   SDL_SetRenderTarget(rend, maintexture);
 
   SDL_SetRenderDrawColor(rend, background_color.r, background_color.g,
-                              background_color.b, background_color.a);
+                         background_color.b, background_color.a);
 
   SDL_RenderClear(rend);
 
   // Initialize a texture for the font and read the inline font bitmap
   inrenderer(rend);
-  prepare_inline_font();
+  struct inline_font *font = &inline_font_large;
+  prepare_inline_font(font->bits, font->width, font->height);
 
   SDL_LogSetAllPriority(SDL_LOG_PRIORITY_INFO);
 
@@ -69,7 +79,25 @@ int initialize_sdl(int init_fullscreen, int init_use_gpu) {
   return 1;
 }
 
+static void change_font(struct inline_font *font) {
+  kill_inline_font();
+  prepare_inline_font(font->bits, font->width, font->height);
+}
+
+void set_large_mode(int enabled) {
+  if (enabled) {
+    large_font_enabled = 1;
+    screen_offset_y = 41;
+    change_font(&inline_font_large);
+  } else {
+    large_font_enabled = 0;
+    screen_offset_y = 0;
+    change_font(&inline_font_small);
+  }
+}
+
 void close_renderer() {
+  kill_inline_font();
   SDL_DestroyTexture(maintexture);
   SDL_DestroyRenderer(rend);
   SDL_DestroyWindow(win);
@@ -93,14 +121,15 @@ int draw_character(struct draw_character_command *command) {
   uint32_t bgcolor = (command->background.r << 16) |
                      (command->background.g << 8) | command->background.b;
 
-  if (bgcolor == fgcolor) {
-    // When bgcolor and fgcolor are the same, do not render a background
-    inprint(rend, (char *)&command->c, command->pos.x, command->pos.y + 3,
-            fgcolor, -1);
-  } else {
-    inprint(rend, (char *)&command->c, command->pos.x, command->pos.y + 3,
-            fgcolor, bgcolor);
-  }
+  /* Notes:
+     If large font is enabled, offset the screen elements by a fixed amount.
+     If background and foreground colors are the same, draw transparent
+     background. Due to the font bitmaps, a different pixel offset is needed for
+     both*/
+
+  inprint(rend, (char *)&command->c, command->pos.x,
+          command->pos.y + (large_font_enabled ? 2 : 3) - screen_offset_y,
+          fgcolor, (bgcolor == fgcolor) ? -1 : bgcolor);
 
   dirty = 1;
 
@@ -112,7 +141,11 @@ void draw_rectangle(struct draw_rectangle_command *command) {
   SDL_Rect render_rect;
 
   render_rect.x = command->pos.x;
-  render_rect.y = command->pos.y;
+  if (large_font_enabled == 1) {
+    render_rect.y = command->pos.y - screen_offset_y;
+  } else {
+    render_rect.y = command->pos.y;
+  }
   render_rect.h = command->size.height;
   render_rect.w = command->size.width;
 
@@ -125,9 +158,9 @@ void draw_rectangle(struct draw_rectangle_command *command) {
     background_color.a = 0xFF;
 
 #ifdef __ANDROID__
-      int bgcolor = (command->color.r << 16) |
-                           (command->color.g << 8) | command->color.b;
-      SDL_AndroidSendMessage(0x8001, bgcolor);
+    int bgcolor =
+        (command->color.r << 16) | (command->color.g << 8) | command->color.b;
+    SDL_AndroidSendMessage(0x8001, bgcolor);
 #endif
   }
 
@@ -141,12 +174,26 @@ void draw_rectangle(struct draw_rectangle_command *command) {
 void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
 
   static uint8_t wfm_cleared = 0;
+  static int prev_waveform_size = 0;
+
 
   // If the waveform is not being displayed and it's already been cleared, skip
   // rendering it
   if (!(wfm_cleared && command->waveform_size == 0)) {
 
-    const SDL_Rect wf_rect = {0, 0, 320, 21};
+    SDL_Rect wf_rect;
+    if (command->waveform_size > 0) {
+      wf_rect.x = 320 - command->waveform_size;
+      wf_rect.y = 0;
+      wf_rect.w = command->waveform_size;
+      wf_rect.h = 21;
+    } else {
+      wf_rect.x = 320 - prev_waveform_size;
+      wf_rect.y = 0;
+      wf_rect.w = prev_waveform_size;
+      wf_rect.h = 21;
+    }
+    prev_waveform_size = command->waveform_size;
 
     SDL_SetRenderDrawColor(rend, background_color.r, background_color.g,
                            background_color.b, background_color.a);
@@ -161,9 +208,10 @@ void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
     for (int i = 0; i < command->waveform_size; i++) {
       // Limit value because the oscilloscope commands seem to glitch
       // occasionally
-      if (command->waveform[i] > 20)
+      if (command->waveform[i] > 20) {
         command->waveform[i] = 20;
-      waveform_points[i].x = i;
+      }
+      waveform_points[i].x = i + wf_rect.x;
       waveform_points[i].y = command->waveform[i];
     }
 
@@ -229,11 +277,11 @@ void display_keyjazz_overlay(uint8_t show, uint8_t base_octave,
 void render_screen() {
   if (dirty) {
     dirty = 0;
-    //ticks = SDL_GetTicks();
+    // ticks = SDL_GetTicks();
     SDL_SetRenderTarget(rend, NULL);
-    
+
     SDL_SetRenderDrawColor(rend, background_color.r, background_color.g,
-                                background_color.b, background_color.a);
+                           background_color.b, background_color.a);
 
     SDL_RenderClear(rend);
     SDL_RenderCopy(rend, maintexture, NULL, NULL);

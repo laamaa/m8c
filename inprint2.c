@@ -1,10 +1,8 @@
-// Bitmap font routine originally by driedfruit, https://github.com/driedfruit/SDL_inprint
-// Released into public domain.
-// Modified to support adding a background to text.
+// Bitmap font routine originally by driedfruit,
+// https://github.com/driedfruit/SDL_inprint Released into public domain.
+// Modified to support multiple fonts & adding a background to text.
 
 #include <SDL.h>
-
-#include "inline_font.h" /* Actual font data */
 
 #define CHARACTERS_PER_ROW 16   /* I like 16 x 8 fontsets. */
 #define CHARACTERS_PER_COLUMN 8 /* 128 x 1 is another popular format. */
@@ -14,21 +12,22 @@ static SDL_Texture *inline_font = NULL;
 static SDL_Texture *selected_font = NULL;
 static Uint16 selected_font_w, selected_font_h;
 
-void prepare_inline_font() {
+void prepare_inline_font(unsigned char bits[], int font_width,
+                         int font_height) {
   Uint32 *pix_ptr, tmp;
   int i, len, j;
   SDL_Surface *surface;
   Uint32 colors[2];
 
-  selected_font_w = inline_font_width;
-  selected_font_h = inline_font_height;
+  selected_font_w = font_width;
+  selected_font_h = font_height;
 
   if (inline_font != NULL) {
     selected_font = inline_font;
     return;
   }
 
-  surface = SDL_CreateRGBSurface(0, inline_font_width, inline_font_height, 32,
+  surface = SDL_CreateRGBSurface(0, font_width, font_height, 32,
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
                                  0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff
 #else
@@ -45,7 +44,7 @@ void prepare_inline_font() {
 
   /* Copy */
   for (i = 0; i < len; i++) {
-    tmp = (Uint8)inline_font_bits[i];
+    tmp = (Uint8)bits[i];
     for (j = 0; j < 8; j++) {
       Uint8 mask = (0x01 << j);
       pix_ptr[i * 8 + j] = colors[(tmp & mask) >> j];
@@ -68,7 +67,7 @@ void infont(SDL_Texture *font) {
   int w, h;
 
   if (font == NULL) {
-    prepare_inline_font();
+    // prepare_inline_font();
     return;
   }
 
@@ -128,13 +127,20 @@ void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y,
       incolor(fgcolor, 0);
       previous_fgcolor = fgcolor;
     }
+
     if (bgcolor != -1) {
       SDL_SetRenderDrawColor(selected_renderer,
                              (Uint8)((bgcolor & 0x00FF0000) >> 16),
                              (Uint8)((bgcolor & 0x0000FF00) >> 8),
                              (Uint8)((bgcolor & 0x000000FF)), 0xFF);
       bg_rect = d_rect;
-      bg_rect.w = 6;
+      bg_rect.w = selected_font_w / CHARACTERS_PER_ROW - 1;
+      // Silly hack to get big font background aligned correctly.
+      if (bg_rect.h == 11) {
+        bg_rect.y++;
+        bg_rect.w++;
+      }
+
       SDL_RenderFillRect(dst, &bg_rect);
     }
     SDL_RenderCopy(dst, selected_font, &s_rect, &d_rect);
