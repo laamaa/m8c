@@ -13,3 +13,6 @@ compile_commands.json
 result*
 cmake-build-*
 .idea
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
