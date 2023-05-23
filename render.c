@@ -69,7 +69,7 @@ int initialize_sdl(int init_fullscreen, int init_use_gpu) {
 
   // Initialize a texture for the font and read the inline font bitmap
   inrenderer(rend);
-  struct inline_font *font = &inline_font_large;
+  struct inline_font *font = &inline_font_small;
   prepare_inline_font(font->bits, font->width, font->height);
 
   SDL_LogSetAllPriority(SDL_LOG_PRIORITY_INFO);
@@ -175,7 +175,6 @@ void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
 
   static uint8_t wfm_cleared = 0;
   static int prev_waveform_size = 0;
-
 
   // If the waveform is not being displayed and it's already been cleared, skip
   // rendering it
@@ -299,6 +298,7 @@ void render_screen() {
 }
 
 void screensaver_init() {
+  set_large_mode(1);
   fx_cube_init(rend, (SDL_Color){255, 255, 255, 255});
   SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Screensaver initialized");
 }
