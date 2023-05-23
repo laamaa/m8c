@@ -7,7 +7,7 @@
 
 #include <SDL.h>
 
-extern void prepare_inline_font(void);
+extern void prepare_inline_font(unsigned char bits[],int font_width, int font_height);
 extern void kill_inline_font(void);
 
 extern void inrenderer(SDL_Renderer *renderer);

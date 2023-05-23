@@ -20,7 +20,9 @@ enum m8_command_bytes {
   draw_oscilloscope_waveform_command_mindatalength = 1 + 3,
   draw_oscilloscope_waveform_command_maxdatalength = 1 + 3 + 320,
   joypad_keypressedstate_command = 0xFB,
-  joypad_keypressedstate_command_datalength = 2
+  joypad_keypressedstate_command_datalength = 3,
+  system_info_command = 0xFF,
+  system_info_command_datalength = 6
 };
 
 static inline void dump_packet(uint32_t size, uint8_t *recv_buf) {
@@ -115,20 +117,51 @@ int process_command(uint8_t *data, uint32_t size) {
 
     break;
 
-  case joypad_keypressedstate_command:
-    /*
+  case joypad_keypressedstate_command: {
     if (size != joypad_keypressedstate_command_datalength) {
-      SDL_LogError(SDL_LOG_CATEGORY_ERROR,
-              "Invalid joypad keypressed state packet: expected length %d, "
-              "got %d\n",
-              joypad_keypressedstate_command_datalength, size);
+      SDL_LogError(
+          SDL_LOG_CATEGORY_ERROR,
+          "Invalid joypad keypressed state packet: expected length %d, "
+          "got %d\n",
+          joypad_keypressedstate_command_datalength, size);
       dump_packet(size, recv_buf);
+      return 0;
       break;
-    } */
+    }
 
     // nothing is done with joypad key pressed packets for now
     return 1;
     break;
+  }
+
+  case system_info_command: {
+    if (size != system_info_command_datalength) {
+      SDL_LogError(SDL_LOG_CATEGORY_ERROR,
+                   "Invalid system info packet: expected length %d, "
+                   "got %d\n",
+                   system_info_command_datalength, size);
+      dump_packet(size, recv_buf);
+      break;
+    }
+
+    char *hwtype[3] = {"Headless", "Beta M8", "Production M8"};
+
+    static int system_info_printed = 0;
+
+    if (system_info_printed == 0) {
+      SDL_Log("** Hardware info ** Device type: %s, Firmware ver %d.%d.%d",
+              hwtype[recv_buf[1]], recv_buf[2], recv_buf[3], recv_buf[4]);
+      system_info_printed = 1;
+    }
+
+    if (recv_buf[5] == 0x01) {
+      set_large_mode(1);
+    } else {
+      set_large_mode(0);
+    }
+    return 1;
+    break;
+  }
 
   default:
 
@@ -137,4 +170,5 @@ int process_command(uint8_t *data, uint32_t size) {
     return 0;
     break;
   }
+  return 1;
 }

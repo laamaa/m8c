@@ -1,13 +1,11 @@
 #Set all your object files (the object files of all the .c files in your project, e.g. main.o my_sub_functions.o )
-OBJ = main.o serial.o slip.o command.o render.o ini.o config.o input.o font.o fx_cube.o usb.o audio.o usb_audio.o ringbuffer.o
+OBJ = main.o serial.o slip.o command.o render.o ini.o config.o input.o fx_cube.o usb.o audio.o usb_audio.o ringbuffer.o inprint2.o
 
 #Set any dependant header files so that if they are edited they cause a complete re-compile (e.g. main.h some_subfunctions.h some_definitions_file.h ), or leave blank
-DEPS = serial.h slip.h command.h render.h ini.h config.h input.h fx_cube.h audio.h ringbuffer.h
+DEPS = serial.h slip.h command.h render.h ini.h config.h input.h fx_cube.h audio.h ringbuffer.h inline_font.h
 
 #Any special libraries you are using in your project (e.g. -lbcm2835 -lrt `pkg-config --libs gtk+-3.0` ), or leave blank
 INCLUDES = $(shell pkg-config --libs sdl2 libserialport)
-
-
 
 #Set any compiler flags you want to use (e.g. -I/usr/include/somefolder `pkg-config --cflags gtk+-3.0` ), or leave blank
 local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl2 libserialport) -Wall -O2 -pipe -I.
@@ -31,21 +29,11 @@ libusb: INCLUDES = $(shell pkg-config --libs sdl2 libusb-1.0)
 libusb: local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl2 libusb-1.0) -Wall -O2 -pipe -I. -DUSE_LIBUSB=1
 libusb: m8c
 
-font.c: inline_font.h
-	@echo "#include <SDL.h>" > $@-tmp1
-	@cat inline_font.h >> $@-tmp1
-	@cat inprint2.c > $@-tmp2
-	@sed '/#include/d' $@-tmp2 >> $@-tmp1
-	@rm $@-tmp2
-	@mv $@-tmp1 $@
-	@echo "[~cat] inline_font.h inprint2.c > font.c"
-#	$(CC) -c -o font.o font.c $(local_CFLAGS)
-
 #Cleanup
 .PHONY: clean
 
 clean:
-	rm -f *.o *~ m8c *~ font.c
+	rm -f *.o *~ m8c
 
 # PREFIX is environment variable, but if it is not set, then set default value
 ifeq ($(PREFIX),)

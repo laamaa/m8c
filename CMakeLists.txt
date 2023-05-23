@@ -16,27 +16,7 @@ else ()
     link_directories(${SDL2_LIBRARY_DIRS} ${LIBSERIALPORT_LIBRARY_DIRS})
 endif (USE_LIBUSB)
 
-string(CONCAT FILE_CONTENT "#include <SDL.h>")
-
-file(READ inline_font.h INLINE_FONT_HEADER)
-string(CONCAT FILE_CONTENT ${FILE_CONTENT} "${INLINE_FONT_HEADER}")
-
-file(STRINGS inprint2.c INPRINT_C)
-
-unset(ModifiedContents)
-foreach (Line ${INPRINT_C})
-    if (NOT "${Line}" MATCHES "^#include")
-        set(ModifiedContents "${ModifiedContents}${Line}\n")
-    endif ()
-endforeach ()
-
-string(CONCAT FILE_CONTENT "${FILE_CONTENT}" "${ModifiedContents}")
-
-file(WRITE font.c "${FILE_CONTENT}")
-
 file(GLOB m8c_SRC "*.h" "*.c")
-
-list(FILTER m8c_SRC EXCLUDE REGEX ".*inprint2\\.c$")
 
 set(MACOS_CONTENTS "${CMAKE_CURRENT_SOURCE_DIR}/macos/m8c.app/Contents")
 

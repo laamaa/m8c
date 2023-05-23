@@ -70,7 +70,7 @@ void fx_cube_init(SDL_Renderer *target_renderer, SDL_Color foreground_color) {
   SDL_SetRenderDrawColor(fx_renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
   SDL_RenderClear(fx_renderer);
 
-  inprint(fx_renderer, text_disconnected, 168, 230, 0xFFFFFF, 0x000000);
+  inprint(fx_renderer, text_disconnected, 150, 228, 0xFFFFFF, 0x000000);
   inprint(fx_renderer, text_m8c, 2, 2, 0xFFFFFF, 0x000000);
 
   SDL_SetRenderTarget(fx_renderer, og_target);
