@@ -87,7 +87,7 @@ static void change_font(struct inline_font *font) {
 void set_large_mode(int enabled) {
   if (enabled) {
     large_font_enabled = 1;
-    screen_offset_y = 41;
+    screen_offset_y = 40;
     change_font(&inline_font_large);
   } else {
     large_font_enabled = 0;

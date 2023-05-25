@@ -138,7 +138,6 @@ void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y,
       // Silly hack to get big font background aligned correctly.
       if (bg_rect.h == 11) {
         bg_rect.y++;
-        bg_rect.w++;
       }
 
       SDL_RenderFillRect(dst, &bg_rect);
