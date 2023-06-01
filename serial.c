@@ -197,7 +197,7 @@ int enable_and_reset_display() {
     return 0;
   }
 
-  SDL_Delay(5);
+  SDL_Delay(10);
   result = reset_display();
   return result;
 }
