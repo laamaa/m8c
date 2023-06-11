@@ -24,9 +24,9 @@ Disclaimer: I'm not a coder and hardly understand C, use at your own risk :)
 
 # Installation
 
-## Windows / MacOS
+## Windows / MacOS / Linux
 
-There are prebuilt binaries available in the [releases section](https://github.com/laamaa/m8c/releases/) for Windows and recent versions of MacOS.
+There are prebuilt binaries available in the [releases section](https://github.com/laamaa/m8c/releases/) for Windows, recent versions of MacOS and Linux.
 
 ## Linux / MacOS (building from source)
 
