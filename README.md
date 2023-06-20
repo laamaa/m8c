@@ -28,6 +28,20 @@ Disclaimer: I'm not a coder and hardly understand C, use at your own risk :)
 
 There are prebuilt binaries available in the [releases section](https://github.com/laamaa/m8c/releases/) for Windows, recent versions of MacOS and Linux.
 
+The `libserialport` package is required to run `m8c`. Use the following commands to install it:
+
+#### Ubuntu-based Linux Distros
+
+```shell
+sudo apt update && sudo apt install -y libserialport-dev
+```
+
+#### Arch-based Linux Distros
+
+```shell
+pacman -Syu && pacman -S libserialport
+```
+
 ## Linux / MacOS (building from source)
 
 These instructions are tested with Raspberry Pi 3 B+ and Raspberry Pi OS with desktop (March 4 2021 release), but should apply for other Debian/Ubuntu flavors as well. The begining on the build process on OSX is slightly different at the start, and then the same once packages are installed.
