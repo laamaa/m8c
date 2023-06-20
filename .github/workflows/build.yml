@@ -115,6 +115,39 @@ jobs:
             m8c
             gamecontrollerdb.txt
             config.ini.sample
+
+  build-arch-linux:
+    runs-on: ubuntu-latest
+    name: arch-linux-x86_64
+    container:
+      image: archlinux:base-20230611.0.157136
+    steps:
+      - name: 'Checkout'
+        uses: actions/checkout@v3
+
+      - name: 'Update packages'
+        run: pacman -Syu --noconfirm
+
+      - name: 'Install dependencies'
+        run: pacman -S gcc git make sdl2 libserialport pkgconf --noconfirm
+
+      - name: 'Build package'
+        run: make
+
+      - name: 'Set current date as env variable'
+        run: echo "NOW=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+      
+      - name: 'Upload artifact'
+        uses: actions/upload-artifact@v3
+        with:
+          name: m8c-${{ env.NOW }}-arch-linux
+          path: |
+            LICENSE
+            README.md
+            AUDIOGUIDE.md
+            m8c
+            gamecontrollerdb.txt
+            config.ini.sample
       
   build-macos:
     runs-on: macos-latest

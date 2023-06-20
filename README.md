@@ -24,23 +24,47 @@ Disclaimer: I'm not a coder and hardly understand C, use at your own risk :)
 
 # Installation
 
-## Windows / MacOS
+## Windows / MacOS / Ubuntu / Arch Linux
 
-There are prebuilt binaries available in the [releases section](https://github.com/laamaa/m8c/releases/) for Windows and recent versions of MacOS.
+There are prebuilt binaries available in the [releases section](https://github.com/laamaa/m8c/releases/) for Windows, recent versions of MacOS, Ubuntu and Arch Linux.
 
-## Linux / MacOS (building from source)
+### Ubuntu / Arch Linux
 
-These instructions are tested with Raspberry Pi 3 B+ and Raspberry Pi OS with desktop (March 4 2021 release), but should apply for other Debian/Ubuntu flavors as well. The begining on the build process on OSX is slightly different at the start, and then the same once packages are installed.
+`m8c` requires the `libserialport` package to be present on your machine. Use the following commands to install it:
 
-The instructions assume that you already have a working Linux desktop installation with an internet connection.
+#### Ubuntu
+
+```shell
+sudo apt update && sudo apt install -y libserialport-dev
+```
+
+#### Arch Linux
+
+```shell
+pacman -Syu && pacman -S libserialport
+```
+
+## Ubuntu / Arch Linux / MacOS (building from source)
+
+These instructions are tested with Raspberry Pi 3 B+ running Raspberry Pi OS with desktop (March 4 2021 release) and Arch Linux. Other Debian/Ubuntu flavors should work as well. The begining on the build process on OSX and Arch Linux is slightly different at the start, and then the same once packages are installed.
+
+The instructions assume that you already have a working Ubuntu / Arch Linux desktop installation with an internet connection.
 
 Open Terminal and run the following commands:
 
-### Install required packages (Raspberry Pi, Linux)
+### Install required packages (Raspberry Pi, Ubuntu)
 
 ```
 sudo apt update && sudo apt install -y git gcc make libsdl2-dev libserialport-dev
 ```
+
+### Install required packages (Arch Linux)
+
+```shell
+pacman -Syu
+pacman -S gcc git make sdl2 libserialport pkgconf
+```
+
 ### Install required packages (OSX)
 
 This assumes you have [installed brew](https://docs.brew.sh/Installation)
