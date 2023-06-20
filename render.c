@@ -147,7 +147,7 @@ void draw_rectangle(struct draw_rectangle_command *command) {
 
   // Background color changed
   if (render_rect.x == 0 && render_rect.y == 0 && render_rect.w == 320 &&
-      (render_rect.h == 240 || render_rect.h == 320)) {
+      render_rect.h >= 240) {
     background_color.r = command->color.r;
     background_color.g = command->color.g;
     background_color.b = command->color.b;
