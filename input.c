@@ -470,6 +470,15 @@ input_msg_s get_input_msg(config_params_s *conf) {
     key = (input_msg_s){special, msg_reset_display};
   }
 
+  // additional special button combinations by rasprague
+  if (keycode == (key_select | key_opt | key_up)) {
+    key = (input_msg_s){special, msg_reset_display};
+  }
+
+  if (keycode == (key_select | key_opt | key_down)) {
+    key = (input_msg_s){special, msg_quit};
+  }
+
   if (key.type == normal) {
     /* Normal input keys go through some event-based manipulation in
        handle_sdl_events(), the value is stored in keycode variable */
