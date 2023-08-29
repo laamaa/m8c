@@ -16,9 +16,9 @@ else ()
     link_directories(${SDL2_LIBRARY_DIRS} ${LIBSERIALPORT_LIBRARY_DIRS})
 endif (USE_LIBUSB)
 
-file(GLOB m8c_SRC "*.h" "*.c")
+file(GLOB m8c_SRC "src/*.h" "src/*.c")
 
-set(MACOS_CONTENTS "${CMAKE_CURRENT_SOURCE_DIR}/macos/m8c.app/Contents")
+set(MACOS_CONTENTS "${CMAKE_CURRENT_SOURCE_DIR}/package/macos/m8c.app/Contents")
 
 set(APP_ICON ${MACOS_CONTENTS}/Resources/m8c.icns)
 set_source_files_properties(${APP_ICON} PROPERTIES
