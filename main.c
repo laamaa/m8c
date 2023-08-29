@@ -87,11 +87,13 @@ int main(int argc, char *argv[]) {
   do {
     // try to init serial port
     int port_inited = init_serial(1);
-    // if port init was successful, try to reset display
-    if (port_inited == 1 && enable_and_reset_display() == 1) {
+    // if port init was successful, try to enable and reset display
+    if (port_inited == 1 && enable_and_reset_display(0) == 1) {
       // if audio routing is enabled, try to initialize audio devices
       if (conf.audio_enabled == 1) {
         audio_init(conf.audio_buffer_size, conf.audio_device_name);
+        // if audio is enabled, reset the display for second time to avoid glitches
+        reset_display();
       }
       run = RUN;
     } else {
@@ -141,7 +143,6 @@ int main(int argc, char *argv[]) {
             }
 
             int result = enable_and_reset_display();
-            SDL_Delay(100);
             // Device was found; enable display and proceed to the main loop
             if (result == 1) {
               run = RUN;

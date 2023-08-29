@@ -146,8 +146,9 @@ void draw_rectangle(struct draw_rectangle_command *command) {
   render_rect.w = command->size.width;
 
   // Background color changed
-  if (render_rect.x == 0 && render_rect.y == 0 && render_rect.w == 320 &&
+  if (render_rect.x == 0 && render_rect.y <= 0 && render_rect.w == 320 &&
       render_rect.h >= 240) {
+    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "BG color change: %d %d %d",command->color.r,command->color.g,command->color.b);
     background_color.r = command->color.r;
     background_color.g = command->color.g;
     background_color.b = command->color.b;
