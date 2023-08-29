@@ -12,7 +12,7 @@ static SDL_Texture *inline_font = NULL;
 static SDL_Texture *selected_font = NULL;
 static Uint16 selected_font_w, selected_font_h;
 
-void prepare_inline_font(unsigned char bits[], int font_width,
+void prepare_inline_font(unsigned char * bits, int font_width,
                          int font_height) {
   Uint32 *pix_ptr, tmp;
   int i, len, j;
