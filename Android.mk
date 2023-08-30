@@ -4,9 +4,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := m8c
 
-LOCAL_SRC_FILES := $(wildcard $(LOCAL_PATH)/*.c)
+LOCAL_SRC_FILES := $(wildcard $(LOCAL_PATH)/src/*.c)
 
-LOCAL_EXPORT_C_INCLUDES := $(wildcard $(LOCAL_PATH)/*.h)
+LOCAL_EXPORT_C_INCLUDES := $(wildcard $(LOCAL_PATH)/src/*.h)
 
 LOCAL_CFLAGS += -DUSE_LIBUSB
 
