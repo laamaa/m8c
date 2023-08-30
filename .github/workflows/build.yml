@@ -55,7 +55,7 @@ jobs:
           cp /mingw64/bin/SDL2.dll .
           cp /mingw64/bin/libserialport-0.dll .
         fi
-        unix2dos README.md config.ini.sample LICENSE AUDIOGUIDE.md
+        unix2dos README.md LICENSE AUDIOGUIDE.md
     - name: 'Upload artifact (win32)'
       if: matrix.win == 'win32'
       uses: actions/upload-artifact@v3
@@ -71,7 +71,6 @@ jobs:
           LICENSE
           README.md
           AUDIOGUIDE.md
-          config.ini.sample
     - name: 'Upload artifact (win64)'
       if: matrix.win == 'win64'
       uses: actions/upload-artifact@v3
@@ -85,7 +84,6 @@ jobs:
           LICENSE
           README.md
           AUDIOGUIDE.md
-          config.ini.sample
 
   build-linux:
     runs-on: ubuntu-latest
@@ -114,7 +112,6 @@ jobs:
             AUDIOGUIDE.md
             m8c
             gamecontrollerdb.txt
-            config.ini.sample
       
   build-macos:
     runs-on: macos-latest
@@ -139,7 +136,7 @@ jobs:
           codesign --deep --force --verify --verbose --timestamp --sign - "$INSTALL_PREFIX/m8c.app" "$INSTALL_PREFIX/m8c.app/Contents/Frameworks/libSDL2-2.0.0.dylib" "$INSTALL_PREFIX/m8c.app/Contents/Frameworks/libserialport.0.dylib"
           cd ..
           cp -r /tmp/m8c.app .
-          zip -r m8c.zip m8c.app LICENSE README.md AUDIOGUIDE.md config.ini.sample gamecontrollerdb.txt
+          zip -r m8c.zip m8c.app LICENSE README.md AUDIOGUIDE.md gamecontrollerdb.txt
       - name: 'Upload artifact'
         uses: actions/upload-artifact@v3
         with:
