@@ -1,0 +1,54 @@
+name: Update Version and Hash in default.nix
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Nix
+        uses: cachix/install-nix-action@v22
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Find newest annotated tag
+        id: newest-tag
+        run: |
+          latest_annotated_tag=$(git describe --tags $(git rev-list --tags --max-count=1))
+          echo "Newest annotated tag: $latest_annotated_tag"
+          echo "latest_annotated_tag=$latest_annotated_tag" >> $GITHUB_OUTPUT
+
+      - name: Check if tag is valid version
+        id: valid-tag
+        run: |
+          latest_annotated_tag="${{ steps.newest-tag.outputs.latest_annotated_tag }}"
+          echo "Passed value: $latest_annotated_tag"
+          if [[ $latest_annotated_tag =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Valid tag format"
+            echo "valid=true" >> $GITHUB_OUTPUT
+          else
+            echo "Invalid tag format"
+            echo "valid=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update version in default.nix
+        if: steps.valid-tag.outputs.valid
+        run: |
+          latest_annotated_tag="${{ steps.newest-tag.outputs.latest_annotated_tag }}"
+          latest_annotated_tag_without_v="${latest_annotated_tag#v}"  # Remove 'v' prefix
+          sed -i "s/version = \".*\";/version = \"$latest_annotated_tag_without_v\";/" default.nix
+          new_hash=$(nix-prefetch-url --unpack --type sha256 "https://github.com/laamaa/m8c/archive/v$latest_annotated_tag_without_v.tar.gz")  # Use updated variable name
+          sed -i "s/hash = \".*\";/hash = \"sha256:$new_hash\";/" default.nix
+          git config user.email "github-actions@github.com"
+          git config user.name "GitHub Actions"
+          git commit -am "Update version and hash in default.nix to $latest_annotated_tag_without_v"
+          git push origin HEAD
