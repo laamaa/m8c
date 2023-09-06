@@ -2,8 +2,8 @@ name: Update Version and Hash in default.nix
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - v1.*
 
 jobs:
   update-version:
