@@ -34,7 +34,7 @@ let m8c-package =
         owner = "laamaa";
         repo = pname;
         rev = "v${version}";
-        hash = "sha256:x9d2sr8omNH9cwtgs/fxxAfj812dASOmQVJpmT8B/Pc=";
+        hash = "sha256:1xzw04zrjsaj86k260cxbpry61y4y7vv6q0bfgyx3618pyr7dmy7";
       };
 
       installFlags = [ "PREFIX=$(out)" ];
