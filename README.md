@@ -1,6 +1,6 @@
 # m8c
 
-# Introduction
+## Introduction
 
 The [Dirtywave M8 Tracker](https://dirtywave.com/products/m8-tracker) is a portable sequencer and synthesizer, featuring 8 tracks of assignable instruments such as FM, waveform synthesis, virtual analog, sample playback, and MIDI output. It is powered by a [Teensy](https://www.pjrc.com/teensy/) micro-controller and inspired by the Gameboy tracker [Little Sound DJ](https://www.littlesounddj.com/lsd/index.php).
 
@@ -22,47 +22,60 @@ Disclaimer: I'm not a coder and hardly understand C, use at your own risk :)
 
 -------
 
-# Installation
+## Installation
 
-## Windows / MacOS
+### Windows / MacOS
 
 There are prebuilt binaries available in the [releases section](https://github.com/laamaa/m8c/releases/) for Windows and recent versions of MacOS.
 
-## Linux / MacOS (building from source)
+### Linux
 
-These instructions are tested with Raspberry Pi 3 B+ and Raspberry Pi OS with desktop (March 4 2021 release), but should apply for other Debian/Ubuntu flavors as well. The begining on the build process on OSX is slightly different at the start, and then the same once packages are installed.
+There are packages available for Fedora Linux and NixOS, or you can build the program from source.
 
-The instructions assume that you already have a working Linux desktop installation with an internet connection.
-
-Open Terminal and run the following commands:
-
-### Install required packages (Raspberry Pi, Linux)
-
+#### Fedora
+``` sh
+sudo dnf copr enable laamaa/m8c
+sudo dnf install m8c
 ```
-sudo apt update && sudo apt install -y git gcc make libsdl2-dev libserialport-dev
+
+#### NixOS
+``` sh
+nix-env -iA m8c-stable -f https://github.com/laamaa/m8c/archive/refs/heads/main.tar.gz
 ```
-### Install required packages (OSX)
+
+### Building from source code
+
+#### Install dependencies
+
+You will need git, gcc, pkg-config, make and the development headers for libsdl2 and libserialport.
+
+##### Linux (Ubuntu)
+```
+sudo apt update && sudo apt install -y git gcc pkg-config make libsdl2-dev libserialport-dev
+```
+
+##### MacOS
 
 This assumes you have [installed brew](https://docs.brew.sh/Installation)
-
 ```
 brew update && brew install git gcc make sdl2 libserialport pkg-config
 ```
-### Download source code (All)
+
+#### Download source code
 
 ```
 mkdir code && cd code
 git clone https://github.com/laamaa/m8c.git
- ```
+```
 
-### Build the program
+#### Build the program
 
 ```
 cd m8c
 make
- ```
+```
 
-### Start the program
+#### Start the program
 
 Connect the M8 or Teensy (with headless firmware) to your computer and start the program. It should automatically detect your device.
 
@@ -146,16 +159,13 @@ $ ls -la /dev/ttyACM1
 crw-rw---- 1 root dialout 166, 0 Jan  8 14:51 /dev/ttyACM0
 ```
 
-This shows that the serial port is owned by the user 'root' and the group 'dialout'. Both the user and the group have read/write permissions. To add a user to the group, run this command, replacing 'dialout' with the group shown on your own system:
+In this case the serial port is owned by the user 'root' and the group 'dialout'. Both the user and the group have read/write permissions. To add a user to the group, run this command, replacing 'dialout' with the group shown on your own system:
 
-    sudo adduser $USER dialout
+``` sh
+sudo adduser $USER dialout
+```
 
 You may need to log out and back in or even fully reboot the system for this change to take effect, but this will hopefully fix the problem. Please see [this issue for more details](https://github.com/laamaa/m8c/issues/20).
 
------------
 
-### Bonus content: quickly install m8c locally with nix
 
-``` sh
-nix-env -iA m8c-stable -f https://github.com/laamaa/m8c/archive/refs/heads/main.tar.gz
-```

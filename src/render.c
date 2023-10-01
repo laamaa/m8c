@@ -307,5 +307,6 @@ void screensaver_draw() {
 
 void screensaver_destroy() {
   fx_cube_destroy();
+  set_large_mode(0);
   SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Screensaver destroyed");
 }
