@@ -51,4 +51,4 @@ jobs:
           git config user.email "github-actions@github.com"
           git config user.name "GitHub Actions"
           git commit -am "Update version and hash in default.nix to $latest_annotated_tag_without_v"
-          git push origin HEAD
+          git push
