@@ -5,7 +5,7 @@ OBJ = src/main.o src/serial.o src/slip.o src/command.o src/render.o src/ini.o sr
 DEPS = src/serial.h src/slip.h src/command.h src/render.h src/ini.h src/config.h src/input.h src/fx_cube.h src/audio.h src/ringbuffer.h src/inline_font.h
 
 #Any special libraries you are using in your project (e.g. -lbcm2835 -lrt `pkg-config --libs gtk+-3.0` ), or leave blank
-INCLUDES = $(shell pkg-config --libs sdl2 libserialport)
+INCLUDES = $(shell pkg-config --libs sdl2 libserialport | sed 's/-mwindows//')
 
 #Set any compiler flags you want to use (e.g. -I/usr/include/somefolder `pkg-config --cflags gtk+-3.0` ), or leave blank
 local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl2 libserialport) -Wall -O2 -pipe -I.
