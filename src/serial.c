@@ -35,6 +35,27 @@ static int detect_m8_serial_device(struct sp_port *m8_port) {
   return 0;
 }
 
+int list_devices() {
+  struct sp_port **port_list;
+  enum sp_return result = sp_list_ports(&port_list);
+
+  if (result != SP_OK) {
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "sp_list_ports() failed!\n");
+    abort();
+  }
+
+  for (int i = 0; port_list[i] != NULL; i++) {
+    struct sp_port *port = port_list[i];
+
+    if (detect_m8_serial_device(port)) {
+      SDL_Log("Found M8 device: %s", sp_get_port_name(port));
+    }
+  }
+
+  sp_free_port_list(port_list);
+  return 0;
+}
+
 // Checks for connected devices and whether the specified device still exists
 int check_serial_port() {
 
@@ -68,7 +89,7 @@ int check_serial_port() {
   return device_found;
 }
 
-int init_serial(int verbose) {
+int init_serial(int verbose, char *preferred_device) {
   if (m8_port != NULL) {
     // Port is already initialized
     return 1;
@@ -95,8 +116,13 @@ int init_serial(int verbose) {
     struct sp_port *port = port_list[i];
 
     if (detect_m8_serial_device(port)) {
-      SDL_Log("Found M8 in %s.\n", sp_get_port_name(port));
+      char *port_name = sp_get_port_name(port);
+      SDL_Log("Found M8 in %s.\n", port_name);
       sp_copy_port(port, &m8_port);
+      if (preferred_device != NULL && strcmp(preferred_device, port_name) == 0) {
+        SDL_Log("Found preferred device, breaking");
+        break;
+      }
     }
   }
 

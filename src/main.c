@@ -28,6 +28,17 @@ void intHandler(int dummy) { run = QUIT; }
 void close_serial_port() { disconnect(); }
 
 int main(int argc, char *argv[]) {
+
+  if(argc == 2 && strcmp(argv[1], "--list") == 0) {
+    return list_devices();
+  }
+
+  char *preferred_device = NULL;
+  if (argc == 3 && strcmp(argv[1], "--dev") == 0) {
+    preferred_device = argv[2];
+    SDL_Log("Using preferred device %s.\n", preferred_device);
+  }
+
   // Initialize the config to defaults read in the params from the
   // configfile if present
   config_params_s conf = init_config();
@@ -66,7 +77,7 @@ int main(int argc, char *argv[]) {
   // First device detection to avoid SDL init if it isn't necessary. To be run
   // only if we shouldn't wait for M8 to be connected.
   if (conf.wait_for_device == 0) {
-    if (init_serial(1) == 0) {
+    if (init_serial(1, preferred_device) == 0) {
       SDL_free(serial_buf);
       return -1;
     }
@@ -86,7 +97,7 @@ int main(int argc, char *argv[]) {
   // main loop begin
   do {
     // try to init serial port
-    int port_inited = init_serial(1);
+    int port_inited = init_serial(1, preferred_device);
     // if port init was successful, try to enable and reset display
     if (port_inited == 1 && enable_and_reset_display(0) == 1) {
       // if audio routing is enabled, try to initialize audio devices
@@ -132,7 +143,7 @@ int main(int argc, char *argv[]) {
         // Poll for M8 device every second
         if (port_inited == 0 && (SDL_GetTicks() - ticks_poll_device > 1000)) {
           ticks_poll_device = SDL_GetTicks();
-          if (run == WAIT_FOR_DEVICE && init_serial(0) == 1) {
+          if (run == WAIT_FOR_DEVICE && init_serial(0, preferred_device) == 1) {
 
             if (conf.audio_enabled == 1) {
               if (audio_init(conf.audio_buffer_size, conf.audio_device_name) ==
