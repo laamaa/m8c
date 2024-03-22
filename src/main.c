@@ -88,7 +88,7 @@ int main(int argc, char *argv[]) {
     // try to init serial port
     int port_inited = init_serial(1);
     // if port init was successful, try to enable and reset display
-    if (port_inited == 1 && enable_and_reset_display(0) == 1) {
+    if (port_inited == 1 && enable_and_reset_display() == 1) {
       // if audio routing is enabled, try to initialize audio devices
       if (conf.audio_enabled == 1) {
         audio_init(conf.audio_buffer_size, conf.audio_device_name);
