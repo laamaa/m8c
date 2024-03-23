@@ -48,7 +48,7 @@ int list_devices() {
     struct sp_port *port = port_list[i];
 
     if (detect_m8_serial_device(port)) {
-      SDL_Log("Found M8 device: %s", sp_get_port_name(port));
+      printf("Found M8 device: %s", sp_get_port_name(port));
     }
   }
 

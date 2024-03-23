@@ -169,7 +169,6 @@ int audio_destroy() {
     if (rc < 0) {
       SDL_Log("Error cancelling transfer: %s\n", libusb_error_name(rc));
     }
-    SDL_free(xfr[i]->buffer);
   }
 
   SDL_Log("Freeing interface %d", IFACE_NUM);

@@ -18,10 +18,41 @@ static int ep_in_addr = 0x83;
 #define ACM_CTRL_DTR   0x01
 #define ACM_CTRL_RTS   0x02
 
+#define M8_VID 0x16c0
+#define M8_PID 0x048a
+
 libusb_context *ctx = NULL;
 libusb_device_handle *devh = NULL;
 
 static int do_exit = 0;
+
+int list_devices() {
+  int r;
+  r = libusb_init(&ctx);
+  if (r < 0) {
+    SDL_Log("libusb_init failed: %s", libusb_error_name(r));
+    return 0;
+  }
+
+  libusb_device **device_list = NULL;
+  int count = libusb_get_device_list(ctx, &device_list);
+  for (size_t idx = 0; idx < count; ++idx) {
+    libusb_device *device = device_list[idx];
+    struct libusb_device_descriptor desc;
+    int rc = libusb_get_device_descriptor(device, &desc);
+    if (rc < 0) {
+      SDL_Log("Error");
+      libusb_free_device_list(device_list, 1);
+      return rc;
+    }
+
+    if (desc.idVendor == M8_VID && desc.idProduct == M8_PID) {
+      printf("Found M8 device: %d:%d\n", libusb_get_port_number(device), libusb_get_bus_number(device));
+    }
+  }
+  libusb_free_device_list(device_list, 1);
+  return 0;
+  }
 
 int usb_loop(void *data) {
   SDL_SetThreadPriority(SDL_THREAD_PRIORITY_TIME_CRITICAL);
@@ -170,7 +201,7 @@ int init_serial_with_file_descriptor(int file_descriptor) {
   return init_interface();
 }
 
-int init_serial(int verbose) {
+int init_serial(int verbose, char *preferred_device) {
 
   if (devh != NULL) {
     return 1;
@@ -182,7 +213,44 @@ int init_serial(int verbose) {
     SDL_Log("libusb_init failed: %s", libusb_error_name(r));
     return 0;
   }
-  devh = libusb_open_device_with_vid_pid(ctx, 0x16c0, 0x048a);
+  if(preferred_device == NULL) {
+    devh = libusb_open_device_with_vid_pid(ctx, M8_VID, M8_PID);
+  } else {
+    char *port;
+    char *saveptr = NULL;
+    char *bus;
+    port = SDL_strtokr(preferred_device, ":", &saveptr);
+    bus = SDL_strtokr(NULL, ":", &saveptr);
+    libusb_device **device_list = NULL;
+    int count = libusb_get_device_list(ctx, &device_list);
+    for (size_t idx = 0; idx < count; ++idx) {
+      libusb_device *device = device_list[idx];
+      struct libusb_device_descriptor desc;
+      r = libusb_get_device_descriptor(device, &desc);
+      if (r < 0) {
+        SDL_Log("libusb_get_device_descriptor failed: %s", libusb_error_name(r));
+        libusb_free_device_list(device_list, 1);
+        return 0;
+      }
+
+      if (desc.idVendor == M8_VID && desc.idProduct == M8_PID) {
+        SDL_Log("Searching for port %s and bus %s", port, bus);
+        if (libusb_get_port_number(device) == SDL_atoi(port) && libusb_get_bus_number(device) == SDL_atoi(bus)) {
+          SDL_Log("Preferred device found, connecting");
+          r = libusb_open(device, &devh);
+          if (r < 0) {
+            SDL_Log("libusb_open failed: %s", libusb_error_name(r));
+            return 0;
+          }
+        }
+      }
+    }
+    libusb_free_device_list(device_list, 1);
+    if(devh == NULL) {
+      SDL_Log("Preferred device %s not found, using first available", preferred_device);
+      devh = libusb_open_device_with_vid_pid(ctx, M8_VID, M8_PID);
+    }
+  }
   if (devh == NULL) {
     SDL_Log("libusb_open_device_with_vid_pid returned invalid handle");
     return 0;
