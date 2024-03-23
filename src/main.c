@@ -29,12 +29,12 @@ void close_serial_port() { disconnect(); }
 
 int main(int argc, char *argv[]) {
 
-  if(argc == 2 && strcmp(argv[1], "--list") == 0) {
+  if(argc == 2 && SDL_strcmp(argv[1], "--list") == 0) {
     return list_devices();
   }
 
   char *preferred_device = NULL;
-  if (argc == 3 && strcmp(argv[1], "--dev") == 0) {
+  if (argc == 3 && SDL_strcmp(argv[1], "--dev") == 0) {
     preferred_device = argv[2];
     SDL_Log("Using preferred device %s.\n", preferred_device);
   }
@@ -99,7 +99,7 @@ int main(int argc, char *argv[]) {
     // try to init serial port
     int port_inited = init_serial(1, preferred_device);
     // if port init was successful, try to enable and reset display
-    if (port_inited == 1 && enable_and_reset_display(0) == 1) {
+    if (port_inited == 1 && enable_and_reset_display() == 1) {
       // if audio routing is enabled, try to initialize audio devices
       if (conf.audio_enabled == 1) {
         audio_init(conf.audio_buffer_size, conf.audio_device_name);
