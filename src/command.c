@@ -18,7 +18,7 @@ enum m8_command_bytes {
   draw_character_command_datalength = 12,
   draw_oscilloscope_waveform_command = 0xFC,
   draw_oscilloscope_waveform_command_mindatalength = 1 + 3,
-  draw_oscilloscope_waveform_command_maxdatalength = 1 + 3 + 320,
+  draw_oscilloscope_waveform_command_maxdatalength = 1 + 3 + 480,
   joypad_keypressedstate_command = 0xFB,
   joypad_keypressedstate_command_datalength = 3,
   system_info_command = 0xFF,
@@ -144,7 +144,7 @@ int process_command(uint8_t *data, uint32_t size) {
       break;
     }
 
-    char *hwtype[3] = {"Headless", "Beta M8", "Production M8"};
+    char *hwtype[4] = {"Headless", "Beta M8", "Production M8", "Production M8 Model:02"};
 
     static int system_info_printed = 0;
 
@@ -152,6 +152,12 @@ int process_command(uint8_t *data, uint32_t size) {
       SDL_Log("** Hardware info ** Device type: %s, Firmware ver %d.%d.%d",
               hwtype[recv_buf[1]], recv_buf[2], recv_buf[3], recv_buf[4]);
       system_info_printed = 1;
+    }
+
+    if (recv_buf[1] == 0x03) {
+      set_mk2_mode(1);
+    } else {
+      set_mk2_mode(0);
     }
 
     if (recv_buf[5] == 0x01) {

@@ -79,7 +79,7 @@ void fx_cube_init(SDL_Renderer *target_renderer, SDL_Color foreground_color) {
   SDL_memcpy(nodes, default_nodes, sizeof(default_nodes));
 
   scale(50, 50, 50);
-  rotate_cube(M_PI / 4, SDL_atan(SDL_sqrt(2)));
+  rotate_cube(M_PI / 6, SDL_atan(SDL_sqrt(2)));
 
   SDL_SetTextureBlendMode(texture_cube, SDL_BLENDMODE_BLEND);
   SDL_SetTextureBlendMode(texture_text, SDL_BLENDMODE_BLEND);
@@ -99,8 +99,8 @@ void fx_cube_update() {
   SDL_SetRenderDrawColor(fx_renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
   SDL_RenderClear(fx_renderer);
 
-  int seconds = SDL_GetTicks() / 1000;
-  float scalefactor = 1 + (SDL_sin(seconds) * 0.01);
+  unsigned int seconds = SDL_GetTicks() / 1000;
+  float scalefactor = 1 + (SDL_sin(seconds) * 0.005);
 
   scale(scalefactor, scalefactor, scalefactor);
   rotate_cube(M_PI / 180, M_PI / 270);

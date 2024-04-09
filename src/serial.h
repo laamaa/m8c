@@ -4,6 +4,7 @@
 #ifndef _SERIAL_H_
 #define _SERIAL_H_
 
+#include <stdint.h>
 #ifdef USE_LIBUSB
 // Max packet length of the USB endpoint
 #define serial_read_size 512

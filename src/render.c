@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "SDL2_inprint.h"
+#include "SDL_video.h"
 #include "command.h"
 #include "fx_cube.h"
 
@@ -23,7 +24,14 @@ SDL_Color background_color =
 static uint32_t ticks_fps;
 static int fps;
 static int large_font_enabled = 0;
+static int mk2_mode_enabled = 0;
 static int screen_offset_y = 0;
+
+static const int m8_mk1_texture_width = 320;
+static const int m8_mk1_texture_height = 240;
+static const int m8_mk2_texture_width = 480;
+static const int m8_mk2_texture_height = 320;
+
 
 uint8_t fullscreen = 0;
 
@@ -33,8 +41,7 @@ static uint8_t dirty = 0;
 int initialize_sdl(int init_fullscreen, int init_use_gpu) {
   // ticks = SDL_GetTicks();
 
-  const int window_width = 640;  // SDL window width
-  const int window_height = 480; // SDL window height
+
 
   if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "SDL_Init: %s\n", SDL_GetError());
@@ -44,14 +51,14 @@ int initialize_sdl(int init_fullscreen, int init_use_gpu) {
   atexit(SDL_Quit);
 
   win = SDL_CreateWindow("m8c", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                         window_width, window_height,
+                         m8_mk1_texture_width * 2, m8_mk1_texture_height * 2,
                          SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL |
                              SDL_WINDOW_RESIZABLE | init_fullscreen);
 
   rend = SDL_CreateRenderer(
       win, -1, init_use_gpu ? SDL_RENDERER_ACCELERATED : SDL_RENDERER_SOFTWARE);
 
-  SDL_RenderSetLogicalSize(rend, 320, 240);
+  SDL_RenderSetLogicalSize(rend, m8_mk1_texture_width, m8_mk1_texture_height);
 
   maintexture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888,
                                   SDL_TEXTUREACCESS_TARGET, 320, 240);
@@ -80,15 +87,64 @@ static void change_font(struct inline_font *font) {
   prepare_inline_font(font->bits, font->width, font->height);
 }
 
+void set_mk2_mode(int enabled) {
+
+  int h, w;
+
+  if (enabled) {
+    mk2_mode_enabled = 1;
+    // Query window size and resize if smaller than default
+    SDL_GetWindowSize(win, &w, &h);
+    if (w < (m8_mk2_texture_width * 2) || h < (m8_mk2_texture_height * 2)) {
+      SDL_SetWindowSize(win, (m8_mk2_texture_width * 2),
+                        (m8_mk2_texture_height * 2));
+    }
+
+    SDL_RenderSetLogicalSize(rend, m8_mk2_texture_width, m8_mk2_texture_height);
+
+    SDL_DestroyTexture(maintexture);
+    maintexture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888,
+                                    SDL_TEXTUREACCESS_TARGET, m8_mk2_texture_width, m8_mk2_texture_height);
+
+    // Initialize and activate the MK2 font
+    set_large_mode(large_font_enabled);
+  } else if (mk2_mode_enabled == 1) {
+    // In the rare case that a MK2 is changed to MK1 without quitting first
+    
+    mk2_mode_enabled = 0;
+    // Query window size and resize if smaller than default
+    SDL_GetWindowSize(win, &w, &h);
+    if (w < (m8_mk1_texture_width * 2) || h < (m8_mk1_texture_height * 2)) {
+      SDL_SetWindowSize(win, (m8_mk1_texture_height * 2),
+                        (m8_mk1_texture_width * 2));
+    }
+
+    SDL_DestroyTexture(maintexture);
+    maintexture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888,
+                                    SDL_TEXTUREACCESS_TARGET, m8_mk1_texture_width, m8_mk1_texture_height);
+
+    // Initialize and activate the MK2 font
+    set_large_mode(large_font_enabled);
+  }
+}
+
 void set_large_mode(int enabled) {
   if (enabled) {
     large_font_enabled = 1;
-    screen_offset_y = 40;
-    change_font(&inline_font_large);
+    if (mk2_mode_enabled == 1) {
+      // TODO mk2 changes
+    } else {
+      screen_offset_y = 40;
+      change_font(&inline_font_large);
+    }
   } else {
-    large_font_enabled = 0;
-    screen_offset_y = 0;
-    change_font(&inline_font_small);
+    if (mk2_mode_enabled == 1) {
+      // TODO mk2 changes
+    } else {
+      large_font_enabled = 0;
+      screen_offset_y = 0;
+      change_font(&inline_font_small);
+    }
   }
 }
 
@@ -148,7 +204,8 @@ void draw_rectangle(struct draw_rectangle_command *command) {
   // Background color changed
   if (render_rect.x == 0 && render_rect.y <= 0 && render_rect.w == 320 &&
       render_rect.h >= 240) {
-    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "BG color change: %d %d %d",command->color.r,command->color.g,command->color.b);
+    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "BG color change: %d %d %d",
+                 command->color.r, command->color.g, command->color.b);
     background_color.r = command->color.r;
     background_color.g = command->color.g;
     background_color.b = command->color.b;

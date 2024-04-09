@@ -37,7 +37,7 @@ struct draw_character_command {
 
 struct draw_oscilloscope_waveform_command {
   struct color color;
-  uint8_t waveform[320];
+  uint8_t waveform[480];
   uint16_t waveform_size;
 };
 
