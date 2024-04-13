@@ -7,11 +7,11 @@
 #include <stdint.h>
 #ifdef USE_LIBUSB
 // Max packet length of the USB endpoint
-#define serial_read_size 512
+#define serial_read_size 1024
 int init_serial_with_file_descriptor(int file_descriptor);
 #else
 // maximum amount of bytes to read from the serial in one read()
-#define serial_read_size 512
+#define serial_read_size 1024
 #endif
 
 int init_serial(int verbose, char *preferred_device);

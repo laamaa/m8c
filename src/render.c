@@ -234,12 +234,12 @@ void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
       wf_rect.x = texture_width - command->waveform_size;
       wf_rect.y = 0;
       wf_rect.w = command->waveform_size;
-      wf_rect.h = 21;
+      wf_rect.h = waveform_max_height+1;
     } else {
       wf_rect.x = texture_width - prev_waveform_size;
       wf_rect.y = 0;
       wf_rect.w = prev_waveform_size;
-      wf_rect.h = 21;
+      wf_rect.h = waveform_max_height+1;
     }
     prev_waveform_size = command->waveform_size;
 
@@ -325,7 +325,6 @@ void display_keyjazz_overlay(uint8_t show, uint8_t base_octave,
 void render_screen() {
   if (dirty) {
     dirty = 0;
-    // ticks = SDL_GetTicks();
     SDL_SetRenderTarget(rend, NULL);
 
     SDL_SetRenderDrawColor(rend, background_color.r, background_color.g,

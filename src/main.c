@@ -290,7 +290,6 @@ int main(int argc, char *argv[]) {
   close_renderer();
   close_serial_port();
   SDL_free(serial_buf);
-  kill_inline_font();
   SDL_Quit();
   return 0;
 }
