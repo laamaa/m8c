@@ -3,7 +3,7 @@
 
 /* Uncomment this line to enable debug messages or call make with `make
    CFLAGS=-DDEBUG_MSG` */
-// #define DEBUG_MSG
+#define DEBUG_MSG
 
 #include <SDL.h>
 #include <signal.h>

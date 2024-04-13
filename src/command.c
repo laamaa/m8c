@@ -58,6 +58,7 @@ int process_command(uint8_t *data, uint32_t size) {
           {decodeInt16(recv_buf, 5), decodeInt16(recv_buf, 7)}, // size w/h
           {recv_buf[9], recv_buf[10], recv_buf[11]}};           // color r/g/b
 
+      //SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,"x:%i, y:%i, w:%i, h:%i",rectcmd.pos.x,rectcmd.pos.y,rectcmd.size.width,rectcmd.size.height);
       draw_rectangle(&rectcmd);
       return 1;
     }
@@ -144,7 +145,8 @@ int process_command(uint8_t *data, uint32_t size) {
       break;
     }
 
-    char *hwtype[4] = {"Headless", "Beta M8", "Production M8", "Production M8 Model:02"};
+    char *hwtype[4] = {"Headless", "Beta M8", "Production M8",
+                       "Production M8 Model:02"};
 
     static int system_info_printed = 0;
 
@@ -155,22 +157,18 @@ int process_command(uint8_t *data, uint32_t size) {
     }
 
     if (recv_buf[1] == 0x03) {
-      set_mk2_mode(1);
+      set_m8_model(1);
     } else {
-      set_mk2_mode(0);
+      set_m8_model(0);
     }
 
-    if (recv_buf[5] == 0x01) {
-      set_large_mode(1);
-    } else {
-      set_large_mode(0);
-    }
+    set_font_mode(recv_buf[5]);
+
     return 1;
     break;
   }
 
   default:
-
     SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Invalid packet\n");
     dump_packet(size, recv_buf);
     return 0;
