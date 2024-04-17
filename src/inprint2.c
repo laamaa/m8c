@@ -123,10 +123,8 @@ void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y,
                              (Uint8)((bgcolor & 0x0000FF00) >> 8),
                              (Uint8)((bgcolor & 0x000000FF)), 0xFF);
       bg_rect = d_rect;
-      bg_rect.w = selected_inline_font->glyph_x - 1;
+      bg_rect.w = selected_inline_font->glyph_x;
       bg_rect.h = selected_inline_font->glyph_y;
-      bg_rect.x--;
-      bg_rect.y--;
 
       SDL_RenderFillRect(dst, &bg_rect);
     }

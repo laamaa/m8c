@@ -3,8 +3,8 @@
 struct inline_font font_v1_small = {
     470,
     7,
-    8,
-    10,
+    5,
+    7,
     0,
     0,
     3,
