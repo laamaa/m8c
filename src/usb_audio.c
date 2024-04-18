@@ -37,7 +37,7 @@ static void cb_xfr(struct libusb_transfer *xfr) {
     struct libusb_iso_packet_descriptor *pack = &xfr->iso_packet_desc[i];
 
     if (pack->status != LIBUSB_TRANSFER_COMPLETED) {
-      SDL_Log("XFR callback error (status %d: %s)", pack->status,
+      SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "XFR callback error (status %d: %s)", pack->status,
               libusb_error_name(pack->status));
       /* This doesn't happen, so bail out if it does. */
       return;
@@ -47,13 +47,13 @@ static void cb_xfr(struct libusb_transfer *xfr) {
     if (sdl_audio_device_id != 0) {
       uint32_t actual = ring_buffer_push(audio_buffer, data, pack->actual_length);
       if (actual == -1) {
-        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Buffer overflow!");
+        SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Buffer overflow!");
       }
     }
   }
 
   if (libusb_submit_transfer(xfr) < 0) {
-    SDL_Log("error re-submitting URB\n");
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "error re-submitting URB\n");
     SDL_free(xfr->buffer);
   }
 }
@@ -100,23 +100,23 @@ int audio_init(int audio_buffer_size, const char *output_device_name) {
 
   rc = libusb_claim_interface(devh, IFACE_NUM);
   if (rc < 0) {
-    SDL_Log("Error claiming interface: %s\n", libusb_error_name(rc));
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error claiming interface: %s\n", libusb_error_name(rc));
     return rc;
   }
 
   rc = libusb_set_interface_alt_setting(devh, IFACE_NUM, 1);
   if (rc < 0) {
-    SDL_Log("Error setting alt setting: %s\n", libusb_error_name(rc));
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error setting alt setting: %s\n", libusb_error_name(rc));
     return rc;
   }
 
   if (!SDL_WasInit(SDL_INIT_AUDIO)) {
     if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
-      SDL_Log("Init audio failed %s", SDL_GetError());
+      SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Init audio failed %s", SDL_GetError());
       return -1;
     }
   } else {
-    SDL_Log("Audio was already initialised");
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Audio was already initialised");
   }
 
   static SDL_AudioSpec audio_spec;
@@ -149,9 +149,9 @@ int audio_init(int audio_buffer_size, const char *output_device_name) {
   SDL_PauseAudioDevice(sdl_audio_device_id, 0);
 
   // Good to go
-  SDL_Log("Starting capture");
+  SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Starting capture");
   if ((rc = benchmark_in()) < 0) {
-    SDL_Log("Capture failed to start: %d", rc);
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Capture failed to start: %d", rc);
     return rc;
   }
 
@@ -160,14 +160,18 @@ int audio_init(int audio_buffer_size, const char *output_device_name) {
 }
 
 int audio_destroy() {
-  SDL_Log("Closing audio");
+  if (devh == NULL) {
+    return -1;
+  }
+
+  SDL_LogDebug(SDL_LOG_CATEGORY_AUDIO, "Closing audio");
 
   int i, rc;
 
   for (i = 0; i < NUM_TRANSFERS; i++) {
     rc = libusb_cancel_transfer(xfr[i]);
     if (rc < 0) {
-      SDL_Log("Error cancelling transfer: %s\n", libusb_error_name(rc));
+      SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error cancelling transfer: %s\n", libusb_error_name(rc));
     }
   }
 
@@ -175,7 +179,7 @@ int audio_destroy() {
 
   rc = libusb_release_interface(devh, IFACE_NUM);
   if (rc < 0) {
-    SDL_Log("Error releasing interface: %s\n", libusb_error_name(rc));
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error releasing interface: %s\n", libusb_error_name(rc));
     return rc;
   }
 
@@ -186,7 +190,7 @@ int audio_destroy() {
     SDL_CloseAudioDevice(device);
   }
 
-  SDL_Log("Audio closed");
+  SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Audio closed");
 
   ring_buffer_free(audio_buffer);
   return 1;

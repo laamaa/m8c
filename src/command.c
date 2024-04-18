@@ -58,7 +58,6 @@ int process_command(uint8_t *data, uint32_t size) {
           {decodeInt16(recv_buf, 5), decodeInt16(recv_buf, 7)}, // size w/h
           {recv_buf[9], recv_buf[10], recv_buf[11]}};           // color r/g/b
 
-      //SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,"x:%i, y:%i, w:%i, h:%i",rectcmd.pos.x,rectcmd.pos.y,rectcmd.size.width,rectcmd.size.height);
       draw_rectangle(&rectcmd);
       return 1;
     }

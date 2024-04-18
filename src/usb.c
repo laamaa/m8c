@@ -47,7 +47,7 @@ int list_devices() {
     }
 
     if (desc.idVendor == M8_VID && desc.idProduct == M8_PID) {
-      printf("Found M8 device: %d:%d\n", libusb_get_port_number(device), libusb_get_bus_number(device));
+      SDL_Log("Found M8 device: %d:%d\n", libusb_get_port_number(device), libusb_get_bus_number(device));
     }
   }
   libusb_free_device_list(device_list, 1);
@@ -74,6 +74,10 @@ static void LIBUSB_CALL xfr_cb_in(struct libusb_transfer *transfer) {
 }
 
 int bulk_transfer(int endpoint, uint8_t *serial_buf, int count, unsigned int timeout_ms) {
+  if (devh == NULL) {
+    return -1;
+  }
+  
   int completed = 0;
 
   struct libusb_transfer *transfer;
@@ -252,7 +256,7 @@ int init_serial(int verbose, char *preferred_device) {
     }
   }
   if (devh == NULL) {
-    SDL_Log("libusb_open_device_with_vid_pid returned invalid handle");
+    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "libusb_open_device_with_vid_pid returned invalid handle");
     return 0;
   }
   SDL_Log("USB device init success");
@@ -310,18 +314,20 @@ int disconnect() {
 
   int rc;
 
-  for (int if_num = 0; if_num < 2; if_num++) {
-    rc = libusb_release_interface(devh, if_num);
-    if (rc < 0) {
-      SDL_Log("Error releasing interface: %s", libusb_error_name(rc));
-      return 0;
-    }
-  }
-
-  do_exit = 1;
-
   if (devh != NULL) {
+    
+    for (int if_num = 0; if_num < 2; if_num++) {
+      rc = libusb_release_interface(devh, if_num);
+      if (rc < 0) {
+        SDL_Log("Error releasing interface: %s", libusb_error_name(rc));
+        return 0;
+      }
+    }
+
+    do_exit = 1;
+
     libusb_close(devh);
+
   }
 
   SDL_WaitThread(usb_thread, NULL);

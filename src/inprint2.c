@@ -8,6 +8,10 @@
 #define CHARACTERS_PER_ROW 94
 #define CHARACTERS_PER_COLUMN 1
 
+// Offset for seeking from limited character sets
+static const int font_offset =
+    127 - (CHARACTERS_PER_ROW * CHARACTERS_PER_COLUMN);
+
 static SDL_Renderer *selected_renderer = NULL;
 static SDL_Texture *inline_font = NULL;
 static SDL_Texture *selected_font = NULL;
@@ -54,7 +58,6 @@ void infont(SDL_Texture *font) {
   int w, h;
 
   if (font == NULL) {
-    // prepare_inline_font();
     return;
   }
 
@@ -90,14 +93,12 @@ void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y,
   s_rect.h = selected_font_h / CHARACTERS_PER_COLUMN;
   d_rect.w = s_rect.w;
   d_rect.h = s_rect.h;
-  // d_rect.w = selected_inline_font->glyph_x;
-  // d_rect.h = selected_inline_font->glyph_y;
 
   if (dst == NULL)
     dst = selected_renderer;
 
   for (; *str; str++) {
-    int id = (int)*str - 33;
+    int id = (int)*str - font_offset;
 #if (CHARACTERS_PER_COLUMN != 1)
     int row = id / CHARACTERS_PER_ROW;
     int col = id % CHARACTERS_PER_ROW;
