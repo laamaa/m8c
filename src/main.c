@@ -3,7 +3,7 @@
 
 /* Uncomment this line to enable debug messages or call make with `make
    CFLAGS=-DDEBUG_MSG` */
-// #define DEBUG_MSG
+#define DEBUG_MSG
 
 #include <SDL.h>
 #include <signal.h>
@@ -290,7 +290,6 @@ int main(int argc, char *argv[]) {
   close_renderer();
   close_serial_port();
   SDL_free(serial_buf);
-  kill_inline_font();
   SDL_Quit();
   return 0;
 }
