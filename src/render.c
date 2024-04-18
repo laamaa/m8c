@@ -121,28 +121,39 @@ void set_m8_model(unsigned int model) {
   switch (model) {
   case 1:
     m8_hardware_model = 1;
-    waveform_max_height = 38;
     check_and_adjust_window_and_texture_size(480, 320);
     break;
   default:
     m8_hardware_model = 0;
-    waveform_max_height = 20;
     check_and_adjust_window_and_texture_size(320, 240);
     break;
   }
 }
 
 void set_font_mode(unsigned int mode) {
-  if (font_mode == mode) return;
-  if (mode >= 0 && mode <= 2) {
-    if (m8_hardware_model == 1) {
-      mode += 2;
-    }
-    font_mode = mode;
-    screen_offset_y = fonts[mode]->screen_offset_y;
-    text_offset_y = fonts[mode]->text_offset_y;
-    change_font(fonts[mode]);
+  if (mode < 0 || mode > 2) {
+    //bad font mode
+    return;
   }
+  if (m8_hardware_model == 1) {
+    mode += 2;
+  }
+  if (font_mode == mode) return;
+
+  font_mode = mode;
+  screen_offset_y = fonts[mode]->screen_offset_y;
+  text_offset_y = fonts[mode]->text_offset_y;
+
+  if (m8_hardware_model == 0) {
+    waveform_max_height = 20;
+  } else {
+    waveform_max_height = 38;
+    if(font_mode == 4) {
+      waveform_max_height = 20;
+    }
+  }
+
+  change_font(fonts[mode]);
   SDL_LogDebug(SDL_LOG_CATEGORY_RENDER,"Font mode %i, Screen offset %i", mode, screen_offset_y);
 }
 

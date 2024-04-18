@@ -3,8 +3,8 @@
 struct inline_font font_v1_large = {
     752,
     9,
-    10,
-    12,
+    8,
+    9,
     0,
     -40,
     4,
