@@ -108,9 +108,9 @@ void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y,
     s_rect.x = id * s_rect.w;
     s_rect.y = 0;
 #endif
-    if (id == '\n') {
+    if (id + font_offset == '\n') {
       d_rect.x = x;
-      d_rect.y += s_rect.h;
+      d_rect.y += s_rect.h + 1;
       continue;
     }
     if (fgcolor != previous_fgcolor) {
@@ -130,7 +130,7 @@ void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y,
       SDL_RenderFillRect(dst, &bg_rect);
     }
     SDL_RenderCopy(dst, selected_font, &s_rect, &d_rect);
-    d_rect.x += selected_inline_font->glyph_x;
+    d_rect.x += selected_inline_font->glyph_x + 1;
   }
 }
 SDL_Texture *get_inline_font(void) { return selected_font; }
