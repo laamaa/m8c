@@ -85,6 +85,23 @@ Connect the M8 or Teensy (with headless firmware) to your computer and start the
 
 If the stars are aligned correctly, you should see the M8 screen.
 
+#### Choosing a preferred device
+
+When you have multiple M8 devices connected and you want to choose a specific one or launch m8c multiple times, you can get the list of devices by running
+
+```
+./m8c --list
+
+2024-02-25 18:39:27.806 m8c[99838:4295527] INFO: Found M8 device: /dev/cu.usbmodem124709801
+2024-02-25 18:39:27.807 m8c[99838:4295527] INFO: Found M8 device: /dev/cu.usbmodem121136001
+```
+
+And you can specify the preferred device by using
+
+```
+./m8c --dev /dev/cu.usbmodem124709801
+```
+
 -----------
 
 ## Keyboard mappings

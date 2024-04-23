@@ -487,7 +487,7 @@ input_msg_s get_input_msg(config_params_s *conf) {
   // Query for SDL events
   handle_sdl_events(conf);
 
-  if (keycode == (key_start | key_select | key_opt | key_edit)) {
+  if (!keyjazz_enabled && keycode == (key_start | key_select | key_opt | key_edit)) {
     key = (input_msg_s){special, msg_reset_display};
   }
 
