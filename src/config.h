@@ -31,6 +31,10 @@ typedef struct config_params_s {
   int key_edit_alt;
   int key_delete;
   int key_reset;
+  int key_jazz_inc_octave;
+  int key_jazz_dec_octave;
+  int key_jazz_inc_velocity;
+  int key_jazz_dec_velocity;
 
   int gamepad_up;
   int gamepad_left;

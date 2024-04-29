@@ -47,6 +47,10 @@ config_params_s init_config() {
   c.key_edit_alt = SDL_SCANCODE_S;
   c.key_delete = SDL_SCANCODE_DELETE;
   c.key_reset = SDL_SCANCODE_R;
+  c.key_jazz_inc_octave = SDL_SCANCODE_KP_MULTIPLY;
+  c.key_jazz_dec_octave = SDL_SCANCODE_KP_DIVIDE;
+  c.key_jazz_inc_velocity = SDL_SCANCODE_KP_MINUS;
+  c.key_jazz_dec_velocity = SDL_SCANCODE_KP_PLUS;
 
   c.gamepad_up = SDL_CONTROLLER_BUTTON_DPAD_UP;
   c.gamepad_left = SDL_CONTROLLER_BUTTON_DPAD_LEFT;
@@ -82,7 +86,7 @@ void write_config(config_params_s *conf) {
 
   SDL_Log("Writing config file to %s", config_path);
 
-  const unsigned int INI_LINE_COUNT = 44;
+  const unsigned int INI_LINE_COUNT = 48;
   const unsigned int LINELEN = 50;
 
   // Entries for the config file
@@ -129,6 +133,14 @@ void write_config(config_params_s *conf) {
            conf->key_delete);
   snprintf(ini_values[initPointer++], LINELEN, "key_reset=%d\n",
            conf->key_reset);
+  snprintf(ini_values[initPointer++], LINELEN, "key_jazz_inc_octave=%d\n",
+           conf->key_jazz_inc_octave);
+  snprintf(ini_values[initPointer++], LINELEN, "key_jazz_dec_octave=%d\n",
+           conf->key_jazz_dec_octave);
+  snprintf(ini_values[initPointer++], LINELEN, "key_jazz_inc_velocity=%d\n",
+           conf->key_jazz_inc_velocity);
+  snprintf(ini_values[initPointer++], LINELEN, "key_jazz_dec_velocity=%d\n",
+           conf->key_jazz_dec_velocity);
   snprintf(ini_values[initPointer++], LINELEN, "[gamepad]\n");
   snprintf(ini_values[initPointer++], LINELEN, "gamepad_up=%d\n",
            conf->gamepad_up);
@@ -289,6 +301,10 @@ void read_key_config(ini_t *ini, config_params_s *conf) {
   const char *key_edit_alt = ini_get(ini, "keyboard", "key_edit_alt");
   const char *key_delete = ini_get(ini, "keyboard", "key_delete");
   const char *key_reset = ini_get(ini, "keyboard", "key_reset");
+  const char *key_jazz_inc_octave = ini_get(ini, "keyboard", "key_jazz_inc_octave");
+  const char *key_jazz_dec_octave = ini_get(ini, "keyboard", "key_jazz_dec_octave");
+  const char *key_jazz_inc_velocity = ini_get(ini, "keyboard", "key_jazz_inc_velocity");
+  const char *key_jazz_dec_velocity = ini_get(ini, "keyboard", "key_jazz_dec_velocity");
 
   if (key_up)
     conf->key_up = SDL_atoi(key_up);
@@ -318,6 +334,14 @@ void read_key_config(ini_t *ini, config_params_s *conf) {
     conf->key_delete = SDL_atoi(key_delete);
   if (key_reset)
     conf->key_reset = SDL_atoi(key_reset);
+  if (key_jazz_inc_octave)
+    conf->key_jazz_inc_octave = SDL_atoi(key_jazz_inc_octave);
+  if (key_jazz_dec_octave)
+    conf->key_jazz_dec_octave = SDL_atoi(key_jazz_dec_octave);
+  if (key_jazz_inc_velocity)
+    conf->key_jazz_inc_velocity = SDL_atoi(key_jazz_inc_velocity);
+  if (key_jazz_dec_velocity)
+    conf->key_jazz_dec_velocity = SDL_atoi(key_jazz_dec_velocity);
 }
 
 void read_gamepad_config(ini_t *ini, config_params_s *conf) {

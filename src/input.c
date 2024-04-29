@@ -98,7 +98,11 @@ void close_game_controllers() {
   }
 }
 
-static input_msg_s handle_keyjazz(SDL_Event *event, uint8_t keyvalue) {
+static input_msg_s handle_keyjazz(
+  SDL_Event *event,
+  uint8_t keyvalue,
+  config_params_s *conf
+) {
   input_msg_s key = {keyjazz, keyvalue, keyjazz_velocity, event->type};
   switch (event->key.keysym.scancode) {
   case SDL_SCANCODE_Z:
@@ -188,48 +192,40 @@ static input_msg_s handle_keyjazz(SDL_Event *event, uint8_t keyvalue) {
   case SDL_SCANCODE_P:
     key.value = 28 + keyjazz_base_octave * 12;
     break;
-  case SDL_SCANCODE_KP_DIVIDE:
-    key.type = normal;
-    if (event->type == SDL_KEYDOWN && keyjazz_base_octave > 0) {
-      keyjazz_base_octave--;
-      display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
-    }
-    break;
-  case SDL_SCANCODE_KP_MULTIPLY:
-    key.type = normal;
-    if (event->type == SDL_KEYDOWN && keyjazz_base_octave < 8) {
-      keyjazz_base_octave++;
-      display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
-    }
-    break;
-  case SDL_SCANCODE_KP_MINUS:
-    key.type = normal;
-    if (event->type == SDL_KEYDOWN) {
-      if ((event->key.keysym.mod & KMOD_ALT) > 0) {
-        if (keyjazz_velocity > 1)
-          keyjazz_velocity -= 1;
-      } else {
-        if (keyjazz_velocity > 0x10)
-          keyjazz_velocity -= 0x10;
-      }
-      display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
-    }
-    break;
-  case SDL_SCANCODE_KP_PLUS:
-    key.type = normal;
-    if (event->type == SDL_KEYDOWN) {
-      if ((event->key.keysym.mod & KMOD_ALT) > 0) {
-        if (keyjazz_velocity < 0x7F)
-          keyjazz_velocity += 1;
-      } else {
-        if (keyjazz_velocity < 0x6F)
-          keyjazz_velocity += 0x10;
-      }
-      display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
-    }
-    break;
   default:
     key.type = normal;
+    if (event->key.repeat > 0 || event->key.type == SDL_KEYUP) {
+      break;
+    }
+    if (event->key.keysym.scancode == conf->key_jazz_dec_octave) {
+        if (keyjazz_base_octave > 0) {
+            keyjazz_base_octave--;
+            display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
+        }
+    } else if (event->key.keysym.scancode == conf->key_jazz_inc_octave) {
+        if (keyjazz_base_octave < 8) {
+            keyjazz_base_octave++;
+            display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
+        }
+    } else if (event->key.keysym.scancode == conf->key_jazz_dec_velocity) {
+        if ((event->key.keysym.mod & KMOD_ALT) > 0) {
+            if (keyjazz_velocity > 1)
+                keyjazz_velocity -= 1;
+        } else {
+            if (keyjazz_velocity > 0x10)
+                keyjazz_velocity -= 0x10;
+        }
+        display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
+    } else if (event->key.keysym.scancode == conf->key_jazz_inc_velocity) {
+        if ((event->key.keysym.mod & KMOD_ALT) > 0) {
+            if (keyjazz_velocity < 0x7F)
+                keyjazz_velocity += 1;
+        } else {
+            if (keyjazz_velocity < 0x6F)
+                keyjazz_velocity += 0x10;
+        }
+        display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
+    }
     break;
   }
 
@@ -429,7 +425,7 @@ void handle_sdl_events(config_params_s *conf) {
     key = handle_normal_keys(&event, conf, 0);
 
     if (keyjazz_enabled)
-      key = handle_keyjazz(&event, key.value);
+      key = handle_keyjazz(&event, key.value, conf);
     break;
 
   default:
