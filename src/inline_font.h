@@ -9,6 +9,7 @@ struct inline_font {
     const int screen_offset_x;
     const int screen_offset_y;
     const int text_offset_y;
+    const int waveform_max_height;
     const long image_size;
     const unsigned char image_data[];
 };

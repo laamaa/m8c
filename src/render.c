@@ -29,7 +29,7 @@ static int font_mode = -1;
 static int m8_hardware_model = 0;
 static int screen_offset_y = 0;
 static int text_offset_y = 0;
-static int waveform_max_height = 20;
+static int waveform_max_height = 24;
 
 static int texture_width = 320;
 static int texture_height = 240;
@@ -143,15 +143,7 @@ void set_font_mode(unsigned int mode) {
   font_mode = mode;
   screen_offset_y = fonts[mode]->screen_offset_y;
   text_offset_y = fonts[mode]->text_offset_y;
-
-  if (m8_hardware_model == 0) {
-    waveform_max_height = 20;
-  } else {
-    waveform_max_height = 38;
-    if(font_mode == 4) {
-      waveform_max_height = 20;
-    }
-  }
+  waveform_max_height = fonts[mode]->waveform_max_height;
 
   change_font(fonts[mode]);
   SDL_LogDebug(SDL_LOG_CATEGORY_RENDER,"Font mode %i, Screen offset %i", mode, screen_offset_y);
