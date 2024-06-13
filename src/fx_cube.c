@@ -1,6 +1,6 @@
-#include <SDL.h>
 #include "SDL2_inprint.h"
 #include "SDL_pixels.h"
+#include <SDL.h>
 
 #define target_width 320
 #define target_height 240
@@ -15,9 +15,8 @@ const char *text_disconnected = "DEVICE DISCONNECTED";
 static const float center_x = (float)target_width / 2;
 static const float center_y = (float)target_height / 2;
 
-static const float default_nodes[8][3] = {
-    {-1, -1, -1}, {-1, -1, 1}, {-1, 1, -1}, {-1, 1, 1},
-    {1, -1, -1},  {1, -1, 1},  {1, 1, -1},  {1, 1, 1}};
+static const float default_nodes[8][3] = {{-1, -1, -1}, {-1, -1, 1}, {-1, 1, -1}, {-1, 1, 1},
+                                          {1, -1, -1},  {1, -1, 1},  {1, 1, -1},  {1, 1, 1}};
 
 static int edges[12][2] = {{0, 1}, {1, 3}, {3, 2}, {2, 0}, {4, 5}, {5, 7},
                            {7, 6}, {6, 4}, {0, 4}, {1, 5}, {2, 6}, {3, 7}};
@@ -57,14 +56,12 @@ void fx_cube_init(SDL_Renderer *target_renderer, SDL_Color foreground_color) {
   fx_renderer = target_renderer;
   line_color = foreground_color;
 
-  texture_cube =
-      SDL_CreateTexture(fx_renderer, SDL_PIXELFORMAT_ARGB8888,
-                        SDL_TEXTUREACCESS_TARGET, target_width, target_height);
-  texture_text =
-      SDL_CreateTexture(fx_renderer, SDL_PIXELFORMAT_ARGB8888,
-                        SDL_TEXTUREACCESS_TARGET, target_width, target_height);
+  texture_cube = SDL_CreateTexture(fx_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
+                                   target_width, target_height);
+  texture_text = SDL_CreateTexture(fx_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
+                                   target_width, target_height);
 
-  SDL_Texture *og_target = SDL_GetRenderTarget(fx_renderer);                        
+  SDL_Texture *og_target = SDL_GetRenderTarget(fx_renderer);
 
   SDL_SetRenderTarget(fx_renderer, texture_text);
   SDL_SetRenderDrawColor(fx_renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
@@ -108,14 +105,12 @@ void fx_cube_update() {
   for (int i = 0; i < 12; i++) {
     float *p1 = nodes[edges[i][0]];
     float *p2 = nodes[edges[i][1]];
-    points[points_counter++] =
-        (SDL_Point){p1[0] + center_x, nodes[edges[i][0]][1] + center_y};
+    points[points_counter++] = (SDL_Point){p1[0] + center_x, nodes[edges[i][0]][1] + center_y};
     points[points_counter++] = (SDL_Point){p2[0] + center_x, p2[1] + center_y};
   }
 
   SDL_RenderCopy(fx_renderer, texture_text, NULL, NULL);
-  SDL_SetRenderDrawColor(fx_renderer, line_color.r, line_color.g, line_color.b,
-                         line_color.a);
+  SDL_SetRenderDrawColor(fx_renderer, line_color.r, line_color.g, line_color.b, line_color.a);
   SDL_RenderDrawLines(fx_renderer, points, 24);
 
   SDL_SetRenderTarget(fx_renderer, og_texture);

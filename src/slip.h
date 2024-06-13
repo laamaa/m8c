@@ -29,7 +29,6 @@ program. */
 #ifndef SLIP_H_
 #define SLIP_H_
 
-#include "command.h"
 #include <stdint.h>
 
 #define SLIP_SPECIAL_BYTE_END           0xC0

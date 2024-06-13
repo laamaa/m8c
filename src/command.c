@@ -44,10 +44,9 @@ int process_command(uint8_t *data, uint32_t size) {
   case draw_rectangle_command:
 
     if (size != draw_rectangle_command_datalength) {
-      SDL_LogError(
-          SDL_LOG_CATEGORY_ERROR,
-          "Invalid draw rectangle packet: expected length %d, got %d\n",
-          draw_rectangle_command_datalength, size);
+      SDL_LogError(SDL_LOG_CATEGORY_ERROR,
+                   "Invalid draw rectangle packet: expected length %d, got %d",
+                   draw_rectangle_command_datalength, size);
       dump_packet(size, recv_buf);
       return 0;
       break;
@@ -67,10 +66,9 @@ int process_command(uint8_t *data, uint32_t size) {
   case draw_character_command:
 
     if (size != draw_character_command_datalength) {
-      SDL_LogError(
-          SDL_LOG_CATEGORY_ERROR,
-          "Invalid draw character packet: expected length %d, got %d\n",
-          draw_character_command_datalength, size);
+      SDL_LogError(SDL_LOG_CATEGORY_ERROR,
+                   "Invalid draw character packet: expected length %d, got %d",
+                   draw_character_command_datalength, size);
       dump_packet(size, recv_buf);
       return 0;
       break;
@@ -79,8 +77,8 @@ int process_command(uint8_t *data, uint32_t size) {
       struct draw_character_command charcmd = {
           recv_buf[1],                                          // char
           {decodeInt16(recv_buf, 2), decodeInt16(recv_buf, 4)}, // position x/y
-          {recv_buf[6], recv_buf[7], recv_buf[8]},    // foreground r/g/b
-          {recv_buf[9], recv_buf[10], recv_buf[11]}}; // background r/g/b
+          {recv_buf[6], recv_buf[7], recv_buf[8]},              // foreground r/g/b
+          {recv_buf[9], recv_buf[10], recv_buf[11]}};           // background r/g/b
       draw_character(&charcmd);
       return 1;
     }
@@ -91,13 +89,10 @@ int process_command(uint8_t *data, uint32_t size) {
 
     if (size < draw_oscilloscope_waveform_command_mindatalength ||
         size > draw_oscilloscope_waveform_command_maxdatalength) {
-      SDL_LogError(
-          SDL_LOG_CATEGORY_ERROR,
-          "Invalid draw oscilloscope packet: expected length between %d "
-          "and %d, got "
-          "%d\n",
-          draw_oscilloscope_waveform_command_mindatalength,
-          draw_oscilloscope_waveform_command_maxdatalength, size);
+      SDL_LogError(SDL_LOG_CATEGORY_ERROR,
+                   "Invalid draw oscilloscope packet: expected length between %d and %d, got %d",
+                   draw_oscilloscope_waveform_command_mindatalength,
+                   draw_oscilloscope_waveform_command_maxdatalength, size);
       dump_packet(size, recv_buf);
       return 0;
       break;
@@ -105,8 +100,7 @@ int process_command(uint8_t *data, uint32_t size) {
 
       struct draw_oscilloscope_waveform_command osccmd;
 
-      osccmd.color =
-          (struct color){recv_buf[1], recv_buf[2], recv_buf[3]}; // color r/g/b
+      osccmd.color = (struct color){recv_buf[1], recv_buf[2], recv_buf[3]}; // color r/g/b
       memcpy(osccmd.waveform, &recv_buf[4], size - 4);
 
       osccmd.waveform_size = size - 4;
@@ -119,11 +113,10 @@ int process_command(uint8_t *data, uint32_t size) {
 
   case joypad_keypressedstate_command: {
     if (size != joypad_keypressedstate_command_datalength) {
-      SDL_LogError(
-          SDL_LOG_CATEGORY_ERROR,
-          "Invalid joypad keypressed state packet: expected length %d, "
-          "got %d\n",
-          joypad_keypressedstate_command_datalength, size);
+      SDL_LogError(SDL_LOG_CATEGORY_ERROR,
+                   "Invalid joypad keypressed state packet: expected length %d, "
+                   "got %d\n",
+                   joypad_keypressedstate_command_datalength, size);
       dump_packet(size, recv_buf);
       return 0;
       break;
@@ -137,21 +130,19 @@ int process_command(uint8_t *data, uint32_t size) {
   case system_info_command: {
     if (size != system_info_command_datalength) {
       SDL_LogError(SDL_LOG_CATEGORY_ERROR,
-                   "Invalid system info packet: expected length %d, "
-                   "got %d\n",
+                   "Invalid system info packet: expected length %d, got %d\n",
                    system_info_command_datalength, size);
       dump_packet(size, recv_buf);
       break;
     }
 
-    char *hwtype[4] = {"Headless", "Beta M8", "Production M8",
-                       "Production M8 Model:02"};
+    char *hwtype[4] = {"Headless", "Beta M8", "Production M8", "Production M8 Model:02"};
 
     static int system_info_printed = 0;
 
     if (system_info_printed == 0) {
-      SDL_Log("** Hardware info ** Device type: %s, Firmware ver %d.%d.%d",
-              hwtype[recv_buf[1]], recv_buf[2], recv_buf[3], recv_buf[4]);
+      SDL_Log("** Hardware info ** Device type: %s, Firmware ver %d.%d.%d", hwtype[recv_buf[1]],
+              recv_buf[2], recv_buf[3], recv_buf[4]);
       system_info_printed = 1;
     }
 

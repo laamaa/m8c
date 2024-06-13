@@ -4,6 +4,7 @@
 #include <SDL.h>
 #include <stdio.h>
 
+#include "SDL_log.h"
 #include "SDL_timer.h"
 #include "config.h"
 #include "input.h"
@@ -36,6 +37,7 @@ input_msg_s key = {normal, 0};
 
 uint8_t toggle_input_keyjazz() {
   keyjazz_enabled = !keyjazz_enabled;
+  SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, keyjazz_enabled ? "Keyjazz enabled" : "Keyjazz disabled");
   return keyjazz_enabled;
 }
 
@@ -46,18 +48,15 @@ int initialize_game_controllers() {
   int controller_index = 0;
 
   SDL_Log("Looking for game controllers\n");
-  SDL_Delay(
-      10); // Some controllers like XBone wired need a little while to get ready
+  SDL_Delay(10); // Some controllers like XBone wired need a little while to get ready
 
   // Try to load the game controller database file
   char db_filename[1024] = {0};
-  snprintf(db_filename, sizeof(db_filename), "%sgamecontrollerdb.txt",
-           SDL_GetPrefPath("", "m8c"));
+  snprintf(db_filename, sizeof(db_filename), "%sgamecontrollerdb.txt", SDL_GetPrefPath("", "m8c"));
   SDL_Log("Trying to open game controller database from %s", db_filename);
-  SDL_RWops* db_rw = SDL_RWFromFile(db_filename, "rb");
+  SDL_RWops *db_rw = SDL_RWFromFile(db_filename, "rb");
   if (db_rw == NULL) {
-    snprintf(db_filename, sizeof(db_filename), "%sgamecontrollerdb.txt",
-    SDL_GetBasePath());
+    snprintf(db_filename, sizeof(db_filename), "%sgamecontrollerdb.txt", SDL_GetBasePath());
     SDL_Log("Trying to open game controller database from %s", db_filename);
     db_rw = SDL_RWFromFile(db_filename, "rb");
   }
@@ -67,11 +66,9 @@ int initialize_game_controllers() {
     if (mappings != -1)
       SDL_Log("Found %d game controller mappings", mappings);
     else
-      SDL_LogError(SDL_LOG_CATEGORY_INPUT,
-                   "Error loading game controller mappings.");
+      SDL_LogError(SDL_LOG_CATEGORY_INPUT, "Error loading game controller mappings.");
   } else {
-    SDL_LogError(SDL_LOG_CATEGORY_INPUT,
-                 "Unable to open game controller database file.");
+    SDL_LogError(SDL_LOG_CATEGORY_INPUT, "Unable to open game controller database file.");
   }
 
   // Open all available game controllers
@@ -98,11 +95,7 @@ void close_game_controllers() {
   }
 }
 
-static input_msg_s handle_keyjazz(
-  SDL_Event *event,
-  uint8_t keyvalue,
-  config_params_s *conf
-) {
+static input_msg_s handle_keyjazz(SDL_Event *event, uint8_t keyvalue, config_params_s *conf) {
   input_msg_s key = {keyjazz, keyvalue, keyjazz_velocity, event->type};
   switch (event->key.keysym.scancode) {
   case SDL_SCANCODE_Z:
@@ -198,33 +191,33 @@ static input_msg_s handle_keyjazz(
       break;
     }
     if (event->key.keysym.scancode == conf->key_jazz_dec_octave) {
-        if (keyjazz_base_octave > 0) {
-            keyjazz_base_octave--;
-            display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
-        }
+      if (keyjazz_base_octave > 0) {
+        keyjazz_base_octave--;
+        display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
+      }
     } else if (event->key.keysym.scancode == conf->key_jazz_inc_octave) {
-        if (keyjazz_base_octave < 8) {
-            keyjazz_base_octave++;
-            display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
-        }
+      if (keyjazz_base_octave < 8) {
+        keyjazz_base_octave++;
+        display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
+      }
     } else if (event->key.keysym.scancode == conf->key_jazz_dec_velocity) {
-        if ((event->key.keysym.mod & KMOD_ALT) > 0) {
-            if (keyjazz_velocity > 1)
-                keyjazz_velocity -= 1;
-        } else {
-            if (keyjazz_velocity > 0x10)
-                keyjazz_velocity -= 0x10;
-        }
-        display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
+      if ((event->key.keysym.mod & KMOD_ALT) > 0) {
+        if (keyjazz_velocity > 1)
+          keyjazz_velocity -= 1;
+      } else {
+        if (keyjazz_velocity > 0x10)
+          keyjazz_velocity -= 0x10;
+      }
+      display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
     } else if (event->key.keysym.scancode == conf->key_jazz_inc_velocity) {
-        if ((event->key.keysym.mod & KMOD_ALT) > 0) {
-            if (keyjazz_velocity < 0x7F)
-                keyjazz_velocity += 1;
-        } else {
-            if (keyjazz_velocity < 0x6F)
-                keyjazz_velocity += 0x10;
-        }
-        display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
+      if ((event->key.keysym.mod & KMOD_ALT) > 0) {
+        if (keyjazz_velocity < 0x7F)
+          keyjazz_velocity += 1;
+      } else {
+        if (keyjazz_velocity < 0x6F)
+          keyjazz_velocity += 0x10;
+      }
+      display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
     }
     break;
   }
@@ -232,8 +225,7 @@ static input_msg_s handle_keyjazz(
   return key;
 }
 
-static input_msg_s handle_normal_keys(SDL_Event *event, config_params_s *conf,
-                                      uint8_t keyvalue) {
+static input_msg_s handle_normal_keys(SDL_Event *event, config_params_s *conf, uint8_t keyvalue) {
   input_msg_s key = {normal, keyvalue};
 
   if (event->key.keysym.scancode == conf->key_up) {
@@ -267,13 +259,11 @@ static input_msg_s handle_normal_keys(SDL_Event *event, config_params_s *conf,
 }
 
 // Check whether a button is pressed on a gamepad and return 1 if pressed.
-static int get_game_controller_button(config_params_s *conf,
-                                      SDL_GameController *controller,
+static int get_game_controller_button(config_params_s *conf, SDL_GameController *controller,
                                       int button) {
 
-  const int button_mappings[8] = {conf->gamepad_up,     conf->gamepad_down,
-                                  conf->gamepad_left,   conf->gamepad_right,
-                                  conf->gamepad_opt,    conf->gamepad_edit,
+  const int button_mappings[8] = {conf->gamepad_up,     conf->gamepad_down, conf->gamepad_left,
+                                  conf->gamepad_right,  conf->gamepad_opt,  conf->gamepad_edit,
                                   conf->gamepad_select, conf->gamepad_start};
 
   // Check digital buttons
@@ -283,36 +273,28 @@ static int get_game_controller_button(config_params_s *conf,
     // If digital button isn't pressed, check the corresponding analog control
     switch (button) {
     case INPUT_UP:
-      return SDL_GameControllerGetAxis(controller,
-                                       conf->gamepad_analog_axis_updown) <
+      return SDL_GameControllerGetAxis(controller, conf->gamepad_analog_axis_updown) <
              -conf->gamepad_analog_threshold;
     case INPUT_DOWN:
-      return SDL_GameControllerGetAxis(controller,
-                                       conf->gamepad_analog_axis_updown) >
+      return SDL_GameControllerGetAxis(controller, conf->gamepad_analog_axis_updown) >
              conf->gamepad_analog_threshold;
     case INPUT_LEFT:
-      return SDL_GameControllerGetAxis(controller,
-                                       conf->gamepad_analog_axis_leftright) <
+      return SDL_GameControllerGetAxis(controller, conf->gamepad_analog_axis_leftright) <
              -conf->gamepad_analog_threshold;
     case INPUT_RIGHT:
-      return SDL_GameControllerGetAxis(controller,
-                                       conf->gamepad_analog_axis_leftright) >
+      return SDL_GameControllerGetAxis(controller, conf->gamepad_analog_axis_leftright) >
              conf->gamepad_analog_threshold;
     case INPUT_OPT:
-      return SDL_GameControllerGetAxis(controller,
-                                       conf->gamepad_analog_axis_opt) >
+      return SDL_GameControllerGetAxis(controller, conf->gamepad_analog_axis_opt) >
              conf->gamepad_analog_threshold;
     case INPUT_EDIT:
-      return SDL_GameControllerGetAxis(controller,
-                                       conf->gamepad_analog_axis_edit) >
+      return SDL_GameControllerGetAxis(controller, conf->gamepad_analog_axis_edit) >
              conf->gamepad_analog_threshold;
     case INPUT_SELECT:
-      return SDL_GameControllerGetAxis(controller,
-                                       conf->gamepad_analog_axis_select) >
+      return SDL_GameControllerGetAxis(controller, conf->gamepad_analog_axis_select) >
              conf->gamepad_analog_threshold;
     case INPUT_START:
-      return SDL_GameControllerGetAxis(controller,
-                                       conf->gamepad_analog_axis_start) >
+      return SDL_GameControllerGetAxis(controller, conf->gamepad_analog_axis_start) >
              conf->gamepad_analog_threshold;
     default:
       return 0;
@@ -363,10 +345,10 @@ void handle_sdl_events(config_params_s *conf) {
   for (int gc = 0; gc < num_joysticks; gc++) {
     if (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_quit) &&
         (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_select) ||
-        SDL_GameControllerGetAxis(game_controllers[gc], conf->gamepad_analog_axis_select)))
+         SDL_GameControllerGetAxis(game_controllers[gc], conf->gamepad_analog_axis_select)))
       key = (input_msg_s){special, msg_quit};
     else if (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_reset) &&
-            (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_select) ||
+             (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_select) ||
               SDL_GameControllerGetAxis(game_controllers[gc], conf->gamepad_analog_axis_select)))
       key = (input_msg_s){special, msg_reset_display};
   }
@@ -387,8 +369,7 @@ void handle_sdl_events(config_params_s *conf) {
     break;
 
   case SDL_WINDOWEVENT:
-    if (event.window.event == SDL_WINDOWEVENT_RESIZED)
-    {
+    if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
       static uint32_t ticks_window_resized = 0;
       if (SDL_GetTicks() - ticks_window_resized > 500) {
         SDL_Log("Resizing window...");
@@ -402,15 +383,13 @@ void handle_sdl_events(config_params_s *conf) {
   case SDL_KEYDOWN:
 
     // ALT+ENTER toggles fullscreen
-    if (event.key.keysym.sym == SDLK_RETURN &&
-        (event.key.keysym.mod & KMOD_ALT) > 0) {
+    if (event.key.keysym.sym == SDLK_RETURN && (event.key.keysym.mod & KMOD_ALT) > 0) {
       toggle_fullscreen();
       break;
     }
 
     // ALT+F4 quits program
-    if (event.key.keysym.sym == SDLK_F4 &&
-        (event.key.keysym.mod & KMOD_ALT) > 0) {
+    if (event.key.keysym.sym == SDLK_F4 && (event.key.keysym.mod & KMOD_ALT) > 0) {
       key = (input_msg_s){special, msg_quit};
       break;
     }

@@ -177,16 +177,14 @@ static int check(enum sp_return result) {
     break;
   case SP_ERR_FAIL:
     error_message = sp_last_error_message();
-    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error: Failed: %s\n",
-                 error_message);
+    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error: Failed: %s\n", error_message);
     sp_free_error_message(error_message);
     break;
   case SP_ERR_SUPP:
     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error: Not supported.\n");
     break;
   case SP_ERR_MEM:
-    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-                 "Error: Couldn't allocate memory.\n");
+    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error: Couldn't allocate memory.\n");
     break;
   case SP_OK:
   default:
@@ -203,8 +201,7 @@ int reset_display() {
   char buf[1] = {'R'};
   result = sp_blocking_write(m8_port, buf, 1, 5);
   if (result != 1) {
-    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error resetting M8 display, code %d",
-                 result);
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error resetting M8 display, code %d", result);
     return 0;
   }
   return 1;
@@ -218,8 +215,7 @@ int enable_and_reset_display() {
   char buf[1] = {'E'};
   result = sp_blocking_write(m8_port, buf, 1, 5);
   if (result != 1) {
-    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error enabling M8 display, code %d",
-                 result);
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error enabling M8 display, code %d", result);
     return 0;
   }
 
@@ -234,11 +230,10 @@ int disconnect() {
   SDL_Log("Disconnecting M8\n");
 
   char buf[1] = {'D'};
-  
+
   result = sp_blocking_write(m8_port, buf, 1, 5);
   if (result != 1) {
-    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error sending disconnect, code %d",
-                 result);
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error sending disconnect, code %d", result);
     result = 0;
   }
   sp_close(m8_port);
@@ -257,8 +252,7 @@ int send_msg_controller(uint8_t input) {
   int result;
   result = sp_blocking_write(m8_port, buf, nbytes, 5);
   if (result != nbytes) {
-    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error sending input, code %d",
-                 result);
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error sending input, code %d", result);
     return -1;
   }
   return 1;
@@ -272,8 +266,7 @@ int send_msg_keyjazz(uint8_t note, uint8_t velocity) {
   int result;
   result = sp_blocking_write(m8_port, buf, nbytes, 5);
   if (result != nbytes) {
-    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error sending keyjazz, code %d",
-                 result);
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error sending keyjazz, code %d", result);
     return -1;
   }
 

@@ -27,7 +27,6 @@ It has been simplified a bit as CRC checking etc. is not required in this
 program. */
 
 #include "slip.h"
-#include "command.h"
 
 #include <assert.h>
 #include <stddef.h>
@@ -39,8 +38,7 @@ static void reset_rx(slip_handler_s *slip) {
   slip->size = 0;
 }
 
-slip_error_t slip_init(slip_handler_s *slip,
-                       const slip_descriptor_s *descriptor) {
+slip_error_t slip_init(slip_handler_s *slip, const slip_descriptor_s *descriptor) {
   assert(slip != NULL);
   assert(descriptor != NULL);
   assert(descriptor->buf != NULL);
@@ -77,7 +75,7 @@ slip_error_t slip_read_byte(slip_handler_s *slip, uint8_t byte) {
   case SLIP_STATE_NORMAL:
     switch (byte) {
     case SLIP_SPECIAL_BYTE_END:
-      if (!slip->descriptor->recv_message(slip->descriptor->buf, slip->size)){
+      if (!slip->descriptor->recv_message(slip->descriptor->buf, slip->size)) {
         error = SLIP_ERROR_INVALID_PACKET;
       }
       reset_rx(slip);

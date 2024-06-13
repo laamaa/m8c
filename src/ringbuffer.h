@@ -4,11 +4,11 @@
 #include <stdint.h>
 
 typedef struct {
-    uint8_t *buffer;
-    uint32_t head;
-    uint32_t tail;
-    uint32_t max_size;
-    uint32_t size;
+  uint8_t *buffer;
+  uint32_t head;
+  uint32_t tail;
+  uint32_t max_size;
+  uint32_t size;
 } RingBuffer;
 
 RingBuffer *ring_buffer_create(uint32_t size);
@@ -21,4 +21,4 @@ uint32_t ring_buffer_push(RingBuffer *rb, const uint8_t *data, uint32_t length);
 
 void ring_buffer_free(RingBuffer *rb);
 
-#endif //M8C_RINGBUFFER_H
+#endif // M8C_RINGBUFFER_H

@@ -29,7 +29,7 @@ void close_serial_port() { disconnect(); }
 
 int main(int argc, char *argv[]) {
 
-  if(argc == 2 && SDL_strcmp(argv[1], "--list") == 0) {
+  if (argc == 2 && SDL_strcmp(argv[1], "--list") == 0) {
     return list_devices();
   }
 
@@ -108,8 +108,7 @@ int main(int argc, char *argv[]) {
       }
       run = RUN;
     } else {
-      SDL_LogCritical(SDL_LOG_CATEGORY_ERROR,
-                      "Device not detected on begin loop.");
+      SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected on begin loop.");
       if (conf.wait_for_device == 1) {
         run = WAIT_FOR_DEVICE;
       } else {
@@ -146,8 +145,7 @@ int main(int argc, char *argv[]) {
           if (run == WAIT_FOR_DEVICE && init_serial(0, preferred_device) == 1) {
 
             if (conf.audio_enabled == 1) {
-              if (audio_init(conf.audio_buffer_size, conf.audio_device_name) ==
-                  0) {
+              if (audio_init(conf.audio_buffer_size, conf.audio_device_name) == 0) {
                 SDL_Log("Cannot initialize audio");
                 conf.audio_enabled = 0;
               }
@@ -229,8 +227,7 @@ int main(int argc, char *argv[]) {
         // read serial port
         int bytes_read = serial_read(serial_buf, serial_read_size);
         if (bytes_read < 0) {
-          SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %d reading serial. \n",
-                          (int)bytes_read);
+          SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %d reading serial. \n", (int)bytes_read);
           run = QUIT;
           break;
         } else if (bytes_read > 0) {

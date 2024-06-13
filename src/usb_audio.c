@@ -1,10 +1,10 @@
 #ifdef USE_LIBUSB
 
-#include <libusb.h>
-#include <errno.h>
-#include <SDL.h>
 #include "ringbuffer.h"
 #include "usb.h"
+#include <SDL.h>
+#include <errno.h>
+#include <libusb.h>
 
 #define EP_ISO_IN 0x85
 #define IFACE_NUM 4
@@ -16,8 +16,7 @@
 SDL_AudioDeviceID sdl_audio_device_id = 0;
 RingBuffer *audio_buffer = NULL;
 
-static void audio_callback(void *userdata, Uint8 *stream,
-                           int len) {
+static void audio_callback(void *userdata, Uint8 *stream, int len) {
   uint32_t read_len = ring_buffer_pop(audio_buffer, stream, len);
 
   if (read_len == -1) {
@@ -38,7 +37,7 @@ static void cb_xfr(struct libusb_transfer *xfr) {
 
     if (pack->status != LIBUSB_TRANSFER_COMPLETED) {
       SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "XFR callback error (status %d: %s)", pack->status,
-              libusb_error_name(pack->status));
+                   libusb_error_name(pack->status));
       /* This doesn't happen, so bail out if it does. */
       return;
     }
@@ -72,8 +71,8 @@ static int benchmark_in() {
 
     Uint8 *buffer = SDL_malloc(PACKET_SIZE * NUM_PACKETS);
 
-    libusb_fill_iso_transfer(xfr[i], devh, EP_ISO_IN, buffer,
-                             PACKET_SIZE * NUM_PACKETS, NUM_PACKETS, cb_xfr, NULL, 0);
+    libusb_fill_iso_transfer(xfr[i], devh, EP_ISO_IN, buffer, PACKET_SIZE * NUM_PACKETS,
+                             NUM_PACKETS, cb_xfr, NULL, 0);
     libusb_set_iso_packet_lengths(xfr[i], PACKET_SIZE);
 
     libusb_submit_transfer(xfr[i]);
@@ -92,8 +91,7 @@ int audio_init(int audio_buffer_size, const char *output_device_name) {
     SDL_Log("Detaching kernel driver");
     rc = libusb_detach_kernel_driver(devh, IFACE_NUM);
     if (rc < 0) {
-      SDL_Log("Could not detach kernel driver: %s\n",
-              libusb_error_name(rc));
+      SDL_Log("Could not detach kernel driver: %s\n", libusb_error_name(rc));
       return rc;
     }
   }
@@ -142,9 +140,7 @@ int audio_init(int audio_buffer_size, const char *output_device_name) {
   audio_buffer = ring_buffer_create(4 * _obtained.size);
 
   SDL_Log("Obtained audio spec. Sample rate: %d, channels: %d, samples: %d, size: %d",
-          _obtained.freq,
-          _obtained.channels,
-          _obtained.samples, +_obtained.size);
+          _obtained.freq, _obtained.channels, _obtained.samples, +_obtained.size);
 
   SDL_PauseAudioDevice(sdl_audio_device_id, 0);
 
@@ -171,7 +167,8 @@ int audio_destroy() {
   for (i = 0; i < NUM_TRANSFERS; i++) {
     rc = libusb_cancel_transfer(xfr[i]);
     if (rc < 0) {
-      SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error cancelling transfer: %s\n", libusb_error_name(rc));
+      SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error cancelling transfer: %s\n",
+                   libusb_error_name(rc));
     }
   }
 

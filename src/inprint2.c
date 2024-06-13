@@ -9,8 +9,7 @@
 #define CHARACTERS_PER_COLUMN 1
 
 // Offset for seeking from limited character sets
-static const int font_offset =
-    127 - (CHARACTERS_PER_ROW * CHARACTERS_PER_COLUMN);
+static const int font_offset = 127 - (CHARACTERS_PER_ROW * CHARACTERS_PER_COLUMN);
 
 static SDL_Renderer *selected_renderer = NULL;
 static SDL_Texture *inline_font = NULL;
@@ -30,8 +29,8 @@ void prepare_inline_font(struct inline_font *font) {
     return;
   }
 
-  SDL_RWops *font_bmp = SDL_RWFromConstMem(selected_inline_font->image_data,
-                                           selected_inline_font->image_size);
+  SDL_RWops *font_bmp =
+      SDL_RWFromConstMem(selected_inline_font->image_data, selected_inline_font->image_size);
 
   surface = SDL_LoadBMP_RW(font_bmp, 1);
 
@@ -70,8 +69,7 @@ void infont(SDL_Texture *font) {
 void incolor1(SDL_Color *color) {
   SDL_SetTextureColorMod(selected_font, color->r, color->g, color->b);
 }
-void incolor(Uint32 fore,
-             Uint32 unused) /* Color must be in 0x00RRGGBB format ! */
+void incolor(Uint32 fore, Uint32 unused) /* Color must be in 0x00RRGGBB format ! */
 {
   SDL_Color pal[1];
   pal[0].r = (Uint8)((fore & 0x00FF0000) >> 16);
@@ -79,8 +77,8 @@ void incolor(Uint32 fore,
   pal[0].b = (Uint8)((fore & 0x000000FF));
   SDL_SetTextureColorMod(selected_font, pal[0].r, pal[0].g, pal[0].b);
 }
-void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y,
-             Uint32 fgcolor, Uint32 bgcolor) {
+void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y, Uint32 fgcolor,
+             Uint32 bgcolor) {
   SDL_Rect s_rect;
   SDL_Rect d_rect;
   SDL_Rect bg_rect;
@@ -119,10 +117,9 @@ void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y,
     }
 
     if (bgcolor != -1) {
-      SDL_SetRenderDrawColor(selected_renderer,
-                             (Uint8)((bgcolor & 0x00FF0000) >> 16),
-                             (Uint8)((bgcolor & 0x0000FF00) >> 8),
-                             (Uint8)((bgcolor & 0x000000FF)), 0xFF);
+      SDL_SetRenderDrawColor(selected_renderer, (Uint8)((bgcolor & 0x00FF0000) >> 16),
+                             (Uint8)((bgcolor & 0x0000FF00) >> 8), (Uint8)((bgcolor & 0x000000FF)),
+                             0xFF);
       bg_rect = d_rect;
       bg_rect.w = selected_inline_font->glyph_x;
       bg_rect.h = selected_inline_font->glyph_y;

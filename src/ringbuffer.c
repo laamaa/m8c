@@ -16,13 +16,9 @@ void ring_buffer_free(RingBuffer *rb) {
   free(rb);
 }
 
-uint32_t ring_buffer_empty(RingBuffer *rb) {
-  return (rb->size == 0);
-}
+uint32_t ring_buffer_empty(RingBuffer *rb) { return (rb->size == 0); }
 
-uint32_t ring_buffer_full(RingBuffer *rb) {
-  return (rb->size == rb->max_size);
-}
+uint32_t ring_buffer_full(RingBuffer *rb) { return (rb->size == rb->max_size); }
 
 uint32_t ring_buffer_push(RingBuffer *rb, const uint8_t *data, uint32_t length) {
   if (ring_buffer_full(rb)) {

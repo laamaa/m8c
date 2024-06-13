@@ -10,18 +10,17 @@
 #include "command.h"
 #include "fx_cube.h"
 
-#include "inline_font.h"
 #include "font1.h"
 #include "font2.h"
 #include "font3.h"
 #include "font4.h"
 #include "font5.h"
+#include "inline_font.h"
 
 SDL_Window *win;
 SDL_Renderer *rend;
 SDL_Texture *maintexture;
-SDL_Color background_color =
-    (SDL_Color){.r = 0x00, .g = 0x00, .b = 0x00, .a = 0x00};
+SDL_Color background_color = (SDL_Color){.r = 0x00, .g = 0x00, .b = 0x00, .a = 0x00};
 
 static uint32_t ticks_fps;
 static int fps;
@@ -34,8 +33,8 @@ static int waveform_max_height = 24;
 static int texture_width = 320;
 static int texture_height = 240;
 
-struct inline_font *fonts[5] = {&font_v1_small, &font_v1_large, &font_v2_small,
-                                &font_v2_large, &font_v2_huge};
+struct inline_font *fonts[5] = {&font_v1_small, &font_v1_large, &font_v2_small, &font_v2_large,
+                                &font_v2_huge};
 
 uint8_t fullscreen = 0;
 
@@ -52,26 +51,24 @@ int initialize_sdl(int init_fullscreen, int init_use_gpu) {
   // SDL documentation recommends this
   atexit(SDL_Quit);
 
-  win = SDL_CreateWindow("m8c", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                         texture_width * 2, texture_height * 2,
-                         SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL |
-                             SDL_WINDOW_RESIZABLE | init_fullscreen);
+  win = SDL_CreateWindow(
+      "m8c", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, texture_width * 2, texture_height * 2,
+      SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | init_fullscreen);
 
-  rend = SDL_CreateRenderer(
-      win, -1, init_use_gpu ? SDL_RENDERER_ACCELERATED : SDL_RENDERER_SOFTWARE);
+  rend =
+      SDL_CreateRenderer(win, -1, init_use_gpu ? SDL_RENDERER_ACCELERATED : SDL_RENDERER_SOFTWARE);
 
   SDL_RenderSetLogicalSize(rend, texture_width, texture_height);
 
   maintexture = NULL;
 
-  maintexture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888,
-                                  SDL_TEXTUREACCESS_TARGET, texture_width,
-                                  texture_height);
+  maintexture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
+                                  texture_width, texture_height);
 
   SDL_SetRenderTarget(rend, maintexture);
 
-  SDL_SetRenderDrawColor(rend, background_color.r, background_color.g,
-                         background_color.b, background_color.a);
+  SDL_SetRenderDrawColor(rend, background_color.r, background_color.g, background_color.b,
+                         background_color.a);
 
   SDL_RenderClear(rend);
 
@@ -90,9 +87,8 @@ static void change_font(struct inline_font *font) {
   prepare_inline_font(font);
 }
 
-static void
-check_and_adjust_window_and_texture_size(const unsigned int new_width,
-                                         const unsigned int new_height) {
+static void check_and_adjust_window_and_texture_size(const unsigned int new_width,
+                                                     const unsigned int new_height) {
 
   int h, w;
 
@@ -109,9 +105,8 @@ check_and_adjust_window_and_texture_size(const unsigned int new_width,
 
   SDL_RenderSetLogicalSize(rend, texture_width, texture_height);
 
-  maintexture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888,
-                                  SDL_TEXTUREACCESS_TARGET, texture_width,
-                                  texture_height);
+  maintexture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
+                                  texture_width, texture_height);
 
   SDL_SetRenderTarget(rend, maintexture);
 }
@@ -133,13 +128,14 @@ void set_m8_model(unsigned int model) {
 
 void set_font_mode(unsigned int mode) {
   if (mode < 0 || mode > 2) {
-    //bad font mode
+    // bad font mode
     return;
   }
   if (m8_hardware_model == 1) {
     mode += 2;
   }
-  if (font_mode == mode) return;
+  if (font_mode == mode)
+    return;
 
   font_mode = mode;
   screen_offset_y = fonts[mode]->screen_offset_y;
@@ -147,7 +143,7 @@ void set_font_mode(unsigned int mode) {
   waveform_max_height = fonts[mode]->waveform_max_height;
 
   change_font(fonts[mode]);
-  SDL_LogDebug(SDL_LOG_CATEGORY_RENDER,"Font mode %i, Screen offset %i", mode, screen_offset_y);
+  SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "Font mode %i, Screen offset %i", mode, screen_offset_y);
 }
 
 void close_renderer() {
@@ -161,8 +157,7 @@ void toggle_fullscreen() {
 
   int fullscreen_state = SDL_GetWindowFlags(win) & SDL_WINDOW_FULLSCREEN;
 
-  SDL_SetWindowFullscreen(win,
-                          fullscreen_state ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+  SDL_SetWindowFullscreen(win, fullscreen_state ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
   SDL_ShowCursor(fullscreen_state);
 
   dirty = 1;
@@ -170,10 +165,10 @@ void toggle_fullscreen() {
 
 int draw_character(struct draw_character_command *command) {
 
-  uint32_t fgcolor = (command->foreground.r << 16) |
-                     (command->foreground.g << 8) | command->foreground.b;
-  uint32_t bgcolor = (command->background.r << 16) |
-                     (command->background.g << 8) | command->background.b;
+  uint32_t fgcolor =
+      (command->foreground.r << 16) | (command->foreground.g << 8) | command->foreground.b;
+  uint32_t bgcolor =
+      (command->background.r << 16) | (command->background.g << 8) | command->background.b;
 
   /* Notes:
      If large font is enabled, offset the screen elements by a fixed amount.
@@ -200,25 +195,24 @@ void draw_rectangle(struct draw_rectangle_command *command) {
   render_rect.w = command->size.width;
 
   // Background color changed
-  if (render_rect.x == 0 && render_rect.y <= 0 &&
-      render_rect.w == texture_width && render_rect.h >= texture_height) {
-    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "BG color change: %d %d %d",
-                 command->color.r, command->color.g, command->color.b);
+  if (render_rect.x == 0 && render_rect.y <= 0 && render_rect.w == texture_width &&
+      render_rect.h >= texture_height) {
+    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "BG color change: %d %d %d", command->color.r,
+                 command->color.g, command->color.b);
     background_color.r = command->color.r;
     background_color.g = command->color.g;
     background_color.b = command->color.b;
     background_color.a = 0xFF;
-    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,"x:%i, y:%i, w:%i, h:%i",render_rect.x,render_rect.y,render_rect.w,render_rect.h);
+    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "x:%i, y:%i, w:%i, h:%i", render_rect.x,
+                 render_rect.y, render_rect.w, render_rect.h);
 
 #ifdef __ANDROID__
-    int bgcolor =
-        (command->color.r << 16) | (command->color.g << 8) | command->color.b;
+    int bgcolor = (command->color.r << 16) | (command->color.g << 8) | command->color.b;
     SDL_AndroidSendMessage(0x8001, bgcolor);
 #endif
   }
 
-  SDL_SetRenderDrawColor(rend, command->color.r, command->color.g,
-                         command->color.b, 0xFF);  
+  SDL_SetRenderDrawColor(rend, command->color.r, command->color.g, command->color.b, 0xFF);
   SDL_RenderFillRect(rend, &render_rect);
 
   dirty = 1;
@@ -238,21 +232,20 @@ void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
       wf_rect.x = texture_width - command->waveform_size;
       wf_rect.y = 0;
       wf_rect.w = command->waveform_size;
-      wf_rect.h = waveform_max_height+1;
+      wf_rect.h = waveform_max_height + 1;
     } else {
       wf_rect.x = texture_width - prev_waveform_size;
       wf_rect.y = 0;
       wf_rect.w = prev_waveform_size;
-      wf_rect.h = waveform_max_height+1;
+      wf_rect.h = waveform_max_height + 1;
     }
     prev_waveform_size = command->waveform_size;
 
-    SDL_SetRenderDrawColor(rend, background_color.r, background_color.g,
-                           background_color.b, background_color.a);
+    SDL_SetRenderDrawColor(rend, background_color.r, background_color.g, background_color.b,
+                           background_color.a);
     SDL_RenderFillRect(rend, &wf_rect);
 
-    SDL_SetRenderDrawColor(rend, command->color.r, command->color.g,
-                           command->color.b, 255);
+    SDL_SetRenderDrawColor(rend, command->color.r, command->color.g, command->color.b, 255);
 
     // Create a SDL_Point array of the waveform pixels for batch drawing
     SDL_Point waveform_points[command->waveform_size];
@@ -280,47 +273,21 @@ void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
   }
 }
 
-void display_keyjazz_overlay(uint8_t show, uint8_t base_octave,
-                             uint8_t velocity) {
+void display_keyjazz_overlay(uint8_t show, uint8_t base_octave, uint8_t velocity) {
+
+  const Uint16 overlay_offset_x = texture_width - (fonts[font_mode]->glyph_x * 7 + 1);
+  const Uint16 overlay_offset_y = texture_height - (fonts[font_mode]->glyph_y + 1);
+  const Uint32 bgcolor =
+      (background_color.r << 16) | (background_color.g << 8) | background_color.b;
 
   if (show) {
-    struct draw_rectangle_command drc;
-    drc.color = (struct color){255, 0, 0};
-    drc.pos.x = 310;
-    drc.pos.y = 230;
-    drc.size.width = 5;
-    drc.size.height = 5;
-
-    draw_rectangle(&drc);
-
-    struct draw_character_command dcc;
-    dcc.background = (struct color){background_color.r, background_color.g,
-                                    background_color.b};
-    dcc.foreground = (struct color){200, 200, 200};
-    dcc.pos.x = 296;
-    dcc.pos.y = 226;
-
-    draw_character(&dcc);
-
-    char buf[8];
-    snprintf(buf, sizeof(buf), "%02X %u", velocity, base_octave);
-
-    for (int i = 3; i >= 0; i--) {
-      dcc.c = buf[i];
-      draw_character(&dcc);
-      dcc.pos.x -= 8;
-    }
-
+    char overlay_text[7];
+    snprintf(overlay_text, sizeof(overlay_text), "%02X %u", velocity, base_octave);
+    inprint(rend, overlay_text, overlay_offset_x, overlay_offset_y, 0xC8C8C8, bgcolor);
+    inprint(rend, "*", overlay_offset_x + (fonts[font_mode]->glyph_x * 5 + 5), overlay_offset_y,
+            0xFF0000, bgcolor);
   } else {
-    struct draw_rectangle_command drc;
-    drc.color = (struct color){background_color.r, background_color.g,
-                               background_color.b};
-    drc.pos.x = 272;
-    drc.pos.y = 226;
-    drc.size.width = 45;
-    drc.size.height = 14;
-
-    draw_rectangle(&drc);
+    inprint(rend, "      ", overlay_offset_x, overlay_offset_y, 0xC8C8C8, bgcolor);
   }
 
   dirty = 1;
@@ -331,8 +298,8 @@ void render_screen() {
     dirty = 0;
     SDL_SetRenderTarget(rend, NULL);
 
-    SDL_SetRenderDrawColor(rend, background_color.r, background_color.g,
-                           background_color.b, background_color.a);
+    SDL_SetRenderDrawColor(rend, background_color.r, background_color.g, background_color.b,
+                           background_color.a);
 
     SDL_RenderClear(rend);
     SDL_RenderCopy(rend, maintexture, NULL, NULL);
