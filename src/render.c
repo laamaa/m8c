@@ -105,9 +105,10 @@ check_and_adjust_window_and_texture_size(const unsigned int new_width,
     SDL_SetWindowSize(win, (texture_width * 2), (texture_height * 2));
   }
 
+  SDL_DestroyTexture(maintexture);
+
   SDL_RenderSetLogicalSize(rend, texture_width, texture_height);
 
-  SDL_DestroyTexture(maintexture);
   maintexture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888,
                                   SDL_TEXTUREACCESS_TARGET, texture_width,
                                   texture_height);
