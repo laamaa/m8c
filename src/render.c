@@ -318,7 +318,8 @@ void render_screen() {
 
 void screensaver_init() {
   set_font_mode(1);
-  fx_cube_init(rend, (SDL_Color){255, 255, 255, 255});
+  fx_cube_init(rend, (SDL_Color){255, 255, 255, 255}, texture_width, texture_height,
+               fonts[font_mode]->glyph_x);
   SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Screensaver initialized");
 }
 

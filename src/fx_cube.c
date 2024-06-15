@@ -1,19 +1,16 @@
 #include "SDL2_inprint.h"
 #include "SDL_pixels.h"
+#include "SDL_render.h"
 #include <SDL.h>
+#include <time.h>
 
-#define target_width 320
-#define target_height 240
 static SDL_Texture *texture_cube;
 static SDL_Texture *texture_text;
 static SDL_Renderer *fx_renderer;
 static SDL_Color line_color;
 
-const char *text_m8c = "M8C";
-const char *text_disconnected = "DEVICE DISCONNECTED";
-
-static const float center_x = (float)target_width / 2;
-static const float center_y = (float)target_height / 2;
+static unsigned int center_x = 320 / 2;
+static unsigned int center_y = 240 / 2;
 
 static const float default_nodes[8][3] = {{-1, -1, -1}, {-1, -1, 1}, {-1, 1, -1}, {-1, 1, 1},
                                           {1, -1, -1},  {1, -1, 1},  {1, 1, -1},  {1, 1, 1}};
@@ -51,24 +48,30 @@ static void rotate_cube(float angle_x, float angle_y) {
   }
 }
 
-void fx_cube_init(SDL_Renderer *target_renderer, SDL_Color foreground_color) {
+void fx_cube_init(SDL_Renderer *target_renderer, SDL_Color foreground_color,
+                  unsigned int texture_width, unsigned int texture_height,
+                  unsigned int font_glyph_width) {
 
   fx_renderer = target_renderer;
   line_color = foreground_color;
-
-  texture_cube = SDL_CreateTexture(fx_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
-                                   target_width, target_height);
-  texture_text = SDL_CreateTexture(fx_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
-                                   target_width, target_height);
+  SDL_Point texture_size;
 
   SDL_Texture *og_target = SDL_GetRenderTarget(fx_renderer);
+
+  SDL_QueryTexture(og_target, NULL, NULL, &texture_size.x, &texture_size.y);
+
+  texture_cube = SDL_CreateTexture(fx_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
+                                   texture_size.x, texture_size.y);
+  texture_text = SDL_CreateTexture(fx_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
+                                   texture_size.x, texture_size.y);
 
   SDL_SetRenderTarget(fx_renderer, texture_text);
   SDL_SetRenderDrawColor(fx_renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
   SDL_RenderClear(fx_renderer);
 
-  inprint(fx_renderer, text_disconnected, 130, 228, 0xFFFFFF, 0x000000);
-  inprint(fx_renderer, text_m8c, 2, 2, 0xFFFFFF, 0x000000);
+  inprint(fx_renderer, "DEVICE DISCONNECTED", texture_width - font_glyph_width * 19 - 21,
+          texture_height - 12, 0xFFFFFF, 0x000000);
+  inprint(fx_renderer, "M8C", 2, 2, 0xFFFFFF, 0x000000);
 
   SDL_SetRenderTarget(fx_renderer, og_target);
 
@@ -80,6 +83,9 @@ void fx_cube_init(SDL_Renderer *target_renderer, SDL_Color foreground_color) {
 
   SDL_SetTextureBlendMode(texture_cube, SDL_BLENDMODE_BLEND);
   SDL_SetTextureBlendMode(texture_text, SDL_BLENDMODE_BLEND);
+
+  center_x = texture_size.x / 2.0;
+  center_y = texture_size.y / 2.0;
 }
 
 void fx_cube_destroy() {
