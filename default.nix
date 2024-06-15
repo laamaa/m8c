@@ -25,7 +25,7 @@ let m8c-package =
 
   let
     pname = "m8c";
-    version = "1.7.2";
+    version = "1.7.3";
   in
     stdenv.mkDerivation {
       inherit pname version;
@@ -34,7 +34,7 @@ let m8c-package =
         owner = "laamaa";
         repo = pname;
         rev = "v${version}";
-        hash = "sha256:03abp0clawxzvb26cz7by2ks15vc1dvxh0dq7bwgvnmc3sg82mzl";
+        hash = "sha256:0c2409sqs8f99ggviii16y45yn67qf14i983cmg6scj9li3s33w7";
       };
 
       installFlags = [ "PREFIX=$(out)" ];
