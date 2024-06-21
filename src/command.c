@@ -13,7 +13,8 @@ static uint16_t decodeInt16(uint8_t *data, uint8_t start) {
 
 enum m8_command_bytes {
   draw_rectangle_command = 0xFE,
-  draw_rectangle_command_datalength = 12,
+  draw_rectangle_command_min_datalength = 5,
+  draw_rectangle_command_max_datalength = 12,
   draw_character_command = 0xFD,
   draw_character_command_datalength = 12,
   draw_oscilloscope_waveform_command = 0xFC,
@@ -43,19 +44,51 @@ int process_command(uint8_t *data, uint32_t size) {
 
   case draw_rectangle_command:
 
-    if (size != draw_rectangle_command_datalength) {
+    if (size < draw_rectangle_command_min_datalength ||
+        size > draw_rectangle_command_max_datalength) {
       SDL_LogError(SDL_LOG_CATEGORY_ERROR,
-                   "Invalid draw rectangle packet: expected length %d, got %d",
-                   draw_rectangle_command_datalength, size);
+                   "Invalid draw rectangle packet: expected between %d and %d, got %d",
+                   draw_rectangle_command_min_datalength, draw_rectangle_command_max_datalength,
+                   size);
       dump_packet(size, recv_buf);
       return 0;
       break;
     } else {
 
-      struct draw_rectangle_command rectcmd = {
-          {decodeInt16(recv_buf, 1), decodeInt16(recv_buf, 3)}, // position x/y
-          {decodeInt16(recv_buf, 5), decodeInt16(recv_buf, 7)}, // size w/h
-          {recv_buf[9], recv_buf[10], recv_buf[11]}};           // color r/g/b
+      /* Support variable sized rectangle commands
+         If colors are omitted, the last drawn color should be used
+         If size is omitted, the size should be 1x1 pixels
+         So basically the command can be 5, 8, 9 or 12 bytes long */
+
+      static struct draw_rectangle_command rectcmd;
+
+      rectcmd.pos.x = decodeInt16(recv_buf, 1);
+      rectcmd.pos.y = decodeInt16(recv_buf, 3);
+
+      switch (size) {
+      case 5:
+        rectcmd.size.width = 1;
+        rectcmd.size.height = 1;
+        break;
+      case 8:
+        rectcmd.size.width = 1;
+        rectcmd.size.height = 1;
+        rectcmd.color.r = recv_buf[5];
+        rectcmd.color.g = recv_buf[6];
+        rectcmd.color.b = recv_buf[7];
+        break;
+      case 9:
+        rectcmd.size.width = decodeInt16(recv_buf, 5);
+        rectcmd.size.height = decodeInt16(recv_buf, 7);
+        break;
+      default:
+        rectcmd.size.width = decodeInt16(recv_buf, 5);
+        rectcmd.size.height = decodeInt16(recv_buf, 7);
+        rectcmd.color.r = recv_buf[9];
+        rectcmd.color.g = recv_buf[10];
+        rectcmd.color.b = recv_buf[11];
+        break;
+      }
 
       draw_rectangle(&rectcmd);
       return 1;
