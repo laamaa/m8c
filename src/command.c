@@ -47,7 +47,7 @@ int process_command(uint8_t *data, uint32_t size) {
     if (size < draw_rectangle_command_min_datalength ||
         size > draw_rectangle_command_max_datalength) {
       SDL_LogError(SDL_LOG_CATEGORY_ERROR,
-                   "Invalid draw rectangle packet: expected between %d and %d, got %d",
+                   "Invalid draw rectangle packet: expected length between %d and %d, got %d",
                    draw_rectangle_command_min_datalength, draw_rectangle_command_max_datalength,
                    size);
       dump_packet(size, recv_buf);
