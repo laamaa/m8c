@@ -1,0 +1,36 @@
+name: m8c linux x64 build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+ 
+  build-linux:
+    runs-on: ubuntu-latest
+    name: linux-x86_64
+    steps:
+      - name: 'Install dependencies'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --fix-missing build-essential libsdl2-dev libserialport-dev zip
+      - name: 'Checkout'
+        uses: actions/checkout@v4
+
+      - name: Set current date as env variable
+        run: echo "NOW=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      - name: 'Build package'
+        run: |
+          make
+      - name: 'Upload artifact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: m8c-${{ env.NOW }}-linux
+          path: |
+            LICENSE
+            README.md
+            AUDIOGUIDE.md
+            m8c
+            gamecontrollerdb.txt

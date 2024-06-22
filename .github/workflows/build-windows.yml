@@ -1,4 +1,4 @@
-name: m8c build
+name: m8c win32/win64 build
 
 on:
   push:
@@ -84,61 +84,3 @@ jobs:
           LICENSE
           README.md
           AUDIOGUIDE.md
-
-  build-linux:
-    runs-on: ubuntu-latest
-    name: linux-x86_64
-    steps:
-      - name: 'Install dependencies'
-        run: |
-          sudo apt-get update
-          sudo apt-get install --fix-missing build-essential libsdl2-dev libserialport-dev zip
-      - name: 'Checkout'
-        uses: actions/checkout@v4
-
-      - name: Set current date as env variable
-        run: echo "NOW=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
-
-      - name: 'Build package'
-        run: |
-          make
-      - name: 'Upload artifact'
-        uses: actions/upload-artifact@v4
-        with:
-          name: m8c-${{ env.NOW }}-linux
-          path: |
-            LICENSE
-            README.md
-            AUDIOGUIDE.md
-            m8c
-            gamecontrollerdb.txt
-      
-  build-macos:
-    runs-on: macos-latest
-    
-    steps:
-      - name: 'Install dependencies'
-        run: brew install cmake sdl2 libserialport pkg-config
-
-      - name: 'Checkout'
-        uses: actions/checkout@v4
-
-      - name: Set current date as env variable
-        run: echo "NOW=$(date +'%Y-%m-%d')" >> $GITHUB_ENV        
-
-      - name: 'Build package'
-        run: |
-          INSTALL_PREFIX=/tmp/
-          mkdir build && cd build
-          cmake ..
-          cmake --build .
-          cmake --install . --prefix=$INSTALL_PREFIX
-          codesign --deep --force --verify --verbose --timestamp --sign - "$INSTALL_PREFIX/m8c.app" "$INSTALL_PREFIX/m8c.app/Contents/Frameworks/libSDL2-2.0.0.dylib" "$INSTALL_PREFIX/m8c.app/Contents/Frameworks/libserialport.0.dylib"
-          cd ..
-          cp -r /tmp/m8c.app .
-          zip -r m8c.zip m8c.app LICENSE README.md AUDIOGUIDE.md gamecontrollerdb.txt
-      - name: 'Upload artifact'
-        uses: actions/upload-artifact@v4
-        with:
-          name: m8c-${{ env.NOW }}-macos
-          path: m8c.zip           
