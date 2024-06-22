@@ -1,0 +1,98 @@
+name: m8c macos build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+     
+  build-macos:
+    runs-on: macos-12
+    env:
+      SDL_VERSION: 2.30.4
+    
+    steps:
+      - name: 'Install dependencies'
+        run: brew install cmake pkg-config autoconf automake libtool
+
+      - name: 'Cache x86_64 files'
+        id: cache-x86_64-files
+        uses: actions/cache@v4
+        with:
+          path: '/Users/runner/x86_64'
+          key: mac-x86_64-files
+
+      - name: 'Cache arm64 files'
+        id: cache-arm64-files
+        uses: actions/cache@v4
+        with:
+          path: '/Users/runner/arm64'
+          key: mac-arm64-files     
+          
+      - name: 'Download 10.9 SDK for x86_64'
+        if: steps.cache-x86_64-files.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p "$HOME/x86_64"
+          pushd "$HOME/x86_64"
+          mkdir SDKs
+          cd SDKs
+          curl -L "https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX10.9.sdk.tar.xz" | tar -xvf -
+          popd
+
+      - name: 'Download 11.0 SDK for arm64'
+        if: steps.cache-arm64-files.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p "$HOME/arm64"
+          pushd "$HOME/arm64"
+          mkdir SDKs
+          cd SDKs
+          curl -L "https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX11.0.sdk.tar.xz" | tar -xvf -
+          popd
+
+      - name: 'Checkout'
+        uses: actions/checkout@v4
+
+      - name: Set current date as env variable
+        run: echo "NOW=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+        
+      - name: 'Download SDL2 sources'
+        run: |
+          (curl https://www.libsdl.org/release/SDL2-$SDL_VERSION.tar.gz || curl -L https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL2-$SDL_VERSION.tar.gz) | tar xvf -
+        
+      - name: 'Build SDL2'
+        run: |
+          (export MACOSX_DEPLOYMENT_TARGET="10.9" && cd SDL2-$SDL_VERSION && mkdir build_x86_64 && cd build_x86_64 && ../configure CPPFLAGS="-mmacosx-version-min=10.7 -DMAC_OS_X_VERSION_MIN_REQUIRED=1070 -isysroot $HOME/x86_64/SDKs/MacOSX10.9.sdk" --prefix="$HOME/x86_64prefix" && make && make install) &
+          (export MACOSX_DEPLOYMENT_TARGET="11.0" && cd SDL2-$SDL_VERSION && mkdir build_arm64 && cd build_arm64 && ../configure CPPFLAGS="-mmacosx-version-min=11.0 -isysroot $HOME/arm64/SDKs/MacOSX11.0.sdk" CFLAGS="-arch arm64" LDFLAGS="-arch arm64" --host=aarch64-apple-darwin20 --prefix="$HOME/arm64prefix" && make && make install) &
+          wait
+
+      - name: 'Download libserialport sources'
+        run: |
+          curl -L -O https://github.com/sigrokproject/libserialport/archive/refs/heads/master.zip && unzip master.zip && rm master.zip
+          
+      - name: 'Build libserialport'
+        run: |
+          pushd libserialport-master
+          autoreconf -I"$HOME/x86_64prefix/share/aclocal" -i
+          (export MACOSX_DEPLOYMENT_TARGET="10.9" && mkdir build_x86_64 && cd build_x86_64 && ../configure CFLAGS="-mmacosx-version-min=10.7 -DMAC_OS_X_VERSION_MIN_REQUIRED=1070 -isysroot $HOME/x86_64/SDKs/MacOSX10.9.sdk" --prefix="$HOME/x86_64prefix" && make && make install) &
+          (export MACOSX_DEPLOYMENT_TARGET="11.0" && mkdir build_arm64 && cd build_arm64 && ../configure CFLAGS="-mmacosx-version-min=11.0 -isysroot $HOME/arm64/SDKs/MacOSX11.0.sdk" CFLAGS="-arch arm64" LDFLAGS="-arch arm64" --host=aarch64-apple-darwin20 --prefix="$HOME/arm64prefix" && make && make install) &
+          wait
+          popd
+
+      - name: 'Build m8c'
+        run: |
+          (export MACOSX_DEPLOYMENT_TARGET="10.9" && export PKG_CONFIG_PATH="$HOME/x86_64prefix/lib/pkgconfig" && export CFLAGS="-mmacosx-version-min=10.7 -DMAC_OS_X_VERSION_MIN_REQUIRED=1070 -isysroot $HOME/x86_64/SDKs/MacOSX10.9.sdk" && mkdir build_x86_64 && cd build_x86_64 && cmake .. && cpack -V) &
+          (export MACOSX_DEPLOYMENT_TARGET="11.0" && export PKG_CONFIG_PATH="$HOME/arm64prefix/lib/pkgconfig" && mkdir -p build_arm64 && cd build_arm64 && export CFLAGS="-mmacosx-version-min=11.0 -isysroot $HOME/arm64/SDKs/MacOSX11.0.sdk -arch arm64" LDFLAGS="-arch arm64"  && cmake .. && cpack -V) &
+          wait          
+
+      - name: 'Build package'
+        run: |
+          mv build_arm64/m8c-0.1.1-Darwin.dmg m8c-${{ env.NOW }}-applesilicon.dmg
+          mv build_x86_64/m8c-0.1.1-Darwin.dmg m8c-${{ env.NOW }}-intel.dmg
+      - name: 'Upload artifact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: m8c-${{ env.NOW }}-macos
+          path: |
+            m8c-${{ env.NOW }}-applesilicon.dmg
+            m8c-${{ env.NOW }}-intel.dmg

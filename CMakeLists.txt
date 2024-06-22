@@ -44,16 +44,19 @@ if (APPLE)
             )
 
     set_target_properties(${APP_NAME} PROPERTIES
+            MACOSX_BUNDLE TRUE
             MACOSX_BUNDLE_BUNDLE_NAME "m8c"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
-            MACOSX_BUNDLE_GUI_IDENTIFIER "com.laamaa.m8c"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0"
             MACOSX_BUNDLE_COPYRIGHT "Copyright © 2021 laamaa. All rights reserved."
+            MACOSX_BUNDLE_GUI_IDENTIFIER "fi.laamaa.m8c"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "1.7.3"
             MACOSX_BUNDLE_ICON_FILE "m8c.icns")
 
     set(APPS "\${CMAKE_INSTALL_PREFIX}/${APP_NAME}.app")
 
     install(CODE "include(BundleUtilities)
     fixup_bundle(\"${APPS}\" \"\" \"\")")
+    set(CPACK_GENERATOR "DragNDrop")
+    include(CPack)
 endif ()
 
