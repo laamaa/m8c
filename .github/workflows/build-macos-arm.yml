@@ -1,0 +1,39 @@
+name: m8c macos arm64 build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+     
+  build-macos:
+    runs-on: macos-latest
+    
+    steps:
+      - name: 'Environment info'
+        run: |
+          uname -m
+    
+      - name: 'Install dependencies'
+        run: brew install cmake pkg-config sdl2 libserialport 
+          
+      - name: 'Checkout'
+        uses: actions/checkout@v4
+
+      - name: Set current date as env variable
+        run: echo "NOW=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+        
+      - name: 'Build m8c'
+        run: |
+          mkdir -p build_arm64 && cd build_arm64 && cmake .. && cpack -V
+
+      - name: 'Build package'
+        run: |
+          mv build_arm64/m8c-0.1.1-Darwin.dmg m8c-${{ env.NOW }}-macos-applesilicon.dmg
+      - name: 'Upload artifact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: m8c-${{ env.NOW }}-macos-applesilicon
+          path: |
+            m8c-${{ env.NOW }}-macos-applesilicon.dmg
