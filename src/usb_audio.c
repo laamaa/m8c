@@ -193,4 +193,8 @@ int audio_destroy() {
   return 1;
 }
 
+void toggle_audio(unsigned int audio_buffer_size, const char *output_device_name) {
+  SDL_Log("Libusb audio toggling not implemented yet");
+}
+
 #endif

@@ -33,7 +33,7 @@ uint8_t keyjazz_velocity = 0x64;
 static uint8_t keycode = 0; // value of the pressed key
 static int num_joysticks = 0;
 
-input_msg_s key = {normal, 0};
+static input_msg_s key = {normal, 0};
 
 uint8_t toggle_input_keyjazz() {
   keyjazz_enabled = !keyjazz_enabled;
@@ -252,6 +252,9 @@ static input_msg_s handle_normal_keys(SDL_Event *event, config_params_s *conf, u
     key.value = key_opt | key_edit;
   } else if (event->key.keysym.scancode == conf->key_reset) {
     key = (input_msg_s){special, msg_reset_display};
+  } else if (event->key.keysym.scancode == conf->key_toggle_audio) {
+    key = (input_msg_s){special, msg_toggle_audio};
+
   } else {
     key.value = 0;
   }
@@ -382,6 +385,10 @@ void handle_sdl_events(config_params_s *conf) {
   // Keyboard events. Special events are handled within SDL_KEYDOWN.
   case SDL_KEYDOWN:
 
+    if (event.key.repeat > 0) {
+      break;
+    }
+
     // ALT+ENTER toggles fullscreen
     if (event.key.keysym.sym == SDLK_RETURN && (event.key.keysym.mod & KMOD_ALT) > 0) {
       toggle_fullscreen();
@@ -389,13 +396,13 @@ void handle_sdl_events(config_params_s *conf) {
     }
 
     // ALT+F4 quits program
-    if (event.key.keysym.sym == SDLK_F4 && (event.key.keysym.mod & KMOD_ALT) > 0) {
+    else if (event.key.keysym.sym == SDLK_F4 && (event.key.keysym.mod & KMOD_ALT) > 0) {
       key = (input_msg_s){special, msg_quit};
       break;
     }
 
     // ESC = toggle keyjazz
-    if (event.key.keysym.sym == SDLK_ESCAPE) {
+    else if (event.key.keysym.sym == SDLK_ESCAPE) {
       display_keyjazz_overlay(toggle_input_keyjazz(), keyjazz_base_octave, keyjazz_velocity);
     }
 
@@ -425,6 +432,7 @@ void handle_sdl_events(config_params_s *conf) {
     if (event.type == SDL_KEYDOWN) {
       keycode = key.value;
     } else {
+      key.value = 0;
       keycode = 0;
     }
     break;

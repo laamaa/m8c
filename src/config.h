@@ -35,6 +35,7 @@ typedef struct config_params_s {
   int key_jazz_dec_octave;
   int key_jazz_inc_velocity;
   int key_jazz_dec_velocity;
+  int key_toggle_audio;
 
   int gamepad_up;
   int gamepad_left;

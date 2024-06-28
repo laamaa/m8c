@@ -216,6 +216,9 @@ int main(int argc, char *argv[]) {
           case msg_reset_display:
             reset_display();
             break;
+          case msg_toggle_audio:
+            toggle_audio(conf.audio_buffer_size, conf.audio_device_name);
+            break;
           default:
             break;
           }
