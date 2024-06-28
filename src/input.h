@@ -21,7 +21,11 @@ typedef enum input_buttons_t {
 
 typedef enum input_type_t { normal, keyjazz, special } input_type_t;
 
-typedef enum special_messages_t { msg_quit = 1, msg_reset_display = 2 } special_messages_t;
+typedef enum special_messages_t {
+  msg_quit = 1,
+  msg_reset_display = 2,
+  msg_toggle_audio = 3
+} special_messages_t;
 
 typedef struct input_msg_s {
   input_type_t type;
