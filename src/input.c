@@ -432,7 +432,6 @@ void handle_sdl_events(config_params_s *conf) {
     if (event.type == SDL_KEYDOWN) {
       keycode = key.value;
     } else {
-      key.value = 0;
       keycode = 0;
     }
     break;
