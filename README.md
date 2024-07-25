@@ -43,6 +43,12 @@ sudo dnf install m8c
 nix-env -iA m8c-stable -f https://github.com/laamaa/m8c/archive/refs/heads/main.tar.gz
 ```
 
+Or if you're using flakes and the nix command, you can run the app directly with:
+
+```sh
+nix run github:laamaa/m8c
+```
+
 ### Building from source code
 
 #### Install dependencies
