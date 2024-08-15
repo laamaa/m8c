@@ -28,6 +28,8 @@ Disclaimer: I'm not a coder and hardly understand C, use at your own risk :)
 
 There are prebuilt binaries available in the [releases section](https://github.com/laamaa/m8c/releases/) for Windows and recent versions of MacOS.
 
+When running the program for the first time on MacOS, it may not open as it is from an Unidentified Developer. You need to open it from the Applications Folder via Control+Click > Open then select Open from the popup menu.
+
 ### Linux
 
 There are packages available for Fedora Linux and NixOS, or you can build the program from source.
@@ -147,6 +149,8 @@ The program uses SDL's game controller system, which should make it work automag
 
 Experimental audio routing support can be enabled by setting the config value `"audio_enabled"` to `"true"`. The audio buffer size can also be tweaked from the config file for possible lower latencies.
 If the right audio device is not picked up by default, you can use a specific audio device by using `"audio_output_device"` config parameter.
+
+On MacOS you need to grant the program permission to access the Microphone for audio routing to work.
 
 ## Config
 
