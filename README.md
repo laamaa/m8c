@@ -159,12 +159,12 @@ On MacOS you need to grant the program permission to access the Microphone for a
 
 Application settings and keyboard/game controller bindings can be configured via `config.ini`.
 
-If not found, the file will be created in one of these locations:
+The keyboard configuration uses SDL2 Scancodes, a reference list can be found at https://wiki.libsdl.org/SDL2/SDLScancodeLookup
+
+If the file does not exist, it will be created in one of these locations:
 * Windows: `C:\Users\<username>\AppData\Roaming\m8c\config.ini`
 * Linux: `/home/<username>/.local/share/m8c/config.ini`
 * MacOS: `/Users/<username>/Library/Application Support/m8c/config.ini`
-
-See the `config.ini.sample` file to see the available options.
 
 Enjoy making some nice music!
 
