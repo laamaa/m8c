@@ -114,7 +114,7 @@ And you can specify the preferred device by using
 
 ## Keyboard mappings
 
-Keys for controlling the progam:
+Default keys for controlling the progam:
 
 * Up arrow = up
 * Down arrow = down
@@ -131,6 +131,7 @@ Additional controls:
 * Delete = opt+edit (deletes a row)
 * Esc = toggle keyjazz on/off 
 * r / select+start+opt+edit = reset display (if glitches appear on the screen, use this)
+* F12 = toggle audio routing on / off
 
 ### Keyjazz
 Keyjazz allows to enter notes with keyboard, oldschool tracker-style. The layout is two octaves, starting from keys Z and Q.
@@ -148,7 +149,9 @@ The program uses SDL's game controller system, which should make it work automag
 ## Audio
 
 Experimental audio routing support can be enabled by setting the config value `"audio_enabled"` to `"true"`. The audio buffer size can also be tweaked from the config file for possible lower latencies.
-If the right audio device is not picked up by default, you can use a specific audio device by using `"audio_output_device"` config parameter.
+If the right audio device is not picked up by default, you can use a specific audio device by using `"audio_device_name"` config parameter.
+
+It is possible to toggle audio routing on/off with a key defined in the config (`"key_toggle_audio"`). The default key is F12.
 
 On MacOS you need to grant the program permission to access the Microphone for audio routing to work.
 
