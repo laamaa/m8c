@@ -45,6 +45,7 @@ if (APPLE)
 
     set_target_properties(${APP_NAME} PROPERTIES
             MACOSX_BUNDLE TRUE
+            MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/package/macos/m8c.app/Contents/Info.plist"
             MACOSX_BUNDLE_BUNDLE_NAME "m8c"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             MACOSX_BUNDLE_COPYRIGHT "Copyright © 2021 laamaa. All rights reserved."
@@ -55,7 +56,8 @@ if (APPLE)
     set(APPS "\${CMAKE_INSTALL_PREFIX}/${APP_NAME}.app")
 
     install(CODE "include(BundleUtilities)
-    fixup_bundle(\"${APPS}\" \"\" \"\")")
+    fixup_bundle(\"${APPS}\" \"\" \"\")
+    execute_process(COMMAND codesign --force --deep --sign - \${CMAKE_INSTALL_PREFIX}/${APP_NAME}.app)")
     set(CPACK_GENERATOR "DragNDrop")
     include(CPack)
 endif ()
