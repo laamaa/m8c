@@ -13,6 +13,7 @@
 #include "command.h"
 #include "config.h"
 #include "input.h"
+#include "gamecontrollers.h"
 #include "render.h"
 #include "serial.h"
 #include "slip.h"
@@ -88,7 +89,7 @@ int main(int argc, char *argv[]) {
     run = QUIT;
 
   // initial scan for (existing) game controllers
-  initialize_game_controllers();
+  gamecontrollers_initialize();
 
 #ifdef DEBUG_MSG
   SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
@@ -172,7 +173,7 @@ int main(int argc, char *argv[]) {
         if (conf.audio_enabled == 1) {
           audio_destroy();
         }
-        close_game_controllers();
+        gamecontrollers_close();
         close_renderer();
         kill_inline_font();
         SDL_free(serial_buf);
@@ -286,7 +287,7 @@ int main(int argc, char *argv[]) {
   if (conf.audio_enabled == 1) {
     audio_destroy();
   }
-  close_game_controllers();
+  gamecontrollers_close();
   close_renderer();
   close_serial_port();
   SDL_free(serial_buf);
