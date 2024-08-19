@@ -42,8 +42,7 @@ int process_command(uint8_t *data, uint32_t size) {
 
   switch (recv_buf[0]) {
 
-  case draw_rectangle_command:
-
+  case draw_rectangle_command: {
     if (size < draw_rectangle_command_min_datalength ||
         size > draw_rectangle_command_max_datalength) {
       SDL_LogError(SDL_LOG_CATEGORY_ERROR,
@@ -52,74 +51,64 @@ int process_command(uint8_t *data, uint32_t size) {
                    size);
       dump_packet(size, recv_buf);
       return 0;
+    }
+    /* Support variable sized rectangle commands
+             If colors are omitted, the last drawn color should be used
+             If size is omitted, the size should be 1x1 pixels
+             So basically the command can be 5, 8, 9 or 12 bytes long */
+
+    static struct draw_rectangle_command rectcmd;
+
+    rectcmd.pos.x = decodeInt16(recv_buf, 1);
+    rectcmd.pos.y = decodeInt16(recv_buf, 3);
+
+    switch (size) {
+    case 5:
+      rectcmd.size.width = 1;
+      rectcmd.size.height = 1;
       break;
-    } else {
-
-      /* Support variable sized rectangle commands
-         If colors are omitted, the last drawn color should be used
-         If size is omitted, the size should be 1x1 pixels
-         So basically the command can be 5, 8, 9 or 12 bytes long */
-
-      static struct draw_rectangle_command rectcmd;
-
-      rectcmd.pos.x = decodeInt16(recv_buf, 1);
-      rectcmd.pos.y = decodeInt16(recv_buf, 3);
-
-      switch (size) {
-      case 5:
-        rectcmd.size.width = 1;
-        rectcmd.size.height = 1;
-        break;
-      case 8:
-        rectcmd.size.width = 1;
-        rectcmd.size.height = 1;
-        rectcmd.color.r = recv_buf[5];
-        rectcmd.color.g = recv_buf[6];
-        rectcmd.color.b = recv_buf[7];
-        break;
-      case 9:
-        rectcmd.size.width = decodeInt16(recv_buf, 5);
-        rectcmd.size.height = decodeInt16(recv_buf, 7);
-        break;
-      default:
-        rectcmd.size.width = decodeInt16(recv_buf, 5);
-        rectcmd.size.height = decodeInt16(recv_buf, 7);
-        rectcmd.color.r = recv_buf[9];
-        rectcmd.color.g = recv_buf[10];
-        rectcmd.color.b = recv_buf[11];
-        break;
-      }
-
-      draw_rectangle(&rectcmd);
-      return 1;
+    case 8:
+      rectcmd.size.width = 1;
+      rectcmd.size.height = 1;
+      rectcmd.color.r = recv_buf[5];
+      rectcmd.color.g = recv_buf[6];
+      rectcmd.color.b = recv_buf[7];
+      break;
+    case 9:
+      rectcmd.size.width = decodeInt16(recv_buf, 5);
+      rectcmd.size.height = decodeInt16(recv_buf, 7);
+      break;
+    default:
+      rectcmd.size.width = decodeInt16(recv_buf, 5);
+      rectcmd.size.height = decodeInt16(recv_buf, 7);
+      rectcmd.color.r = recv_buf[9];
+      rectcmd.color.g = recv_buf[10];
+      rectcmd.color.b = recv_buf[11];
+      break;
     }
 
-    break;
+    draw_rectangle(&rectcmd);
+    return 1;
+  }
 
-  case draw_character_command:
-
+  case draw_character_command: {
     if (size != draw_character_command_datalength) {
       SDL_LogError(SDL_LOG_CATEGORY_ERROR,
                    "Invalid draw character packet: expected length %d, got %d",
                    draw_character_command_datalength, size);
       dump_packet(size, recv_buf);
       return 0;
-      break;
-    } else {
-
-      struct draw_character_command charcmd = {
-          recv_buf[1],                                          // char
-          {decodeInt16(recv_buf, 2), decodeInt16(recv_buf, 4)}, // position x/y
-          {recv_buf[6], recv_buf[7], recv_buf[8]},              // foreground r/g/b
-          {recv_buf[9], recv_buf[10], recv_buf[11]}};           // background r/g/b
-      draw_character(&charcmd);
-      return 1;
     }
+    struct draw_character_command charcmd = {
+        recv_buf[1],                                          // char
+        {decodeInt16(recv_buf, 2), decodeInt16(recv_buf, 4)}, // position x/y
+        {recv_buf[6], recv_buf[7], recv_buf[8]},              // foreground r/g/b
+        {recv_buf[9], recv_buf[10], recv_buf[11]}};           // background r/g/b
+    draw_character(&charcmd);
+    return 1;
+  }
 
-    break;
-
-  case draw_oscilloscope_waveform_command:
-
+  case draw_oscilloscope_waveform_command: {
     if (size < draw_oscilloscope_waveform_command_mindatalength ||
         size > draw_oscilloscope_waveform_command_maxdatalength) {
       SDL_LogError(SDL_LOG_CATEGORY_ERROR,
@@ -128,21 +117,17 @@ int process_command(uint8_t *data, uint32_t size) {
                    draw_oscilloscope_waveform_command_maxdatalength, size);
       dump_packet(size, recv_buf);
       return 0;
-      break;
-    } else {
-
-      struct draw_oscilloscope_waveform_command osccmd;
-
-      osccmd.color = (struct color){recv_buf[1], recv_buf[2], recv_buf[3]}; // color r/g/b
-      memcpy(osccmd.waveform, &recv_buf[4], size - 4);
-
-      osccmd.waveform_size = size - 4;
-
-      draw_waveform(&osccmd);
-      return 1;
     }
+    struct draw_oscilloscope_waveform_command osccmd;
 
-    break;
+    osccmd.color = (struct color){recv_buf[1], recv_buf[2], recv_buf[3]}; // color r/g/b
+    memcpy(osccmd.waveform, &recv_buf[4], size - 4);
+
+    osccmd.waveform_size = size - 4;
+
+    draw_waveform(&osccmd);
+    return 1;
+  }
 
   case joypad_keypressedstate_command: {
     if (size != joypad_keypressedstate_command_datalength) {
@@ -152,12 +137,10 @@ int process_command(uint8_t *data, uint32_t size) {
                    joypad_keypressedstate_command_datalength, size);
       dump_packet(size, recv_buf);
       return 0;
-      break;
     }
 
     // nothing is done with joypad key pressed packets for now
     return 1;
-    break;
   }
 
   case system_info_command: {
@@ -188,14 +171,12 @@ int process_command(uint8_t *data, uint32_t size) {
     set_font_mode(recv_buf[5]);
 
     return 1;
-    break;
   }
 
   default:
-    SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Invalid packet\n");
+    SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Invalid packet");
     dump_packet(size, recv_buf);
     return 0;
-    break;
   }
   return 1;
 }

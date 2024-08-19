@@ -234,7 +234,8 @@ int main(int argc, char *argv[]) {
           SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %d reading serial. \n", (int)bytes_read);
           run = QUIT;
           break;
-        } else if (bytes_read > 0) {
+        }
+        if (bytes_read > 0) {
           // input from device: reset the zero byte counter and create a
           // pointer to the serial buffer
           zerobyte_packets = 0;
@@ -261,17 +262,16 @@ int main(int argc, char *argv[]) {
             if (check_serial_port()) {
               // the device is still there, carry on
               break;
-            } else {
-              port_inited = 0;
-              run = WAIT_FOR_DEVICE;
-              close_serial_port();
-              if (conf.audio_enabled == 1) {
-                audio_destroy();
-              }
-              /* we'll make one more loop to see if the device is still there
-               * but just sending zero bytes. if it doesn't get detected when
-               * resetting the port, it will disconnect */
             }
+            port_inited = 0;
+            run = WAIT_FOR_DEVICE;
+            close_serial_port();
+            if (conf.audio_enabled == 1) {
+              audio_destroy();
+            }
+            /* we'll make one more loop to see if the device is still there
+             * but just sending zero bytes. if it doesn't get detected when
+             * resetting the port, it will disconnect */
           }
           break;
         }
