@@ -64,7 +64,7 @@ config_params_s init_config() {
   c.gamepad_quit = SDL_CONTROLLER_BUTTON_RIGHTSTICK;
   c.gamepad_reset = SDL_CONTROLLER_BUTTON_LEFTSTICK;
 
-  c.gamepad_analog_threshold = 32766;
+  c.gamepad_analog_threshold = 30000;
   c.gamepad_analog_invert = 0;
   c.gamepad_analog_axis_updown = SDL_CONTROLLER_AXIS_LEFTY;
   c.gamepad_analog_axis_leftright = SDL_CONTROLLER_AXIS_LEFTX;
@@ -131,8 +131,7 @@ void write_config(config_params_s *conf) {
            conf->key_jazz_inc_velocity);
   snprintf(ini_values[initPointer++], LINELEN, "key_jazz_dec_velocity=%d\n",
            conf->key_jazz_dec_velocity);
-  snprintf(ini_values[initPointer++], LINELEN, "key_toggle_audio=%d\n",
-           conf->key_toggle_audio);
+  snprintf(ini_values[initPointer++], LINELEN, "key_toggle_audio=%d\n", conf->key_toggle_audio);
   snprintf(ini_values[initPointer++], LINELEN, "[gamepad]\n");
   snprintf(ini_values[initPointer++], LINELEN, "gamepad_up=%d\n", conf->gamepad_up);
   snprintf(ini_values[initPointer++], LINELEN, "gamepad_left=%d\n", conf->gamepad_left);
