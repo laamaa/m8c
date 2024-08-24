@@ -2,7 +2,7 @@
 #include "config.h"
 #include "gamecontrollers.h"
 #include "render.h"
-#include <SDL2/SDL.h>
+#include <SDL.h>
 
 uint8_t keyjazz_enabled = 0;
 uint8_t keyjazz_base_octave = 2;
