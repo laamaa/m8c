@@ -50,7 +50,7 @@ slip_error_t slip_init(slip_handler_s *slip, const slip_descriptor_s *descriptor
   return SLIP_NO_ERROR;
 }
 
-static slip_error_t put_byte_to_buffer(slip_handler_s *slip, uint8_t byte) {
+static slip_error_t put_byte_to_buffer(slip_handler_s *slip, const uint8_t byte) {
   slip_error_t error = SLIP_NO_ERROR;
 
   assert(slip != NULL);

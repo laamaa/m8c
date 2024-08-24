@@ -1,13 +1,8 @@
-// Copyright 2021 Jonne Kokkonen
-// Released under the MIT licence, https://opensource.org/licenses/MIT
-
-#include <SDL.h>
-#include <stdio.h>
-
-#include "config.h"
 #include "input.h"
-#include "render.h"
+#include "config.h"
 #include "gamecontrollers.h"
+#include "render.h"
+#include <SDL.h>
 
 uint8_t keyjazz_enabled = 0;
 uint8_t keyjazz_base_octave = 2;
@@ -15,7 +10,7 @@ uint8_t keyjazz_velocity = 0x64;
 
 static uint8_t keycode = 0; // value of the pressed key
 
-static input_msg_s key = {normal, 0};
+static input_msg_s key = {normal, 0, 0, 0};
 
 uint8_t toggle_input_keyjazz() {
   keyjazz_enabled = !keyjazz_enabled;
@@ -153,8 +148,8 @@ static input_msg_s handle_keyjazz(SDL_Event *event, uint8_t keyvalue, config_par
   return key;
 }
 
-static input_msg_s handle_normal_keys(SDL_Event *event, config_params_s *conf, uint8_t keyvalue) {
-  input_msg_s key = {normal, keyvalue};
+static input_msg_s handle_normal_keys(const SDL_Event *event, const config_params_s *conf) {
+  input_msg_s key = {normal, 0, 0, 0};
 
   if (event->key.keysym.scancode == conf->key_up) {
     key.value = key_up;
@@ -179,10 +174,9 @@ static input_msg_s handle_normal_keys(SDL_Event *event, config_params_s *conf, u
   } else if (event->key.keysym.scancode == conf->key_delete) {
     key.value = key_opt | key_edit;
   } else if (event->key.keysym.scancode == conf->key_reset) {
-    key = (input_msg_s){special, msg_reset_display};
+    key = (input_msg_s){special, msg_reset_display, 0, 0};
   } else if (event->key.keysym.scancode == conf->key_toggle_audio) {
-    key = (input_msg_s){special, msg_toggle_audio};
-
+    key = (input_msg_s){special, msg_toggle_audio, 0, 0};
   } else {
     key.value = 0;
   }
@@ -197,14 +191,16 @@ void handle_sdl_events(config_params_s *conf) {
   SDL_Event event;
 
   // Read joysticks
-  int key_analog = gamecontrollers_handle_buttons(conf);
+  const int key_analog = gamecontrollers_handle_buttons(conf);
   if (prev_key_analog != key_analog) {
     keycode = key_analog;
     prev_key_analog = key_analog;
   }
 
   input_msg_s gcmsg = gamecontrollers_handle_special_messages(conf);
-  if (gcmsg.type == special) { key = gcmsg; }
+  if (gcmsg.type == special) {
+    key = gcmsg;
+  }
 
   while (SDL_PollEvent(&event)) {
 
@@ -218,7 +214,7 @@ void handle_sdl_events(config_params_s *conf) {
 
     // Handle SDL quit events (for example, window close)
     case SDL_QUIT:
-      key = (input_msg_s){special, msg_quit};
+      key = (input_msg_s){special, msg_quit, 0, 0};
       break;
 
     case SDL_WINDOWEVENT:
@@ -226,13 +222,12 @@ void handle_sdl_events(config_params_s *conf) {
         static uint32_t ticks_window_resized = 0;
         if (SDL_GetTicks() - ticks_window_resized > 500) {
           SDL_Log("Resizing window...");
-          key = (input_msg_s){special, msg_reset_display};
+          key = (input_msg_s){special, msg_reset_display, 0, 0};
           ticks_window_resized = SDL_GetTicks();
         }
       }
       break;
 
-    // Keyboard events. Special events are handled within SDL_KEYDOWN.
     case SDL_KEYDOWN:
 
       if (event.key.repeat > 0) {
@@ -246,22 +241,26 @@ void handle_sdl_events(config_params_s *conf) {
       }
 
       // ALT+F4 quits program
-      else if (event.key.keysym.sym == SDLK_F4 && (event.key.keysym.mod & KMOD_ALT) > 0) {
-        key = (input_msg_s){special, msg_quit};
+      if (event.key.keysym.sym == SDLK_F4 && (event.key.keysym.mod & KMOD_ALT) > 0) {
+        key = (input_msg_s){special, msg_quit, 0, 0};
         break;
       }
 
       // ESC = toggle keyjazz
-      else if (event.key.keysym.sym == SDLK_ESCAPE) {
+      if (event.key.keysym.sym == SDLK_ESCAPE) {
         display_keyjazz_overlay(toggle_input_keyjazz(), keyjazz_base_octave, keyjazz_velocity);
+        break;
       }
 
-    // Normal keyboard inputs
+    // Intentional fallthrough
     case SDL_KEYUP:
-      key = handle_normal_keys(&event, conf, 0);
 
-      if (keyjazz_enabled)
+      // Normal keyboard inputs
+      key = handle_normal_keys(&event, conf);
+
+      if (keyjazz_enabled) {
         key = handle_keyjazz(&event, key.value, conf);
+      }
       break;
 
     default:
@@ -272,7 +271,7 @@ void handle_sdl_events(config_params_s *conf) {
     case normal:
       if (event.type == SDL_KEYDOWN) {
         keycode |= key.value;
-      } else {
+      } else if (event.type == SDL_KEYUP) {
         keycode &= ~key.value;
       }
       break;
@@ -281,7 +280,7 @@ void handle_sdl_events(config_params_s *conf) {
     case special:
       if (event.type == SDL_KEYDOWN) {
         keycode = key.value;
-      } else {
+      } else if (event.type == SDL_KEYUP) {
         keycode = 0;
       }
       break;
@@ -294,19 +293,20 @@ void handle_sdl_events(config_params_s *conf) {
 // Returns the currently pressed keys to main
 input_msg_s get_input_msg(config_params_s *conf) {
 
-  key = (input_msg_s){normal, 0};
+  key = (input_msg_s){normal, 0, 0, 0};
 
   // Query for SDL events
   handle_sdl_events(conf);
 
   if (!keyjazz_enabled && keycode == (key_start | key_select | key_opt | key_edit)) {
-    key = (input_msg_s){special, msg_reset_display};
+    key = (input_msg_s){special, msg_reset_display, 0, 0};
   }
 
   if (key.type == normal) {
     /* Normal input keys go through some event-based manipulation in
        handle_sdl_events(), the value is stored in keycode variable */
-    return (input_msg_s){key.type, keycode};
+    const input_msg_s input = (input_msg_s){key.type, keycode, 0, 0};
+    return input;
   } else {
     // Special event keys already have the correct keycode baked in
     return key;

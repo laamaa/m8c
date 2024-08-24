@@ -9,7 +9,7 @@
 #define CHARACTERS_PER_COLUMN 1
 
 // Offset for seeking from limited character sets
-static const int font_offset = 127 - (CHARACTERS_PER_ROW * CHARACTERS_PER_COLUMN);
+static const int font_offset = 127 - CHARACTERS_PER_ROW * CHARACTERS_PER_COLUMN;
 
 static SDL_Renderer *selected_renderer = NULL;
 static SDL_Texture *inline_font = NULL;
@@ -18,7 +18,6 @@ static struct inline_font *selected_inline_font;
 static Uint16 selected_font_w, selected_font_h;
 
 void prepare_inline_font(struct inline_font *font) {
-  SDL_Surface *surface;
 
   selected_font_w = font->width;
   selected_font_h = font->height;
@@ -32,7 +31,7 @@ void prepare_inline_font(struct inline_font *font) {
   SDL_RWops *font_bmp =
       SDL_RWFromConstMem(selected_inline_font->image_data, selected_inline_font->image_size);
 
-  surface = SDL_LoadBMP_RW(font_bmp, 1);
+  SDL_Surface *surface = SDL_LoadBMP_RW(font_bmp, 1);
 
   // Black is transparent
   SDL_SetColorKey(surface, SDL_TRUE, SDL_MapRGB(surface->format, 0, 0, 0));
@@ -66,19 +65,19 @@ void infont(SDL_Texture *font) {
   selected_font_w = w;
   selected_font_h = h;
 }
-void incolor1(SDL_Color *color) {
+void incolor1(const SDL_Color *color) {
   SDL_SetTextureColorMod(selected_font, color->r, color->g, color->b);
 }
-void incolor(Uint32 fore, Uint32 unused) /* Color must be in 0x00RRGGBB format ! */
+void incolor(const Uint32 fore) /* Color must be in 0x00RRGGBB format ! */
 {
   SDL_Color pal[1];
   pal[0].r = (Uint8)((fore & 0x00FF0000) >> 16);
   pal[0].g = (Uint8)((fore & 0x0000FF00) >> 8);
-  pal[0].b = (Uint8)((fore & 0x000000FF));
+  pal[0].b = (Uint8)(fore & 0x000000FF);
   SDL_SetTextureColorMod(selected_font, pal[0].r, pal[0].g, pal[0].b);
 }
-void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y, Uint32 fgcolor,
-             Uint32 bgcolor) {
+void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y, const Uint32 fgcolor,
+             const Uint32 bgcolor) {
   SDL_Rect s_rect;
   SDL_Rect d_rect;
   SDL_Rect bg_rect;
@@ -112,13 +111,13 @@ void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y, Uint32 fgco
       continue;
     }
     if (fgcolor != previous_fgcolor) {
-      incolor(fgcolor, 0);
+      incolor(fgcolor);
       previous_fgcolor = fgcolor;
     }
 
-    if (bgcolor != -1) {
-      SDL_SetRenderDrawColor(selected_renderer, (Uint8)((bgcolor & 0x00FF0000) >> 16),
-                             (Uint8)((bgcolor & 0x0000FF00) >> 8), (Uint8)((bgcolor & 0x000000FF)),
+    if (bgcolor != fgcolor) {
+      SDL_SetRenderDrawColor(selected_renderer, (bgcolor & 0x00FF0000) >> 16,
+                             (bgcolor & 0x0000FF00) >> 8, bgcolor & 0x000000FF,
                              0xFF);
       bg_rect = d_rect;
       bg_rect.w = selected_inline_font->glyph_x;
