@@ -32,7 +32,7 @@ int gamecontrollers_initialize() {
   }
 
   if (db_rw != NULL) {
-    int mappings = SDL_GameControllerAddMappingsFromRW(db_rw, 1);
+    const int mappings = SDL_GameControllerAddMappingsFromRW(db_rw, 1);
     if (mappings != -1)
       SDL_Log("Found %d game controller mappings", mappings);
     else
@@ -66,8 +66,8 @@ void gamecontrollers_close() {
 }
 
 // Check whether a button is pressed on a gamepad and return 1 if pressed.
-static int get_game_controller_button(config_params_s *conf, SDL_GameController *controller,
-                                      int button) {
+static int get_game_controller_button(const config_params_s *conf, SDL_GameController *controller,
+                                      const int button) {
 
   const int button_mappings[8] = {conf->gamepad_up,     conf->gamepad_down, conf->gamepad_left,
                                   conf->gamepad_right,  conf->gamepad_opt,  conf->gamepad_edit,
@@ -111,7 +111,7 @@ static int get_game_controller_button(config_params_s *conf, SDL_GameController 
 
 // Handle game controllers, simply check all buttons and analog axis on every
 // cycle
-int gamecontrollers_handle_buttons(config_params_s *conf) {
+int gamecontrollers_handle_buttons(const config_params_s *conf) {
 
   const int keycodes[8] = {key_up,  key_down, key_left,   key_right,
                            key_opt, key_edit, key_select, key_start};
@@ -133,18 +133,18 @@ int gamecontrollers_handle_buttons(config_params_s *conf) {
   return key;
 }
 
-input_msg_s gamecontrollers_handle_special_messages(config_params_s *conf) {
+input_msg_s gamecontrollers_handle_special_messages(const config_params_s *conf) {
   input_msg_s msg = {0};
   // Read special case game controller buttons quit and reset
   for (int gc = 0; gc < num_joysticks; gc++) {
     if (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_quit) &&
         (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_select) ||
          SDL_GameControllerGetAxis(game_controllers[gc], conf->gamepad_analog_axis_select)))
-      msg = (input_msg_s){special, msg_quit};
+      msg = (input_msg_s){special, msg_quit, 0, 0};
     else if (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_reset) &&
              (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_select) ||
               SDL_GameControllerGetAxis(game_controllers[gc], conf->gamepad_analog_axis_select)))
-      msg = (input_msg_s){special, msg_reset_display};
+      msg = (input_msg_s){special, msg_reset_display, 0, 0};
   }
   return msg;
 }

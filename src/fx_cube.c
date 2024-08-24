@@ -1,8 +1,6 @@
-#include "SDL2_inprint.h"
-#include "SDL_pixels.h"
-#include "SDL_render.h"
 #include <SDL.h>
 #include <time.h>
+#include "SDL2_inprint.h"
 
 static SDL_Texture *texture_cube;
 static SDL_Texture *texture_text;
@@ -20,7 +18,7 @@ static int edges[12][2] = {{0, 1}, {1, 3}, {3, 2}, {2, 0}, {4, 5}, {5, 7},
 
 static float nodes[8][3];
 
-static void scale(float factor0, float factor1, float factor2) {
+static void scale(const float factor0, const float factor1, const float factor2) {
   for (int i = 0; i < 8; i++) {
     nodes[i][0] *= factor0;
     nodes[i][1] *= factor1;
@@ -28,14 +26,14 @@ static void scale(float factor0, float factor1, float factor2) {
   }
 }
 
-static void rotate_cube(float angle_x, float angle_y) {
-  float sin_x = SDL_sin(angle_x);
-  float cos_x = SDL_cos(angle_x);
-  float sin_y = SDL_sin(angle_y);
-  float cos_y = SDL_cos(angle_y);
+static void rotate_cube(const float angle_x, const float angle_y) {
+  const float sin_x = SDL_sin(angle_x);
+  const float cos_x = SDL_cos(angle_x);
+  const float sin_y = SDL_sin(angle_y);
+  const float cos_y = SDL_cos(angle_y);
   for (int i = 0; i < 8; i++) {
-    float x = nodes[i][0];
-    float y = nodes[i][1];
+    const float x = nodes[i][0];
+    const float y = nodes[i][1];
     float z = nodes[i][2];
 
     nodes[i][0] = x * cos_x - z * sin_x;
@@ -48,9 +46,9 @@ static void rotate_cube(float angle_x, float angle_y) {
   }
 }
 
-void fx_cube_init(SDL_Renderer *target_renderer, SDL_Color foreground_color,
-                  unsigned int texture_width, unsigned int texture_height,
-                  unsigned int font_glyph_width) {
+void fx_cube_init(SDL_Renderer *target_renderer, const SDL_Color foreground_color,
+                  const unsigned int texture_width, const unsigned int texture_height,
+                  const unsigned int font_glyph_width) {
 
   fx_renderer = target_renderer;
   line_color = foreground_color;
@@ -102,15 +100,15 @@ void fx_cube_update() {
   SDL_SetRenderDrawColor(fx_renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
   SDL_RenderClear(fx_renderer);
 
-  unsigned int seconds = SDL_GetTicks() / 1000;
-  float scalefactor = 1 + (SDL_sin(seconds) * 0.005);
+  const unsigned int seconds = SDL_GetTicks() / 1000;
+  const float scalefactor = 1 + SDL_sin(seconds) * 0.005;
 
   scale(scalefactor, scalefactor, scalefactor);
   rotate_cube(M_PI / 180, M_PI / 270);
 
   for (int i = 0; i < 12; i++) {
-    float *p1 = nodes[edges[i][0]];
-    float *p2 = nodes[edges[i][1]];
+    const float *p1 = nodes[edges[i][0]];
+    const float *p2 = nodes[edges[i][1]];
     points[points_counter++] = (SDL_Point){p1[0] + center_x, nodes[edges[i][0]][1] + center_y};
     points[points_counter++] = (SDL_Point){p2[0] + center_x, p2[1] + center_y};
   }

@@ -7,13 +7,12 @@
 
 #include "config.h"
 #include "input.h"
-#include <SDL_gamecontroller.h>
 
 #define MAX_CONTROLLERS 4
 
 int gamecontrollers_initialize();
 void gamecontrollers_close();
-int gamecontrollers_handle_buttons(config_params_s *conf);
-input_msg_s gamecontrollers_handle_special_messages(config_params_s *conf);
+int gamecontrollers_handle_buttons(const config_params_s *conf);
+input_msg_s gamecontrollers_handle_special_messages(const config_params_s *conf);
 
 #endif //GAMECONTROLLERS_H_

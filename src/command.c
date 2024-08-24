@@ -7,7 +7,7 @@
 #include "render.h"
 
 // Convert 2 little-endian 8bit bytes to a 16bit integer
-static uint16_t decodeInt16(uint8_t *data, uint8_t start) {
+static uint16_t decodeInt16(const uint8_t *data, const uint8_t start) {
   return data[start] | (uint16_t)data[start + 1] << 8;
 }
 
@@ -26,7 +26,7 @@ enum m8_command_bytes {
   system_info_command_datalength = 6
 };
 
-static inline void dump_packet(uint32_t size, uint8_t *recv_buf) {
+static void dump_packet(const uint32_t size, const uint8_t *recv_buf) {
   for (uint16_t a = 0; a < size; a++) {
     SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "0x%02X ", recv_buf[a]);
   }

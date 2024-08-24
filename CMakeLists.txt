@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.15)
 
 project(m8c LANGUAGES C)
 
+set(CMAKE_C_FLAGS "-O2 -Wall -Wextra")
+
 set(APP_NAME m8c)
 
 find_package(PkgConfig REQUIRED)

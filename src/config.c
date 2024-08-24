@@ -7,10 +7,10 @@
 #include <assert.h>
 #include <stdio.h>
 
-/* Case insensitive string compare from ini.h library */
+/* Case-insensitive string compare from ini.h library */
 static int strcmpci(const char *a, const char *b) {
   for (;;) {
-    int d = tolower(*a) - tolower(*b);
+    const int d = tolower(*a) - tolower(*b);
     if (d != 0 || !*a) {
       return d;
     }
@@ -77,7 +77,7 @@ config_params_s init_config() {
 }
 
 // Write config to file
-void write_config(config_params_s *conf) {
+void write_config(const config_params_s *conf) {
 
   // Open the default config file for writing
   char config_path[1024] = {0};
@@ -165,8 +165,8 @@ void write_config(config_params_s *conf) {
 
   if (rw != NULL) {
     // Write ini_values array to config file
-    for (int i = 0; i < INI_LINE_COUNT; i++) {
-      size_t len = SDL_strlen(ini_values[i]);
+    for (unsigned int i = 0; i < INI_LINE_COUNT; i++) {
+      const size_t len = SDL_strlen(ini_values[i]);
       if (SDL_RWwrite(rw, ini_values[i], 1, len) != len) {
         SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Couldn't write line into config file.");
       } else {
@@ -204,7 +204,7 @@ void read_config(config_params_s *conf) {
   write_config(conf);
 }
 
-void read_audio_config(ini_t *ini, config_params_s *conf) {
+void read_audio_config(const ini_t *ini, config_params_s *conf) {
   const char *param_audio_enabled = ini_get(ini, "audio", "audio_enabled");
   const char *param_audio_buffer_size = ini_get(ini, "audio", "audio_buffer_size");
   const char *param_audio_device_name = ini_get(ini, "audio", "audio_device_name");
@@ -226,7 +226,7 @@ void read_audio_config(ini_t *ini, config_params_s *conf) {
   }
 }
 
-void read_graphics_config(ini_t *ini, config_params_s *conf) {
+void read_graphics_config(const ini_t *ini, config_params_s *conf) {
   const char *param_fs = ini_get(ini, "graphics", "fullscreen");
   const char *param_gpu = ini_get(ini, "graphics", "use_gpu");
   const char *idle_ms = ini_get(ini, "graphics", "idle_ms");
@@ -259,7 +259,7 @@ void read_graphics_config(ini_t *ini, config_params_s *conf) {
     conf->wait_packets = SDL_atoi(wait_packets);
 }
 
-void read_key_config(ini_t *ini, config_params_s *conf) {
+void read_key_config(const ini_t *ini, config_params_s *conf) {
   // TODO: Some form of validation
 
   const char *key_up = ini_get(ini, "keyboard", "key_up");
@@ -322,7 +322,7 @@ void read_key_config(ini_t *ini, config_params_s *conf) {
     conf->key_jazz_dec_velocity = SDL_atoi(key_toggle_audio);
 }
 
-void read_gamepad_config(ini_t *ini, config_params_s *conf) {
+void read_gamepad_config(const ini_t *ini, config_params_s *conf) {
   // TODO: Some form of validation
 
   const char *gamepad_up = ini_get(ini, "gamepad", "gamepad_up");

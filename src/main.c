@@ -24,11 +24,11 @@ enum state run = WAIT_FOR_DEVICE;
 uint8_t need_display_reset = 0;
 
 // Handles CTRL+C / SIGINT
-void intHandler(int dummy) { run = QUIT; }
+void intHandler() { run = QUIT; }
 
 void close_serial_port() { disconnect(); }
 
-int main(int argc, char *argv[]) {
+int main(const int argc, char *argv[]) {
 
   if (argc == 2 && SDL_strcmp(argv[1], "--list") == 0) {
     return list_devices();
@@ -128,7 +128,7 @@ int main(int argc, char *argv[]) {
 
       while (run == WAIT_FOR_DEVICE) {
         // get current input
-        input_msg_s input = get_input_msg(&conf);
+        const input_msg_s input = get_input_msg(&conf);
         if (input.type == special && input.value == msg_quit) {
           SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Input message QUIT.");
           run = QUIT;
@@ -141,7 +141,7 @@ int main(int argc, char *argv[]) {
         }
 
         // Poll for M8 device every second
-        if (port_inited == 0 && (SDL_GetTicks() - ticks_poll_device > 1000)) {
+        if (port_inited == 0 && SDL_GetTicks() - ticks_poll_device > 1000) {
           ticks_poll_device = SDL_GetTicks();
           if (run == WAIT_FOR_DEVICE && init_serial(0, preferred_device) == 1) {
 
@@ -152,7 +152,7 @@ int main(int argc, char *argv[]) {
               }
             }
 
-            int result = enable_and_reset_display();
+            const int result = enable_and_reset_display();
             // Device was found; enable display and proceed to the main loop
             if (result == 1) {
               run = RUN;
@@ -186,7 +186,7 @@ int main(int argc, char *argv[]) {
     while (run == RUN) {
 
       // get current inputs
-      input_msg_s input = get_input_msg(&conf);
+      const input_msg_s input = get_input_msg(&conf);
 
       switch (input.type) {
       case normal:
@@ -229,9 +229,9 @@ int main(int argc, char *argv[]) {
 
       while (1) {
         // read serial port
-        int bytes_read = serial_read(serial_buf, serial_read_size);
+        const int bytes_read = serial_read(serial_buf, serial_read_size);
         if (bytes_read < 0) {
-          SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %d reading serial. \n", (int)bytes_read);
+          SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %d reading serial.", bytes_read);
           run = QUIT;
           break;
         }
@@ -239,11 +239,11 @@ int main(int argc, char *argv[]) {
           // input from device: reset the zero byte counter and create a
           // pointer to the serial buffer
           zerobyte_packets = 0;
-          uint8_t *cur = serial_buf;
+          const uint8_t *cur = serial_buf;
           const uint8_t *end = serial_buf + bytes_read;
           while (cur < end) {
             // process the incoming bytes into commands and draw them
-            int n = slip_read_byte(&slip, *(cur++));
+            const int n = slip_read_byte(&slip, *cur++);
             if (n != SLIP_NO_ERROR) {
               if (n == SLIP_ERROR_INVALID_PACKET) {
                 reset_display();

@@ -41,7 +41,7 @@ uint8_t fullscreen = 0;
 static uint8_t dirty = 0;
 
 // Initializes SDL and creates a renderer and required surfaces
-int initialize_sdl(int init_fullscreen, int init_use_gpu) {
+int initialize_sdl(const int init_fullscreen, const int init_use_gpu) {
 
   if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "SDL_Init: %s\n", SDL_GetError());
@@ -97,8 +97,8 @@ static void check_and_adjust_window_and_texture_size(const unsigned int new_widt
 
   // Query window size and resize if smaller than default
   SDL_GetWindowSize(win, &w, &h);
-  if (w < (texture_width * 2) || h < (texture_height * 2)) {
-    SDL_SetWindowSize(win, (texture_width * 2), (texture_height * 2));
+  if (w < texture_width * 2 || h < texture_height * 2) {
+    SDL_SetWindowSize(win, texture_width * 2, texture_height * 2);
   }
 
   SDL_DestroyTexture(maintexture);
@@ -112,7 +112,7 @@ static void check_and_adjust_window_and_texture_size(const unsigned int new_widt
 }
 
 // Set M8 hardware model in use. 0 = MK1, 1 = MK2
-void set_m8_model(unsigned int model) {
+void set_m8_model(const unsigned int model) {
 
   switch (model) {
   case 1:
@@ -126,7 +126,7 @@ void set_m8_model(unsigned int model) {
   }
 }
 
-void set_font_mode(unsigned int mode) {
+void set_font_mode(int mode) {
   if (mode < 0 || mode > 2) {
     // bad font mode
     return;
@@ -155,7 +155,7 @@ void close_renderer() {
 
 void toggle_fullscreen() {
 
-  int fullscreen_state = SDL_GetWindowFlags(win) & SDL_WINDOW_FULLSCREEN;
+  const int fullscreen_state = SDL_GetWindowFlags(win) & SDL_WINDOW_FULLSCREEN;
 
   SDL_SetWindowFullscreen(win, fullscreen_state ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
   SDL_ShowCursor(fullscreen_state);
@@ -165,10 +165,10 @@ void toggle_fullscreen() {
 
 int draw_character(struct draw_character_command *command) {
 
-  uint32_t fgcolor =
-      (command->foreground.r << 16) | (command->foreground.g << 8) | command->foreground.b;
-  uint32_t bgcolor =
-      (command->background.r << 16) | (command->background.g << 8) | command->background.b;
+  const uint32_t fgcolor =
+      command->foreground.r << 16 | command->foreground.g << 8 | command->foreground.b;
+  const uint32_t bgcolor =
+      command->background.r << 16 | command->background.g << 8 | command->background.b;
 
   /* Notes:
      If large font is enabled, offset the screen elements by a fixed amount.
@@ -178,7 +178,7 @@ int draw_character(struct draw_character_command *command) {
 
   inprint(rend, (char *)&command->c, command->pos.x,
           command->pos.y + text_offset_y + screen_offset_y, fgcolor,
-          (bgcolor == fgcolor) ? -1 : bgcolor);
+          bgcolor);
 
   dirty = 1;
 
@@ -273,12 +273,13 @@ void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
   }
 }
 
-void display_keyjazz_overlay(uint8_t show, uint8_t base_octave, uint8_t velocity) {
+void display_keyjazz_overlay(const uint8_t show, const uint8_t base_octave,
+                             const uint8_t velocity) {
 
   const Uint16 overlay_offset_x = texture_width - (fonts[font_mode]->glyph_x * 7 + 1);
   const Uint16 overlay_offset_y = texture_height - (fonts[font_mode]->glyph_y + 1);
   const Uint32 bgcolor =
-      (background_color.r << 16) | (background_color.g << 8) | background_color.b;
+      background_color.r << 16 | background_color.g << 8 | background_color.b;
 
   if (show) {
     char overlay_text[7];

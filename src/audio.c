@@ -11,7 +11,7 @@ static SDL_AudioDeviceID devid_out = 0;
 static unsigned int audio_paused = 0;
 static unsigned int audio_initialized = 0;
 
-void toggle_audio(unsigned int audio_buffer_size, const char *output_device_name) {
+void toggle_audio(const unsigned int audio_buffer_size, const char *output_device_name) {
   if (!audio_initialized) {
     audio_init(audio_buffer_size, output_device_name);
     return;
@@ -22,26 +22,24 @@ void toggle_audio(unsigned int audio_buffer_size, const char *output_device_name
   SDL_Log(audio_paused ? "Audio paused" : "Audio resumed");
 }
 
-void audio_cb_in(void *userdata, uint8_t *stream, int len) {
+void audio_cb_in(void *, uint8_t *stream, int len) {
   SDL_QueueAudio(devid_out, stream, len);
 }
 
-int audio_init(unsigned int audio_buffer_size, const char *output_device_name) {
+int audio_init(const unsigned int audio_buffer_size, const char *output_device_name) {
 
-  int i = 0;
   int m8_device_id = -1;
-  int devcount_in = 0; // audio input device count
 
   // wait for system to initialize possible new audio devices
   SDL_Delay(500);
 
-  devcount_in = SDL_GetNumAudioDevices(SDL_TRUE);
+  const int devcount_in = SDL_GetNumAudioDevices(SDL_TRUE);
 
   if (devcount_in < 1) {
     SDL_Log("No audio capture devices, SDL Error: %s", SDL_GetError());
     return 0;
   }
-  for (i = 0; i < devcount_in; i++) {
+  for (int i = 0; i < devcount_in; i++) {
     // Check if input device exists before doing anything else
     SDL_LogDebug(SDL_LOG_CATEGORY_AUDIO, "%s", SDL_GetAudioDeviceName(i, SDL_TRUE));
     if (SDL_strstr(SDL_GetAudioDeviceName(i, SDL_TRUE), "M8") != NULL) {
