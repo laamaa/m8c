@@ -54,7 +54,19 @@ jobs:
       - name: 'Build SDL2'
         if: steps.cache-x86_64-sdl2-files.outputs.cache-hit != 'true'
         run: |
-          export MACOSX_DEPLOYMENT_TARGET="10.9" && cd SDL2-$SDL_VERSION && mkdir build_x86_64 && cd build_x86_64 && ../configure CPPFLAGS="-mmacosx-version-min=10.7 -DMAC_OS_X_VERSION_MIN_REQUIRED=1070 -isysroot $HOME/x86_64/SDKs/MacOSX10.9.sdk" --prefix="$HOME/x86_64prefix" && make && make install
+          export MACOSX_DEPLOYMENT_TARGET="10.9"
+          pushd SDL2-$SDL_VERSION
+          mkdir build_x86_64
+          cd build_x86_64
+          ../configure CPPFLAGS="-mmacosx-version-min=10.7 -DMAC_OS_X_VERSION_MIN_REQUIRED=1070 -isysroot $HOME/x86_64/SDKs/MacOSX10.9.sdk" --prefix="$HOME/x86_64prefix"
+          make
+          popd
+
+      - name: 'Install SDL2'
+        run: |
+          pushd SDL2-$SDL_VERSION/build_x86_64
+          make install 
+          popd
 
       - name: 'Download libserialport sources'
         run: |
