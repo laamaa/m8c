@@ -38,14 +38,35 @@ jobs:
 
       - name: Set current date as env variable
         run: echo "NOW=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      - name: 'Cache SDL2 files'
+        id: cache-x86_64-sdl2-files
+        uses: actions/cache@v4
+        with:
+          path: 'SDL2-2.30.4'
+          key: mac-x86_64-sdl2-files        
         
       - name: 'Download SDL2 sources'
+        if: steps.cache-x86_64-sdl2-files.outputs.cache-hit != 'true'
         run: |
           (curl https://www.libsdl.org/release/SDL2-$SDL_VERSION.tar.gz || curl -L https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL2-$SDL_VERSION.tar.gz) | tar xvf -
         
       - name: 'Build SDL2'
+        if: steps.cache-x86_64-sdl2-files.outputs.cache-hit != 'true'
         run: |
-          export MACOSX_DEPLOYMENT_TARGET="10.9" && cd SDL2-$SDL_VERSION && mkdir build_x86_64 && cd build_x86_64 && ../configure CPPFLAGS="-mmacosx-version-min=10.7 -DMAC_OS_X_VERSION_MIN_REQUIRED=1070 -isysroot $HOME/x86_64/SDKs/MacOSX10.9.sdk" --prefix="$HOME/x86_64prefix" && make && make install
+          export MACOSX_DEPLOYMENT_TARGET="10.9"
+          pushd SDL2-$SDL_VERSION
+          mkdir build_x86_64
+          cd build_x86_64
+          ../configure CPPFLAGS="-mmacosx-version-min=10.7 -DMAC_OS_X_VERSION_MIN_REQUIRED=1070 -isysroot $HOME/x86_64/SDKs/MacOSX10.9.sdk" --prefix="$HOME/x86_64prefix"
+          make
+          popd
+
+      - name: 'Install SDL2'
+        run: |
+          pushd SDL2-$SDL_VERSION/build_x86_64
+          make install 
+          popd
 
       - name: 'Download libserialport sources'
         run: |
