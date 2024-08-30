@@ -22,7 +22,8 @@ void toggle_audio(const unsigned int audio_buffer_size, const char *output_devic
   SDL_Log(audio_paused ? "Audio paused" : "Audio resumed");
 }
 
-void audio_cb_in(void *, uint8_t *stream, int len) {
+void audio_cb_in(void *userdata, uint8_t *stream, int len) {
+  (void)userdata; // suppress compiler warning
   SDL_QueueAudio(devid_out, stream, len);
 }
 
