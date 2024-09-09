@@ -152,12 +152,12 @@ int process_command(uint8_t *data, uint32_t size) {
       break;
     }
 
-    char *hwtype[4] = {"Headless", "Beta M8", "Production M8", "Production M8 Model:02"};
+    const char *hw_type[4] = {"Headless", "Beta M8", "Production M8", "Production M8 Model:02"};
 
     static int system_info_printed = 0;
 
     if (system_info_printed == 0) {
-      SDL_Log("** Hardware info ** Device type: %s, Firmware ver %d.%d.%d", hwtype[recv_buf[1]],
+      SDL_Log("** Hardware info ** Device type: %s, Firmware ver %d.%d.%d", hw_type[recv_buf[1]],
               recv_buf[2], recv_buf[3], recv_buf[4]);
       system_info_printed = 1;
     }

@@ -9,6 +9,7 @@
 #include "SDL2_inprint.h"
 #include "command.h"
 #include "fx_cube.h"
+#include "fx_piano.h"
 
 #include "font1.h"
 #include "font2.h"
@@ -19,7 +20,7 @@
 
 SDL_Window *win;
 SDL_Renderer *rend;
-SDL_Texture *maintexture;
+SDL_Texture *main_texture, *m8_texture, *fx_texture;
 SDL_Color background_color = (SDL_Color){.r = 0x00, .g = 0x00, .b = 0x00, .a = 0x00};
 
 static uint32_t ticks_fps;
@@ -29,6 +30,9 @@ static int m8_hardware_model = 0;
 static int screen_offset_y = 0;
 static int text_offset_y = 0;
 static int waveform_max_height = 24;
+static int note_column_y_min = 70;
+static int note_column_y_max = 140;
+static unsigned int special_fx = 0;
 
 static int texture_width = 320;
 static int texture_height = 240;
@@ -60,16 +64,28 @@ int initialize_sdl(const int init_fullscreen, const int init_use_gpu) {
 
   SDL_RenderSetLogicalSize(rend, texture_width, texture_height);
 
-  maintexture = NULL;
+  fx_texture = NULL;
+  fx_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
+                                 texture_width, texture_height);
 
-  maintexture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
-                                  texture_width, texture_height);
+  m8_texture = NULL;
+  m8_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
+                                   texture_width, texture_height);
 
-  SDL_SetRenderTarget(rend, maintexture);
+  SDL_SetTextureBlendMode(fx_texture, SDL_BLENDMODE_BLEND);
+  SDL_SetTextureBlendMode(m8_texture, SDL_BLENDMODE_BLEND);
 
+  main_texture = NULL;
+  main_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
+                                   texture_width, texture_height);
+
+  SDL_SetRenderTarget(rend, fx_texture);
+  SDL_SetRenderDrawColor(rend, 0x00, 0x00, 0x00, SDL_ALPHA_OPAQUE);
+  SDL_RenderClear(rend);
+
+  SDL_SetRenderTarget(rend, m8_texture);
   SDL_SetRenderDrawColor(rend, background_color.r, background_color.g, background_color.b,
                          background_color.a);
-
   SDL_RenderClear(rend);
 
   set_font_mode(0);
@@ -101,14 +117,23 @@ static void check_and_adjust_window_and_texture_size(const unsigned int new_widt
     SDL_SetWindowSize(win, texture_width * 2, texture_height * 2);
   }
 
-  SDL_DestroyTexture(maintexture);
+  SDL_DestroyTexture(main_texture);
+  SDL_DestroyTexture(m8_texture);
+  SDL_DestroyTexture(fx_texture);
 
   SDL_RenderSetLogicalSize(rend, texture_width, texture_height);
 
-  maintexture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
-                                  texture_width, texture_height);
+  main_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
+                                   texture_width, texture_height);
+  m8_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
+                                 texture_width, texture_height);
+  fx_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
+                                 texture_width, texture_height);
 
-  SDL_SetRenderTarget(rend, maintexture);
+  SDL_SetTextureBlendMode(fx_texture, SDL_BLENDMODE_BLEND);
+  SDL_SetTextureBlendMode(m8_texture, SDL_BLENDMODE_BLEND);
+
+  SDL_SetRenderTarget(rend, m8_texture);
 }
 
 // Set M8 hardware model in use. 0 = MK1, 1 = MK2
@@ -127,6 +152,10 @@ void set_m8_model(const unsigned int model) {
 }
 
 void set_font_mode(int mode) {
+
+  fx_piano_destroy();
+  special_fx = 0;
+
   if (mode < 0 || mode > 2) {
     // bad font mode
     return;
@@ -141,6 +170,10 @@ void set_font_mode(int mode) {
   screen_offset_y = fonts[mode]->screen_offset_y;
   text_offset_y = fonts[mode]->text_offset_y;
   waveform_max_height = fonts[mode]->waveform_max_height;
+  if (font_mode > 1) {
+    note_column_y_min = 96;
+    note_column_y_max = 196;
+  }
 
   change_font(fonts[mode]);
   SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "Font mode %i, Screen offset %i", mode, screen_offset_y);
@@ -148,7 +181,10 @@ void set_font_mode(int mode) {
 
 void close_renderer() {
   kill_inline_font();
-  SDL_DestroyTexture(maintexture);
+  fx_piano_destroy();
+  SDL_DestroyTexture(m8_texture);
+  SDL_DestroyTexture(fx_texture);
+  SDL_DestroyTexture(main_texture);
   SDL_DestroyRenderer(rend);
   SDL_DestroyWindow(win);
 }
@@ -165,10 +201,16 @@ void toggle_fullscreen() {
 
 int draw_character(struct draw_character_command *command) {
 
-  const uint32_t fgcolor =
+  const uint32_t fg_color =
       command->foreground.r << 16 | command->foreground.g << 8 | command->foreground.b;
-  const uint32_t bgcolor =
+  const uint32_t bg_color =
       command->background.r << 16 | command->background.g << 8 | command->background.b;
+
+  /* Note characters appear between y=70 and y=140, update the active notes
+    array used by visual effects */
+  if (command->pos.y >= note_column_y_min && command->pos.y <= note_column_y_max) {
+    update_active_notes_data(command, font_mode);
+  }
 
   /* Notes:
      If large font is enabled, offset the screen elements by a fixed amount.
@@ -177,8 +219,7 @@ int draw_character(struct draw_character_command *command) {
      both*/
 
   inprint(rend, (char *)&command->c, command->pos.x,
-          command->pos.y + text_offset_y + screen_offset_y, fgcolor,
-          bgcolor);
+          command->pos.y + text_offset_y + screen_offset_y, fg_color, bg_color);
 
   dirty = 1;
 
@@ -223,7 +264,7 @@ void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
   static uint8_t wfm_cleared = 0;
   static int prev_waveform_size = 0;
 
-  // If the waveform is not being displayed and it's already been cleared, skip
+  // If the waveform is not being displayed, and it's already been cleared, skip
   // rendering it
   if (!(wfm_cleared && command->waveform_size == 0)) {
 
@@ -278,34 +319,52 @@ void display_keyjazz_overlay(const uint8_t show, const uint8_t base_octave,
 
   const Uint16 overlay_offset_x = texture_width - (fonts[font_mode]->glyph_x * 7 + 1);
   const Uint16 overlay_offset_y = texture_height - (fonts[font_mode]->glyph_y + 1);
-  const Uint32 bgcolor =
-      background_color.r << 16 | background_color.g << 8 | background_color.b;
+  const Uint32 bg_color = background_color.r << 16 | background_color.g << 8 | background_color.b;
 
   if (show) {
     char overlay_text[7];
     snprintf(overlay_text, sizeof(overlay_text), "%02X %u", velocity, base_octave);
-    inprint(rend, overlay_text, overlay_offset_x, overlay_offset_y, 0xC8C8C8, bgcolor);
+    inprint(rend, overlay_text, overlay_offset_x, overlay_offset_y, 0xC8C8C8, bg_color);
     inprint(rend, "*", overlay_offset_x + (fonts[font_mode]->glyph_x * 5 + 5), overlay_offset_y,
-            0xFF0000, bgcolor);
+            0xFF0000, bg_color);
   } else {
-    inprint(rend, "      ", overlay_offset_x, overlay_offset_y, 0xC8C8C8, bgcolor);
+    inprint(rend, "      ", overlay_offset_x, overlay_offset_y, 0xC8C8C8, bg_color);
   }
 
   dirty = 1;
 }
 
+static void render_special_fx() {
+  switch (special_fx) {
+  case 1:
+    fx_piano_update();
+    break;
+  default:
+    break;
+  }
+}
+
 void render_screen() {
   if (dirty) {
     dirty = 0;
+
+    SDL_SetRenderTarget(rend, main_texture);
+    SDL_RenderCopy(rend, m8_texture, NULL, NULL);
+
+    if (special_fx) {
+      render_special_fx();
+      SDL_RenderCopy(rend, fx_texture, NULL, NULL);
+    }
+
     SDL_SetRenderTarget(rend, NULL);
 
     SDL_SetRenderDrawColor(rend, background_color.r, background_color.g, background_color.b,
                            background_color.a);
 
     SDL_RenderClear(rend);
-    SDL_RenderCopy(rend, maintexture, NULL, NULL);
+    SDL_RenderCopy(rend, main_texture, NULL, NULL);
     SDL_RenderPresent(rend);
-    SDL_SetRenderTarget(rend, maintexture);
+    SDL_SetRenderTarget(rend, m8_texture);
 
     fps++;
 
@@ -333,4 +392,20 @@ void screensaver_destroy() {
   fx_cube_destroy();
   set_font_mode(0);
   SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Screensaver destroyed");
+}
+
+int toggle_special_fx() {
+  special_fx++;
+  switch (special_fx) {
+  case 1:
+    fx_piano_init(fx_texture);
+    break;
+  case 2:
+    fx_piano_destroy();
+    special_fx = 0;
+    break;
+  default:
+    break;
+  }
+  return special_fx;
 }

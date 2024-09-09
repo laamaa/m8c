@@ -12,8 +12,8 @@
 #include "audio.h"
 #include "command.h"
 #include "config.h"
-#include "input.h"
 #include "gamecontrollers.h"
+#include "input.h"
 #include "render.h"
 #include "serial.h"
 #include "slip.h"
@@ -220,6 +220,9 @@ int main(const int argc, char *argv[]) {
           case msg_toggle_audio:
             toggle_audio(conf.audio_buffer_size, conf.audio_device_name);
             break;
+          case msg_toggle_overlay_fx:
+            toggle_special_fx();
+            break;
           default:
             break;
           }
@@ -284,9 +287,7 @@ int main(const int argc, char *argv[]) {
 
   // exit, clean up
   SDL_Log("Shutting down\n");
-  if (conf.audio_enabled == 1) {
-    audio_destroy();
-  }
+  audio_destroy();
   gamecontrollers_close();
   close_renderer();
   close_serial_port();

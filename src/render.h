@@ -20,6 +20,7 @@ void view_changed(int view);
 void render_screen();
 void toggle_fullscreen();
 void display_keyjazz_overlay(uint8_t show, uint8_t base_octave, uint8_t velocity);
+int toggle_special_fx();
 
 void screensaver_init();
 void screensaver_draw();

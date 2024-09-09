@@ -177,6 +177,8 @@ static input_msg_s handle_normal_keys(const SDL_Event *event, const config_param
     key = (input_msg_s){special, msg_reset_display, 0, 0};
   } else if (event->key.keysym.scancode == conf->key_toggle_audio) {
     key = (input_msg_s){special, msg_toggle_audio, 0, 0};
+  } else if (event->key.keysym.scancode == conf->key_toggle_overlay_fx) {
+    key = (input_msg_s){special, msg_toggle_overlay_fx, 0, 0};
   } else {
     key.value = 0;
   }
