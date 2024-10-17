@@ -25,7 +25,7 @@ static void audio_callback(void *userdata, Uint8 *stream, int len) {
 
   // If we didn't read the full len bytes, fill the rest with zeros
   if (read_len < len) {
-    SDL_memset(&stream[read_len], 0, len - read_len);
+    SDL_MixAudio(stream, &stream[read_len], len - read_len, SDL_MIX_MAXVOLUME);
   }
 }
 
@@ -45,6 +45,13 @@ static void cb_xfr(struct libusb_transfer *xfr) {
     const uint8_t *data = libusb_get_iso_packet_buffer_simple(xfr, i);
     if (sdl_audio_device_id != 0) {
       uint32_t actual = ring_buffer_push(audio_buffer, data, pack->actual_length);
+
+      if (audio_buffer->size < audio_buffer->max_size / 4) {
+        SDL_PauseAudio(1);
+      } else if (audio_buffer->size > audio_buffer->max_size / 3) {
+        SDL_PauseAudio(0);
+      }
+
       if (actual == -1) {
         SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Buffer overflow!");
       }

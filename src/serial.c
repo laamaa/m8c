@@ -89,7 +89,7 @@ int check_serial_port() {
   return device_found;
 }
 
-int init_serial(const int verbose, const char *preferred_device) {
+int init_serial(const int verbose, char *preferred_device) {
   if (m8_port != NULL) {
     // Port is already initialized
     return 1;
