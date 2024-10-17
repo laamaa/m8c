@@ -14,7 +14,7 @@ int init_serial_with_file_descriptor(int file_descriptor);
 #define serial_read_size 1024
 #endif
 
-int init_serial(int verbose, const char *preferred_device);
+int init_serial(int verbose, char *preferred_device);
 int list_devices();
 int check_serial_port();
 int reset_display();

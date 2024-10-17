@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "command_queue.h"
+#include "serial.h"
 #include "usb.h"
 
 static int ep_out_addr = 0x03;
@@ -109,6 +111,61 @@ retry:
   libusb_free_transfer(transfer);
 
   return actual_length;
+}
+
+int bulk_async_transfer(int endpoint, uint8_t *serial_buf, int count, unsigned int timeout_ms,
+                        void (*f)(struct libusb_transfer *), void *user_data) {
+  struct libusb_transfer *transfer;
+  transfer = libusb_alloc_transfer(1);
+  libusb_fill_bulk_stream_transfer(transfer, devh, endpoint, 0, serial_buf, count, f, user_data,
+                                   timeout_ms);
+  int r = libusb_submit_transfer(transfer);
+
+  if (r < 0) {
+    SDL_Log("Error");
+    libusb_free_transfer(transfer);
+    return r;
+  }
+  return 0;
+}
+
+void async_callback(struct libusb_transfer *xfr) {
+  if (xfr->status != LIBUSB_TRANSFER_COMPLETED) {
+    if (libusb_submit_transfer(xfr) < 0) {
+      SDL_Log("error re-submitting URB\n");
+    }
+    return;
+  }
+
+  int bytes_read = xfr->actual_length;
+  if (bytes_read < 0) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %d reading serial. \n", (int)bytes_read);
+    command_queue_push(NULL, 0);
+  } else if (bytes_read > 0) {
+    uint8_t *serial_buf = xfr->buffer;
+    uint8_t *cur = serial_buf;
+    const uint8_t *end = serial_buf + bytes_read;
+    slip_handler_s *slip = (slip_handler_s *)xfr->user_data;
+    while (cur < end) {
+      // process the incoming bytes into commands and draw them
+      int n = slip_read_byte(slip, *(cur++));
+      if (n != SLIP_NO_ERROR) {
+        if (n == SLIP_ERROR_INVALID_PACKET) {
+          SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Invalid SLIP packet!\n");
+
+        } else {
+          SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SLIP error %d\n", n);
+        }
+      }
+    }
+  }
+  if (libusb_submit_transfer(xfr) < 0) {
+    SDL_Log("error re-submitting URB\n");
+  }
+}
+
+int async_read(uint8_t *serial_buf, int count, slip_handler_s *slip) {
+  return bulk_async_transfer(ep_in_addr, serial_buf, count, 300, &async_callback, slip);
 }
 
 int blocking_write(void *buf, int count, unsigned int timeout_ms) {

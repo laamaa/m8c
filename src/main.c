@@ -11,12 +11,14 @@
 #include "SDL2_inprint.h"
 #include "audio.h"
 #include "command.h"
+#include "command_queue.h"
 #include "config.h"
-#include "input.h"
 #include "gamecontrollers.h"
+#include "input.h"
 #include "render.h"
 #include "serial.h"
 #include "slip.h"
+#include "usb.h"
 
 enum state { QUIT, WAIT_FOR_DEVICE, RUN };
 
@@ -40,6 +42,8 @@ int main(const int argc, char *argv[]) {
     SDL_Log("Using preferred device %s.\n", preferred_device);
   }
 
+  command_queue_init();
+
   // Initialize the config to defaults read in the params from the
   // configfile if present
   config_params_s conf = init_config();
@@ -58,15 +62,14 @@ int main(const int argc, char *argv[]) {
   static const slip_descriptor_s slip_descriptor = {
       .buf = slip_buffer,
       .buf_size = sizeof(slip_buffer),
-      .recv_message = process_command, // the function where complete slip
-                                       // packets are processed further
+      .recv_message = command_queue_push, // the function where complete slip
+                                          // packets are processed further
   };
 
   static slip_handler_s slip;
 
   uint8_t prev_input = 0;
   uint8_t prev_note = 0;
-  uint16_t zerobyte_packets = 0; // used to detect device disconnection
 
   signal(SIGINT, intHandler);
   signal(SIGTERM, intHandler);
@@ -108,6 +111,9 @@ int main(const int argc, char *argv[]) {
         reset_display();
       }
       run = RUN;
+#ifdef USE_LIBUSB
+      async_read(serial_buf, serial_read_size, &slip);
+#endif
     } else {
       SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected on begin loop.");
       if (conf.wait_for_device == 1) {
@@ -158,6 +164,9 @@ int main(const int argc, char *argv[]) {
               run = RUN;
               port_inited = 1;
               screensaver_destroy();
+#ifdef USE_LIBUSB
+              async_read(serial_buf, serial_read_size, &slip);
+#endif
             } else {
               SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected.");
               run = QUIT;
@@ -227,6 +236,8 @@ int main(const int argc, char *argv[]) {
         }
       }
 
+#ifndef USE_LIBUSB
+      uint16_t zerobyte_packets = 0; // used to detect device disconnection
       while (1) {
         // read serial port
         const int bytes_read = serial_read(serial_buf, serial_read_size);
@@ -276,7 +287,22 @@ int main(const int argc, char *argv[]) {
           break;
         }
       }
-      render_screen();
+#endif
+
+      uint8_t *command;
+      uint32_t command_size;
+      int draws = 0;
+      while (command_queue_pop(&command, &command_size) > 0) {
+        if (command_size == 0) {
+          run = QUIT;
+          break;
+        }
+        process_command(command, command_size);
+        draws++;
+      }
+      if (draws > 0) {
+        render_screen();
+      }
       SDL_Delay(conf.idle_ms);
     }
   } while (run > QUIT);
@@ -292,5 +318,6 @@ int main(const int argc, char *argv[]) {
   close_serial_port();
   SDL_free(serial_buf);
   SDL_Quit();
+  command_queue_destroy();
   return 0;
 }
