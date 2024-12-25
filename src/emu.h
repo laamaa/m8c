@@ -17,4 +17,8 @@ int emu_serial_read(uint8_t *serial_buf, int count);
 int emu_send_msg_controller(uint8_t input);
 int emu_send_msg_keyjazz(uint8_t note, uint8_t velocity);
 
+int emu_audio_init(unsigned int audio_buffer_size, const char *output_device_name);
+void emu_toggle_audio(unsigned int audio_buffer_size, const char *output_device_name);
+void emu_audio_destroy();
+
 #endif
