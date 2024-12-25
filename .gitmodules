@@ -1,0 +1,3 @@
+[submodule "emu/m8emu"]
+	path = emu/m8emu
+	url = https://github.com/xndcn/m8emu.git

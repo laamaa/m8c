@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(m8c LANGUAGES C)
+project(m8c LANGUAGES C CXX)
 
 set(CMAKE_C_FLAGS "-O2 -Wall -Wextra")
 
@@ -18,6 +18,12 @@ else ()
     link_directories(${SDL2_LIBRARY_DIRS} ${LIBSERIALPORT_LIBRARY_DIRS})
 endif (USE_LIBUSB)
 
+if (ENABLE_EMU)
+    add_subdirectory(emu)
+    set(EMU_LIBRARIES emu)
+    add_compile_definitions(ENABLE_EMU)
+endif (ENABLE_EMU)
+
 file(GLOB m8c_SRC "src/*.h" "src/*.c")
 
 set(MACOS_CONTENTS "${CMAKE_CURRENT_SOURCE_DIR}/package/macos/m8c.app/Contents")
@@ -29,13 +35,13 @@ set_source_files_properties(${APP_ICON} PROPERTIES
 add_executable(${APP_NAME} WIN32 MACOSX_BUNDLE ${APP_ICON} ${m8c_SRC})
 
 if (USE_LIBUSB)
-    target_link_libraries(${APP_NAME} ${SDL2_LIBRARIES} ${LIBUSB_LIBRARIES})
+    target_link_libraries(${APP_NAME} ${SDL2_LIBRARIES} ${LIBUSB_LIBRARIES} ${EMU_LIBRARIES})
     target_include_directories(${APP_NAME} PUBLIC ${SDL2_INCLUDE_DIRS} ${LIBUSB_INCLUDE_DIRS})
-    target_compile_options(${APP_NAME} PUBLIC ${SDL2_CFLAGS_OTHER} ${LIBUSB_CFLAGS_OTHER})
+    target_compile_options(${APP_NAME} PUBLIC ${SDL2_CFLAGS_OTHER} ${LIBUSB_CFLAGS_OTHER} ${EMU_CFLAGS_OTHER})
 else ()
-    target_link_libraries(${APP_NAME} ${SDL2_LIBRARIES} ${LIBSERIALPORT_LIBRARIES})
+    target_link_libraries(${APP_NAME} ${SDL2_LIBRARIES} ${LIBSERIALPORT_LIBRARIES} ${EMU_LIBRARIES})
     target_include_directories(${APP_NAME} PUBLIC ${SDL2_INCLUDE_DIRS} ${LIBSERIALPORT_INCLUDE_DIRS})
-    target_compile_options(${APP_NAME} PUBLIC ${SDL2_CFLAGS_OTHER} ${LIBSERIALPORT_CFLAGS_OTHER})
+    target_compile_options(${APP_NAME} PUBLIC ${SDL2_CFLAGS_OTHER} ${LIBSERIALPORT_CFLAGS_OTHER} ${EMU_CFLAGS_OTHER})
 endif ()
 
 if (APPLE)
