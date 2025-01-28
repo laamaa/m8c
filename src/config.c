@@ -18,10 +18,14 @@ static int strcmpci(const char *a, const char *b) {
   }
 }
 
-config_params_s init_config() {
+config_params_s init_config(char *filename) {
   config_params_s c;
 
-  c.filename = "config.ini"; // default config file to load
+  if (filename == NULL) {
+    c.filename = "config.ini"; // default config file to load
+  } else {
+    c.filename = filename;
+  }
 
   c.init_fullscreen = 0; // default fullscreen state at load
   c.init_use_gpu = 1;    // default to use hardware acceleration

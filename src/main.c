@@ -40,9 +40,15 @@ int main(const int argc, char *argv[]) {
     SDL_Log("Using preferred device %s.\n", preferred_device);
   }
 
+  char *config_filename = NULL;
+  if (argc == 3 && SDL_strcmp(argv[1], "--config") == 0) {
+    config_filename = argv[2];
+    SDL_Log("Using config file %s.\n", config_filename);
+  }
+
   // Initialize the config to defaults read in the params from the
   // configfile if present
-  config_params_s conf = init_config();
+  config_params_s conf = init_config(config_filename);
 
   // TODO: take cli parameter to override default configfile location
   read_config(&conf);
