@@ -8,10 +8,11 @@ on:
 jobs:
      
   build-macos:
-    runs-on: macos-12
+    runs-on: macos-14
     env:
-      SDL_VERSION: 2.30.4
-    
+      SDL_VERSION: 2.32.0
+      SDL_SHA256: f5c2b52498785858f3de1e2996eba3c1b805d08fe168a47ea527c7fc339072d0
+      
     steps:
       - name: 'Install dependencies'
         run: brew install cmake pkg-config autoconf automake libtool
