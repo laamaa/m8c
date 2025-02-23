@@ -41,6 +41,7 @@ jobs:
     - name: 'Build libserialport manually'
       run: |
         wget https://github.com/sigrokproject/libserialport/archive/refs/heads/master.zip
+        unzip master.zip
         pushd libserialport-master
         ./autogen.sh
         ./configure
