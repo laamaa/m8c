@@ -323,7 +323,7 @@ void read_key_config(const ini_t *ini, config_params_s *conf) {
   if (key_jazz_dec_velocity)
     conf->key_jazz_dec_velocity = SDL_atoi(key_jazz_dec_velocity);
   if (key_toggle_audio)
-    conf->key_jazz_dec_velocity = SDL_atoi(key_toggle_audio);
+    conf->key_toggle_audio = SDL_atoi(key_toggle_audio);
 }
 
 void read_gamepad_config(const ini_t *ini, config_params_s *conf) {
