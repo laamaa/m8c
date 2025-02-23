@@ -36,7 +36,7 @@ jobs:
       with:
         msystem: ${{ matrix.sys }}
         update: true
-        install: mingw-w64-${{ matrix.env }}-toolchain make mingw-w64-${{ matrix.env }}-SDL2 zip dos2unix autoconf automake-wrapper libtool make
+        install: mingw-w64-${{ matrix.env }}-toolchain make mingw-w64-${{ matrix.env }}-SDL2 zip dos2unix autoconf automake-wrapper libtool make unzip
 
     - name: 'Build libserialport manually'
       run: |
