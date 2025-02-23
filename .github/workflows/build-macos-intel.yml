@@ -24,14 +24,14 @@ jobs:
           path: '/Users/runner/x86_64'
           key: mac-x86_64-files
           
-      - name: 'Download 10.9 SDK for x86_64'
+      - name: 'Download 10.7 SDK for x86_64'
         if: steps.cache-x86_64-files.outputs.cache-hit != 'true'
         run: |
           mkdir -p "$HOME/x86_64"
           pushd "$HOME/x86_64"
           mkdir SDKs
           cd SDKs
-          curl -L "https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX10.9.sdk.tar.xz" | tar -xvf -
+          curl -L "https://github.com/alexey-lysiuk/macos-sdk/releases/download/10.7/MacOSX10.7.tar.bz2" | tar -xvf -
           popd
 
       - name: 'Checkout'
@@ -59,7 +59,7 @@ jobs:
           pushd SDL2-$SDL_VERSION
           mkdir build_x86_64
           cd build_x86_64
-          ../configure CPPFLAGS="-arch x86_64 -mmacosx-version-min=10.7 -DMAC_OS_X_VERSION_MIN_REQUIRED=1070 -isysroot $HOME/x86_64/SDKs/MacOSX10.9.sdk" CFLAGS="-arch x86_64" CXXFLAGS="-arch x86_64" LDFLAGS="-arch x86_64 -F$HOME/x86_64/SDKs/MacOSX10.9.sdk/System/Library/Frameworks -L/usr/lib -L/usr/lib/system -Wl,-syslibroot,$HOME/x86_64/SDKs/MacOSX10.9.sdk" --host=x86_64-apple-darwin13 --prefix="$HOME/x86_64prefix"
+          ../configure CPPFLAGS="-arch x86_64 -mmacosx-version-min=10.7 -DMAC_OS_X_VERSION_MIN_REQUIRED=1070 -isysroot $HOME/x86_64/SDKs/MacOSX10.7.sdk" CFLAGS="-arch x86_64" CXXFLAGS="-arch x86_64" LDFLAGS="-arch x86_64 -F$HOME/x86_64/SDKs/MacOSX10.7.sdk/System/Library/Frameworks -L/usr/lib -L/usr/lib/system -Wl,-syslibroot,$HOME/x86_64/SDKs/MacOSX10.7.sdk" --host=x86_64-apple-darwin13 --prefix="$HOME/x86_64prefix"
           make
           popd
 
@@ -78,7 +78,7 @@ jobs:
           pushd libserialport-master
           mkdir autostuff
           autoreconf -I"$HOME/x86_64prefix/share/aclocal" -i
-          export MACOSX_DEPLOYMENT_TARGET="10.9" && mkdir build_x86_64 && cd build_x86_64 && ../configure CFLAGS="-arch x86_64 -mmacosx-version-min=10.7 -DMAC_OS_X_VERSION_MIN_REQUIRED=1070 -isysroot $HOME/x86_64/SDKs/MacOSX10.9.sdk" --prefix="$HOME/x86_64prefix" && make && make install
+          export MACOSX_DEPLOYMENT_TARGET="10.7" && mkdir build_x86_64 && cd build_x86_64 && ../configure CFLAGS="-arch x86_64 -mmacosx-version-min=10.7 -DMAC_OS_X_VERSION_MIN_REQUIRED=1070 -isysroot $HOME/x86_64/SDKs/MacOSX10.7.sdk" LDFLAGS="-arch x86_64 -F$HOME/x86_64/SDKs/MacOSX10.7.sdk/System/Library/Frameworks -L/usr/lib -L/usr/lib/system -Wl,-syslibroot,$HOME/x86_64/SDKs/MacOSX10.7.sdk" --host=x86_64-apple-darwin13 --prefix="$HOME/x86_64prefix" && make && make install
           popd
 
       - name: 'Build m8c'
