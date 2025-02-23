@@ -36,8 +36,19 @@ jobs:
       with:
         msystem: ${{ matrix.sys }}
         update: true
-        install: mingw-w64-${{ matrix.env }}-toolchain make mingw-w64-${{ matrix.env }}-SDL2 mingw-w64-${{ matrix.env }}-libserialport zip dos2unix
-  
+        install: mingw-w64-${{ matrix.env }}-toolchain make mingw-w64-${{ matrix.env }}-SDL2 zip dos2unix autoconf automake-wrapper libtool make unzip
+
+    - name: 'Build libserialport manually'
+      run: |
+        wget https://github.com/sigrokproject/libserialport/archive/refs/heads/master.zip
+        unzip master.zip
+        pushd libserialport-master
+        ./autogen.sh
+        ./configure
+        make
+        make install
+        popd
+
     - name: Set current date as env variable
       run: echo "NOW=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
