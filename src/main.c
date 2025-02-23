@@ -49,8 +49,6 @@ int main(const int argc, char *argv[]) {
   // Initialize the config to defaults read in the params from the
   // configfile if present
   config_params_s conf = init_config(config_filename);
-
-  // TODO: take cli parameter to override default configfile location
   read_config(&conf);
 
   // allocate memory for serial buffer
