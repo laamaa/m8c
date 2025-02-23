@@ -166,6 +166,14 @@ If the file does not exist, it will be created in one of these locations:
 * Linux: `/home/<username>/.local/share/m8c/config.ini`
 * MacOS: `/Users/<username>/Library/Application Support/m8c/config.ini`
 
+You can choose to load an alternate configuration with the `--config` command line option. Example:
+
+```
+m8c --config alternate_config.ini
+```
+
+This looks for a config file with the given name in the same directory as the default config. If you specify a config file that does not exist, a new default config file with the specified name will be created, which you can then edit.
+
 Enjoy making some nice music!
 
 -----------
