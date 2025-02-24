@@ -5,10 +5,10 @@ OBJ = src/main.o src/serial.o src/slip.o src/command.o src/render.o src/ini.o sr
 DEPS = src/serial.h src/slip.h src/command.h src/render.h src/ini.h src/config.h src/input.h src/gamecontrollers.h src/fx_cube.h src/audio.h src/ringbuffer.h src/inline_font.h
 
 #Any special libraries you are using in your project (e.g. -lbcm2835 -lrt `pkg-config --libs gtk+-3.0` ), or leave blank
-INCLUDES = $(shell pkg-config --libs sdl2 libserialport | sed 's/-mwindows//')
+INCLUDES = $(shell pkg-config --libs sdl3 libserialport | sed 's/-mwindows//')
 
 #Set any compiler flags you want to use (e.g. -I/usr/include/somefolder `pkg-config --cflags gtk+-3.0` ), or leave blank
-local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl2 libserialport) -Wall -Wextra -O2 -pipe -I.
+local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl3 libserialport) -Wall -Wextra -O2 -pipe -I.
 
 #Set the compiler you are using ( gcc for C or g++ for C++ )
 CC = gcc
@@ -27,8 +27,8 @@ SOURCE_DIR = src/
 m8c: $(OBJ)
 	$(CC) -o $@ $^ $(local_CFLAGS) $(INCLUDES)
 
-libusb: INCLUDES = $(shell pkg-config --libs sdl2 libusb-1.0)
-libusb: local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl2 libusb-1.0) -Wall -O2 -pipe -I. -DUSE_LIBUSB=1
+libusb: INCLUDES = $(shell pkg-config --libs sdl3 libusb-1.0)
+libusb: local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl3 libusb-1.0) -Wall -O2 -pipe -I. -DUSE_LIBUSB=1
 libusb: m8c
 
 #Cleanup

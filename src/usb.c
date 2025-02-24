@@ -5,7 +5,7 @@
 // public domain
 #ifdef USE_LIBUSB
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <libusb.h>
 #include <stdlib.h>
 #include <string.h>

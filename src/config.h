@@ -9,7 +9,6 @@
 typedef struct config_params_s {
   char *filename;
   unsigned int init_fullscreen;
-  unsigned int init_use_gpu;
   unsigned int idle_ms;
   unsigned int wait_for_device;
   unsigned int wait_packets;

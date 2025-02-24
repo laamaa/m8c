@@ -2,7 +2,7 @@
 #include "config.h"
 #include "gamecontrollers.h"
 #include "render.h"
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 uint8_t keyjazz_enabled = 0;
 uint8_t keyjazz_base_octave = 2;
@@ -20,7 +20,7 @@ uint8_t toggle_input_keyjazz() {
 
 static input_msg_s handle_keyjazz(SDL_Event *event, uint8_t keyvalue, config_params_s *conf) {
   input_msg_s key = {keyjazz, keyvalue, keyjazz_velocity, event->type};
-  switch (event->key.keysym.scancode) {
+  switch (event->key.scancode) {
   case SDL_SCANCODE_Z:
     key.value = keyjazz_base_octave * 12;
     break;
@@ -110,21 +110,21 @@ static input_msg_s handle_keyjazz(SDL_Event *event, uint8_t keyvalue, config_par
     break;
   default:
     key.type = normal;
-    if (event->key.repeat > 0 || event->key.type == SDL_KEYUP) {
+    if (event->key.repeat > 0 || event->key.type == SDL_EVENT_KEY_UP) {
       break;
     }
-    if (event->key.keysym.scancode == conf->key_jazz_dec_octave) {
+    if (event->key.scancode == conf->key_jazz_dec_octave) {
       if (keyjazz_base_octave > 0) {
         keyjazz_base_octave--;
         display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
       }
-    } else if (event->key.keysym.scancode == conf->key_jazz_inc_octave) {
+    } else if (event->key.scancode == conf->key_jazz_inc_octave) {
       if (keyjazz_base_octave < 8) {
         keyjazz_base_octave++;
         display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
       }
-    } else if (event->key.keysym.scancode == conf->key_jazz_dec_velocity) {
-      if ((event->key.keysym.mod & KMOD_ALT) > 0) {
+    } else if (event->key.scancode == conf->key_jazz_dec_velocity) {
+      if ((event->key.mod & SDL_KMOD_ALT) > 0) {
         if (keyjazz_velocity > 1)
           keyjazz_velocity -= 1;
       } else {
@@ -132,8 +132,8 @@ static input_msg_s handle_keyjazz(SDL_Event *event, uint8_t keyvalue, config_par
           keyjazz_velocity -= 0x10;
       }
       display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
-    } else if (event->key.keysym.scancode == conf->key_jazz_inc_velocity) {
-      if ((event->key.keysym.mod & KMOD_ALT) > 0) {
+    } else if (event->key.scancode == conf->key_jazz_inc_velocity) {
+      if ((event->key.mod & SDL_KMOD_ALT) > 0) {
         if (keyjazz_velocity < 0x7F)
           keyjazz_velocity += 1;
       } else {
@@ -151,31 +151,31 @@ static input_msg_s handle_keyjazz(SDL_Event *event, uint8_t keyvalue, config_par
 static input_msg_s handle_normal_keys(const SDL_Event *event, const config_params_s *conf) {
   input_msg_s key = {normal, 0, 0, 0};
 
-  if (event->key.keysym.scancode == conf->key_up) {
+  if (event->key.scancode == conf->key_up) {
     key.value = key_up;
-  } else if (event->key.keysym.scancode == conf->key_left) {
+  } else if (event->key.scancode == conf->key_left) {
     key.value = key_left;
-  } else if (event->key.keysym.scancode == conf->key_down) {
+  } else if (event->key.scancode == conf->key_down) {
     key.value = key_down;
-  } else if (event->key.keysym.scancode == conf->key_right) {
+  } else if (event->key.scancode == conf->key_right) {
     key.value = key_right;
-  } else if (event->key.keysym.scancode == conf->key_select ||
-             event->key.keysym.scancode == conf->key_select_alt) {
+  } else if (event->key.scancode == conf->key_select ||
+             event->key.scancode == conf->key_select_alt) {
     key.value = key_select;
-  } else if (event->key.keysym.scancode == conf->key_start ||
-             event->key.keysym.scancode == conf->key_start_alt) {
+  } else if (event->key.scancode == conf->key_start ||
+             event->key.scancode == conf->key_start_alt) {
     key.value = key_start;
-  } else if (event->key.keysym.scancode == conf->key_opt ||
-             event->key.keysym.scancode == conf->key_opt_alt) {
+  } else if (event->key.scancode == conf->key_opt ||
+             event->key.scancode == conf->key_opt_alt) {
     key.value = key_opt;
-  } else if (event->key.keysym.scancode == conf->key_edit ||
-             event->key.keysym.scancode == conf->key_edit_alt) {
+  } else if (event->key.scancode == conf->key_edit ||
+             event->key.scancode == conf->key_edit_alt) {
     key.value = key_edit;
-  } else if (event->key.keysym.scancode == conf->key_delete) {
+  } else if (event->key.scancode == conf->key_delete) {
     key.value = key_opt | key_edit;
-  } else if (event->key.keysym.scancode == conf->key_reset) {
+  } else if (event->key.scancode == conf->key_reset) {
     key = (input_msg_s){special, msg_reset_display, 0, 0};
-  } else if (event->key.keysym.scancode == conf->key_toggle_audio) {
+  } else if (event->key.scancode == conf->key_toggle_audio) {
     key = (input_msg_s){special, msg_toggle_audio, 0, 0};
   } else {
     key.value = 0;
@@ -207,53 +207,51 @@ void handle_sdl_events(config_params_s *conf) {
     switch (event.type) {
 
     // Reinitialize game controllers on controller add/remove/remap
-    case SDL_CONTROLLERDEVICEADDED:
-    case SDL_CONTROLLERDEVICEREMOVED:
+    case SDL_EVENT_GAMEPAD_ADDED:
+    case SDL_EVENT_GAMEPAD_REMOVED:
       gamecontrollers_initialize();
       break;
 
     // Handle SDL quit events (for example, window close)
-    case SDL_QUIT:
+    case SDL_EVENT_QUIT:
       key = (input_msg_s){special, msg_quit, 0, 0};
       break;
 
-    case SDL_WINDOWEVENT:
-      if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
+    case SDL_EVENT_WINDOW_RESIZED:
         static uint32_t ticks_window_resized = 0;
         if (SDL_GetTicks() - ticks_window_resized > 500) {
           SDL_Log("Resizing window...");
           key = (input_msg_s){special, msg_reset_display, 0, 0};
           ticks_window_resized = SDL_GetTicks();
         }
-      }
       break;
 
-    case SDL_KEYDOWN:
+    case SDL_EVENT_KEY_DOWN:
 
       if (event.key.repeat > 0) {
         break;
       }
 
       // ALT+ENTER toggles fullscreen
-      if (event.key.keysym.sym == SDLK_RETURN && (event.key.keysym.mod & KMOD_ALT) > 0) {
+      if (event.key.key == SDLK_RETURN && (event.key.mod & SDL_KMOD_ALT) > 0) {
         toggle_fullscreen();
         break;
       }
 
       // ALT+F4 quits program
-      if (event.key.keysym.sym == SDLK_F4 && (event.key.keysym.mod & KMOD_ALT) > 0) {
+      if (event.key.key == SDLK_F4 && (event.key.mod & SDL_KMOD_ALT) > 0) {
         key = (input_msg_s){special, msg_quit, 0, 0};
         break;
       }
 
       // ESC = toggle keyjazz
-      if (event.key.keysym.sym == SDLK_ESCAPE) {
+      if (event.key.key == SDLK_ESCAPE) {
         display_keyjazz_overlay(toggle_input_keyjazz(), keyjazz_base_octave, keyjazz_velocity);
         break;
       }
 
     // Intentional fallthrough
-    case SDL_KEYUP:
+    case SDL_EVENT_KEY_UP:
 
       // Normal keyboard inputs
       key = handle_normal_keys(&event, conf);
@@ -269,18 +267,18 @@ void handle_sdl_events(config_params_s *conf) {
 
     switch (key.type) {
     case normal:
-      if (event.type == SDL_KEYDOWN) {
+      if (event.type == SDL_EVENT_KEY_DOWN) {
         keycode |= key.value;
-      } else if (event.type == SDL_KEYUP) {
+      } else if (event.type == SDL_EVENT_KEY_UP) {
         keycode &= ~key.value;
       }
       break;
     case keyjazz:
       // Do not allow pressing multiple keys with keyjazz
     case special:
-      if (event.type == SDL_KEYDOWN) {
+      if (event.type == SDL_EVENT_KEY_DOWN) {
         keycode = key.value;
-      } else if (event.type == SDL_KEYUP) {
+      } else if (event.type == SDL_EVENT_KEY_UP) {
         keycode = 0;
       }
       break;

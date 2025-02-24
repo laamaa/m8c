@@ -14,7 +14,7 @@ jobs:
       - name: 'Install dependencies'
         run: |
           sudo apt-get update
-          sudo apt-get install --fix-missing build-essential libsdl2-dev libserialport-dev zip
+          sudo apt-get install --fix-missing build-essential libsdl3-dev libserialport-dev zip
       - name: 'Checkout'
         uses: actions/checkout@v4
 
@@ -27,7 +27,7 @@ jobs:
       - name: 'Upload artifact'
         uses: actions/upload-artifact@v4
         with:
-          name: m8c-${{ env.NOW }}-linux
+          name: m8c-${{ env.NOW }}-linux-x86_64
           path: |
             LICENSE
             README.md

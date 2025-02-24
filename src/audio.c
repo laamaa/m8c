@@ -2,7 +2,7 @@
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 #ifndef USE_LIBUSB
 #include "audio.h"
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <stdint.h>
 
 static SDL_AudioDeviceID devid_in = 0;
@@ -12,23 +12,24 @@ static unsigned int audio_paused = 0;
 static unsigned int audio_initialized = 0;
 
 void toggle_audio(const unsigned int audio_buffer_size, const char *output_device_name) {
-  if (!audio_initialized) {
+  /*if (!audio_initialized) {
     audio_init(audio_buffer_size, output_device_name);
     return;
   }
   audio_paused = !audio_paused;
   SDL_PauseAudioDevice(devid_in, audio_paused);
   SDL_PauseAudioDevice(devid_out, audio_paused);
-  SDL_Log(audio_paused ? "Audio paused" : "Audio resumed");
+  SDL_Log(audio_paused ? "Audio paused" : "Audio resumed");*/
 }
 
-void audio_cb_in(void *userdata, uint8_t *stream, int len) {
-  (void)userdata; // suppress compiler warning
-  SDL_QueueAudio(devid_out, stream, len);
+void SDLCALL audio_cb_in(void *userdata, uint8_t *stream, int len) {
+  /*(void)userdata; // suppress compiler warning
+  SDL_QueueAudio(devid_out, stream, len);*/
 }
 
 int audio_init(const unsigned int audio_buffer_size, const char *output_device_name) {
 
+  /*
   int m8_device_id = -1;
 
   // wait for system to initialize possible new audio devices
@@ -59,9 +60,8 @@ int audio_init(const unsigned int audio_buffer_size, const char *output_device_n
   // Open output device first to avoid possible Directsound errors
   SDL_zero(want_out);
   want_out.freq = 44100;
-  want_out.format = AUDIO_S16;
+  want_out.format = SDL_AUDIO_S16LE;
   want_out.channels = 2;
-  want_out.samples = audio_buffer_size;
   devid_out =
       SDL_OpenAudioDevice(output_device_name, 0, &want_out, &have_out, SDL_AUDIO_ALLOW_ANY_CHANGE);
   if (devid_out == 0) {
@@ -71,10 +71,8 @@ int audio_init(const unsigned int audio_buffer_size, const char *output_device_n
 
   SDL_zero(want_in);
   want_in.freq = 44100;
-  want_in.format = AUDIO_S16;
+  want_in.format = SDL_AUDIO_S16LE;
   want_in.channels = 2;
-  want_in.samples = audio_buffer_size;
-  want_in.callback = audio_cb_in;
   devid_in = SDL_OpenAudioDevice(SDL_GetAudioDeviceName(m8_device_id, SDL_TRUE), SDL_TRUE, &want_in,
                                  &have_in, SDL_AUDIO_ALLOW_ANY_CHANGE);
   if (devid_in == 0) {
@@ -84,25 +82,23 @@ int audio_init(const unsigned int audio_buffer_size, const char *output_device_n
 
   // Start audio processing
   SDL_Log("Opening audio devices");
-  SDL_PauseAudioDevice(devid_in, 0);
-  SDL_PauseAudioDevice(devid_out, 0);
 
   audio_paused = 0;
   audio_initialized = 1;
 
-  return 1;
+  return 1;*/
 }
 
 void audio_destroy() {
-  if (!audio_initialized)
+  /*if (!audio_initialized)
     return;
   SDL_Log("Closing audio devices");
-  SDL_PauseAudioDevice(devid_in, 1);
-  SDL_PauseAudioDevice(devid_out, 1);
+  SDL_PauseAudioDevice(devid_in);
+  SDL_PauseAudioDevice(devid_out);
   SDL_CloseAudioDevice(devid_in);
   SDL_CloseAudioDevice(devid_out);
 
-  audio_initialized = 0;
+  audio_initialized = 0;*/
 }
 
 #endif

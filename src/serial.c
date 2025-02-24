@@ -5,7 +5,7 @@
 // public domain
 
 #ifndef USE_LIBUSB
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <libserialport.h>
 #include <stdio.h>
 #include <stdlib.h>

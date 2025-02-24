@@ -3,7 +3,7 @@
 
 #include "render.h"
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <stdio.h>
 
 #include "SDL2_inprint.h"
@@ -17,15 +17,18 @@
 #include "font5.h"
 #include "inline_font.h"
 
+#include <stdlib.h>
+
 SDL_Window *win;
 SDL_Renderer *rend;
-SDL_Texture *maintexture;
+SDL_Texture *main_texture;
 SDL_Color background_color = (SDL_Color){.r = 0x00, .g = 0x00, .b = 0x00, .a = 0x00};
+SDL_RendererLogicalPresentation scaling_mode = SDL_LOGICAL_PRESENTATION_INTEGER_SCALE;
 
 static uint32_t ticks_fps;
 static int fps;
 static int font_mode = -1;
-static int m8_hardware_model = 0;
+static unsigned int m8_hardware_model = 0;
 static int screen_offset_y = 0;
 static int text_offset_y = 0;
 static int waveform_max_height = 24;
@@ -41,31 +44,31 @@ uint8_t fullscreen = 0;
 static uint8_t dirty = 0;
 
 // Initializes SDL and creates a renderer and required surfaces
-int initialize_sdl(const int init_fullscreen, const int init_use_gpu) {
+int initialize_sdl(const unsigned int init_fullscreen) {
 
-  if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
+  if (SDL_Init(SDL_INIT_AUDIO|SDL_INIT_VIDEO|SDL_INIT_EVENTS|SDL_INIT_GAMEPAD) == false) {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "SDL_Init: %s\n", SDL_GetError());
-    return -1;
+    return false;
   }
 
   // SDL documentation recommends this
   atexit(SDL_Quit);
 
   win = SDL_CreateWindow(
-      "m8c", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, texture_width * 2, texture_height * 2,
-      SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | init_fullscreen);
+      "m8c", texture_width * 2, texture_height * 2,
+      SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | init_fullscreen);
 
   rend =
-      SDL_CreateRenderer(win, -1, init_use_gpu ? SDL_RENDERER_ACCELERATED : SDL_RENDERER_SOFTWARE);
+      SDL_CreateRenderer(win, NULL);
 
-  SDL_RenderSetLogicalSize(rend, texture_width, texture_height);
+  SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height, scaling_mode);
 
-  maintexture = NULL;
+  main_texture = NULL;
 
-  maintexture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
+  main_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
                                   texture_width, texture_height);
 
-  SDL_SetRenderTarget(rend, maintexture);
+  SDL_SetRenderTarget(rend, main_texture);
 
   SDL_SetRenderDrawColor(rend, background_color.r, background_color.g, background_color.b,
                          background_color.a);
@@ -74,7 +77,7 @@ int initialize_sdl(const int init_fullscreen, const int init_use_gpu) {
 
   set_font_mode(0);
 
-  SDL_LogSetAllPriority(SDL_LOG_PRIORITY_INFO);
+  SDL_SetLogPriorities(SDL_LOG_PRIORITY_INFO);
 
   dirty = 1;
 
@@ -87,8 +90,8 @@ static void change_font(struct inline_font *font) {
   prepare_inline_font(font);
 }
 
-static void check_and_adjust_window_and_texture_size(const unsigned int new_width,
-                                                     const unsigned int new_height) {
+static void check_and_adjust_window_and_texture_size(const int new_width,
+                                                     const int new_height) {
 
   int h, w;
 
@@ -101,28 +104,25 @@ static void check_and_adjust_window_and_texture_size(const unsigned int new_widt
     SDL_SetWindowSize(win, texture_width * 2, texture_height * 2);
   }
 
-  SDL_DestroyTexture(maintexture);
+  SDL_DestroyTexture(main_texture);
 
-  SDL_RenderSetLogicalSize(rend, texture_width, texture_height);
+  SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height, scaling_mode);
 
-  maintexture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
+  main_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
                                   texture_width, texture_height);
 
-  SDL_SetRenderTarget(rend, maintexture);
+  SDL_SetRenderTarget(rend, main_texture);
 }
 
 // Set M8 hardware model in use. 0 = MK1, 1 = MK2
 void set_m8_model(const unsigned int model) {
 
-  switch (model) {
-  case 1:
+  if (model == 1) {
     m8_hardware_model = 1;
     check_and_adjust_window_and_texture_size(480, 320);
-    break;
-  default:
+  } else {
     m8_hardware_model = 0;
     check_and_adjust_window_and_texture_size(320, 240);
-    break;
   }
 }
 
@@ -148,17 +148,23 @@ void set_font_mode(int mode) {
 
 void close_renderer() {
   kill_inline_font();
-  SDL_DestroyTexture(maintexture);
+  SDL_DestroyTexture(main_texture);
   SDL_DestroyRenderer(rend);
   SDL_DestroyWindow(win);
 }
 
 void toggle_fullscreen() {
 
-  const int fullscreen_state = SDL_GetWindowFlags(win) & SDL_WINDOW_FULLSCREEN;
+  const unsigned long fullscreen_state = SDL_GetWindowFlags(win) & SDL_WINDOW_FULLSCREEN;
 
-  SDL_SetWindowFullscreen(win, fullscreen_state ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
-  SDL_ShowCursor(fullscreen_state);
+  SDL_SetWindowFullscreen(win, fullscreen_state ? false : true);
+  SDL_SyncWindow(win);
+  if (fullscreen_state) {
+    // Show cursor when in windowed state
+    SDL_ShowCursor();
+  } else {
+    SDL_HideCursor();
+  }
 
   dirty = 1;
 }
@@ -187,7 +193,7 @@ int draw_character(struct draw_character_command *command) {
 
 void draw_rectangle(struct draw_rectangle_command *command) {
 
-  SDL_Rect render_rect;
+  SDL_FRect render_rect;
 
   render_rect.x = command->pos.x;
   render_rect.y = command->pos.y + screen_offset_y;
@@ -227,7 +233,7 @@ void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
   // rendering it
   if (!(wfm_cleared && command->waveform_size == 0)) {
 
-    SDL_Rect wf_rect;
+    SDL_FRect wf_rect;
     if (command->waveform_size > 0) {
       wf_rect.x = texture_width - command->waveform_size;
       wf_rect.y = 0;
@@ -248,7 +254,7 @@ void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
     SDL_SetRenderDrawColor(rend, command->color.r, command->color.g, command->color.b, 255);
 
     // Create a SDL_Point array of the waveform pixels for batch drawing
-    SDL_Point waveform_points[command->waveform_size];
+    SDL_FPoint waveform_points[command->waveform_size];
 
     for (int i = 0; i < command->waveform_size; i++) {
       // Limit value because the oscilloscope commands seem to glitch
@@ -260,7 +266,7 @@ void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
       waveform_points[i].y = command->waveform[i];
     }
 
-    SDL_RenderDrawPoints(rend, waveform_points, command->waveform_size);
+    SDL_RenderPoints(rend, waveform_points, command->waveform_size);
 
     // The packet we just drew was an empty waveform
     if (command->waveform_size == 0) {
@@ -303,9 +309,9 @@ void render_screen() {
                            background_color.a);
 
     SDL_RenderClear(rend);
-    SDL_RenderCopy(rend, maintexture, NULL, NULL);
+    SDL_RenderTexture(rend, main_texture, NULL, NULL);
     SDL_RenderPresent(rend);
-    SDL_SetRenderTarget(rend, maintexture);
+    SDL_SetRenderTarget(rend, main_texture);
 
     fps++;
 

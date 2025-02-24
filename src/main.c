@@ -5,7 +5,7 @@
    CFLAGS=-DDEBUG_MSG` */
 // #define DEBUG_MSG
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <signal.h>
 
 #include "SDL2_inprint.h"
@@ -55,7 +55,6 @@ int main(const int argc, char *argv[]) {
   uint8_t *serial_buf = SDL_malloc(serial_read_size);
 
   static uint8_t slip_buffer[serial_read_size]; // SLIP command buffer
-
   SDL_zero(slip_buffer);
 
   // settings for the slip packet handler
@@ -71,6 +70,7 @@ int main(const int argc, char *argv[]) {
   uint8_t prev_input = 0;
   uint8_t prev_note = 0;
   uint16_t zerobyte_packets = 0; // used to detect device disconnection
+  uint8_t port_inited = 0;
 
   signal(SIGINT, intHandler);
   signal(SIGTERM, intHandler);
@@ -82,14 +82,19 @@ int main(const int argc, char *argv[]) {
   // First device detection to avoid SDL init if it isn't necessary. To be run
   // only if we shouldn't wait for M8 to be connected.
   if (conf.wait_for_device == 0) {
-    if (init_serial(1, preferred_device) == 0) {
+    port_inited = init_serial(1, preferred_device);
+    if (port_inited == 0) {
       SDL_free(serial_buf);
-      return -1;
+      return 1;
     }
   }
 
   // initialize all SDL systems
-  if (initialize_sdl(conf.init_fullscreen, conf.init_use_gpu) == -1)
+  if (initialize_sdl(conf.init_fullscreen) == false) {
+    SDL_free(serial_buf);
+    SDL_Quit();
+    return 1;
+  }
     run = QUIT;
 
   // initial scan for (existing) game controllers
@@ -102,7 +107,7 @@ int main(const int argc, char *argv[]) {
   // main loop begin
   do {
     // try to init serial port
-    int port_inited = init_serial(1, preferred_device);
+    port_inited = init_serial(1, preferred_device);
     // if port init was successful, try to enable and reset display
     if (port_inited == 1 && enable_and_reset_display() == 1) {
       // if audio routing is enabled, try to initialize audio devices
@@ -201,10 +206,10 @@ int main(const int argc, char *argv[]) {
         break;
       case keyjazz:
         if (input.value != 0) {
-          if (input.eventType == SDL_KEYDOWN && input.value != prev_input) {
+          if (input.eventType == SDL_EVENT_KEY_DOWN && input.value != prev_input) {
             send_msg_keyjazz(input.value, input.value2);
             prev_note = input.value;
-          } else if (input.eventType == SDL_KEYUP && input.value == prev_note) {
+          } else if (input.eventType == SDL_EVENT_KEY_UP && input.value == prev_note) {
             send_msg_keyjazz(0xFF, 0);
           }
         }
@@ -293,7 +298,7 @@ int main(const int argc, char *argv[]) {
   }
   gamecontrollers_close();
   close_renderer();
-  close_serial_port();
+  if (port_inited == 1) close_serial_port();
   SDL_free(serial_buf);
   SDL_Quit();
   return 0;

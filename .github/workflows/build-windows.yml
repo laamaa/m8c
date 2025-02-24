@@ -36,7 +36,7 @@ jobs:
       with:
         msystem: ${{ matrix.sys }}
         update: true
-        install: mingw-w64-${{ matrix.env }}-toolchain make mingw-w64-${{ matrix.env }}-SDL2 zip dos2unix autoconf automake-wrapper libtool make unzip
+        install: mingw-w64-${{ matrix.env }}-toolchain make mingw-w64-${{ matrix.env }}-sdl3 zip dos2unix autoconf automake-wrapper libtool make unzip
 
     - name: 'Build libserialport manually'
       run: |
@@ -58,12 +58,12 @@ jobs:
         strip -g m8c.exe
         if [ ${{ matrix.win }} == "win32" ]
         then        
-          cp /mingw32/bin/SDL2.dll .
+          cp /mingw32/bin/SDL3.dll .
           cp /mingw32/bin/libgcc_s_dw2-1.dll .
           cp /mingw32/bin/libserialport-0.dll .
           cp /mingw32/bin/libwinpthread-1.dll .
         else
-          cp /mingw64/bin/SDL2.dll .
+          cp /mingw64/bin/SDL3.dll .
           cp /mingw64/bin/libserialport-0.dll .
         fi
         unix2dos README.md LICENSE AUDIOGUIDE.md
@@ -74,7 +74,7 @@ jobs:
         name: m8c-${{ env.NOW }}-${{ matrix.win }}
         path: |
           m8c.exe
-          SDL2.dll
+          SDL3.dll
           libserialport-0.dll
           libgcc_s_dw2-1.dll
           libwinpthread-1.dll
@@ -89,7 +89,7 @@ jobs:
         name: m8c-${{ env.NOW }}-${{ matrix.win }}
         path: |
           m8c.exe
-          SDL2.dll
+          SDL3.dll
           libserialport-0.dll
           gamecontrollerdb.txt
           LICENSE

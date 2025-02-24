@@ -3,7 +3,7 @@
 // Modified to support multiple fonts & adding a background to text.
 
 #include "inline_font.h"
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 #define CHARACTERS_PER_ROW 94
 #define CHARACTERS_PER_COLUMN 1
@@ -28,17 +28,17 @@ void prepare_inline_font(struct inline_font *font) {
     return;
   }
 
-  SDL_RWops *font_bmp =
-      SDL_RWFromConstMem(selected_inline_font->image_data, selected_inline_font->image_size);
+  SDL_IOStream *font_bmp =
+      SDL_IOFromConstMem(selected_inline_font->image_data, selected_inline_font->image_size);
 
-  SDL_Surface *surface = SDL_LoadBMP_RW(font_bmp, 1);
+  SDL_Surface *surface = SDL_LoadBMP_IO(font_bmp, 1);
 
   // Black is transparent
-  SDL_SetColorKey(surface, SDL_TRUE, SDL_MapRGB(surface->format, 0, 0, 0));
+  SDL_SetSurfaceColorKey(surface, true, SDL_MapSurfaceRGB(surface, 0, 0, 0));
 
   inline_font = SDL_CreateTextureFromSurface(selected_renderer, surface);
 
-  SDL_FreeSurface(surface);
+  SDL_DestroySurface(surface);
 
   selected_font = inline_font;
 }
@@ -51,15 +51,14 @@ void kill_inline_font(void) {
 void inrenderer(SDL_Renderer *renderer) { selected_renderer = renderer; }
 
 void infont(SDL_Texture *font) {
-  Uint32 format;
-  int access;
   int w, h;
 
   if (font == NULL) {
     return;
   }
 
-  SDL_QueryTexture(font, &format, &access, &w, &h);
+  w = SDL_GetNumberProperty(SDL_GetTextureProperties(font),SDL_PROP_TEXTURE_WIDTH_NUMBER, 0);
+  h = SDL_GetNumberProperty(SDL_GetTextureProperties(font),SDL_PROP_TEXTURE_HEIGHT_NUMBER, 0);
 
   selected_font = font;
   selected_font_w = w;
@@ -78,9 +77,9 @@ void incolor(const Uint32 fore) /* Color must be in 0x00RRGGBB format ! */
 }
 void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y, const Uint32 fgcolor,
              const Uint32 bgcolor) {
-  SDL_Rect s_rect;
-  SDL_Rect d_rect;
-  SDL_Rect bg_rect;
+  SDL_FRect s_rect;
+  SDL_FRect d_rect;
+  SDL_FRect bg_rect;
 
   static uint32_t previous_fgcolor;
 
@@ -95,7 +94,9 @@ void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y, const Uint3
     dst = selected_renderer;
 
   for (; *str; str++) {
-    int id = (int)*str - font_offset;
+    int ascii_code = (int)*str;
+    int id = ascii_code - font_offset;
+
 #if (CHARACTERS_PER_COLUMN != 1)
     int row = id / CHARACTERS_PER_ROW;
     int col = id % CHARACTERS_PER_ROW;
@@ -125,7 +126,10 @@ void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y, const Uint3
 
       SDL_RenderFillRect(dst, &bg_rect);
     }
-    SDL_RenderCopy(dst, selected_font, &s_rect, &d_rect);
+    // Do not try to render a whitespace character because the font doesn't have one
+    if (ascii_code != 32) {
+      SDL_RenderTexture(dst, selected_font, &s_rect, &d_rect);
+    }
     d_rect.x += selected_inline_font->glyph_x + 1;
   }
 }

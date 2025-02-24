@@ -1,6 +1,8 @@
-#include <SDL.h>
-#include <time.h>
 #include "SDL2_inprint.h"
+#include <SDL3/SDL.h>
+#include <time.h>
+
+#include <math.h>
 
 static SDL_Texture *texture_cube;
 static SDL_Texture *texture_text;
@@ -27,10 +29,10 @@ static void scale(const float factor0, const float factor1, const float factor2)
 }
 
 static void rotate_cube(const float angle_x, const float angle_y) {
-  const float sin_x = SDL_sin(angle_x);
-  const float cos_x = SDL_cos(angle_x);
-  const float sin_y = SDL_sin(angle_y);
-  const float cos_y = SDL_cos(angle_y);
+  const float sin_x = SDL_sinf(angle_x);
+  const float cos_x = SDL_cosf(angle_x);
+  const float sin_y = SDL_sinf(angle_y);
+  const float cos_y = SDL_cosf(angle_y);
   for (int i = 0; i < 8; i++) {
     const float x = nodes[i][0];
     const float y = nodes[i][1];
@@ -56,7 +58,8 @@ void fx_cube_init(SDL_Renderer *target_renderer, const SDL_Color foreground_colo
 
   SDL_Texture *og_target = SDL_GetRenderTarget(fx_renderer);
 
-  SDL_QueryTexture(og_target, NULL, NULL, &texture_size.x, &texture_size.y);
+  texture_size.x = SDL_GetNumberProperty(SDL_GetTextureProperties(og_target),SDL_PROP_TEXTURE_WIDTH_NUMBER, 0);
+  texture_size.y = SDL_GetNumberProperty(SDL_GetTextureProperties(og_target),SDL_PROP_TEXTURE_HEIGHT_NUMBER, 0);
 
   texture_cube = SDL_CreateTexture(fx_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
                                    texture_size.x, texture_size.y);
@@ -77,13 +80,13 @@ void fx_cube_init(SDL_Renderer *target_renderer, const SDL_Color foreground_colo
   SDL_memcpy(nodes, default_nodes, sizeof(default_nodes));
 
   scale(50, 50, 50);
-  rotate_cube(M_PI / 6, SDL_atan(SDL_sqrt(2)));
+  rotate_cube(M_PI / 6, SDL_atanf(SDL_sqrtf(2)));
 
   SDL_SetTextureBlendMode(texture_cube, SDL_BLENDMODE_BLEND);
   SDL_SetTextureBlendMode(texture_text, SDL_BLENDMODE_BLEND);
 
-  center_x = texture_size.x / 2.0;
-  center_y = texture_size.y / 2.0;
+  center_x = (int)(texture_size.x / 2.0);
+  center_y = (int)(texture_size.y / 2.0);
 }
 
 void fx_cube_destroy() {
@@ -92,7 +95,7 @@ void fx_cube_destroy() {
 }
 
 void fx_cube_update() {
-  SDL_Point points[24];
+  SDL_FPoint points[24];
   int points_counter = 0;
   SDL_Texture *og_texture = SDL_GetRenderTarget(fx_renderer);
 
@@ -101,7 +104,7 @@ void fx_cube_update() {
   SDL_RenderClear(fx_renderer);
 
   const unsigned int seconds = SDL_GetTicks() / 1000;
-  const float scalefactor = 1 + SDL_sin(seconds) * 0.005;
+  const float scalefactor = 1 + SDL_sinf(seconds) * 0.005;
 
   scale(scalefactor, scalefactor, scalefactor);
   rotate_cube(M_PI / 180, M_PI / 270);
@@ -109,14 +112,14 @@ void fx_cube_update() {
   for (int i = 0; i < 12; i++) {
     const float *p1 = nodes[edges[i][0]];
     const float *p2 = nodes[edges[i][1]];
-    points[points_counter++] = (SDL_Point){p1[0] + center_x, nodes[edges[i][0]][1] + center_y};
-    points[points_counter++] = (SDL_Point){p2[0] + center_x, p2[1] + center_y};
+    points[points_counter++] = (SDL_FPoint){p1[0] + center_x, nodes[edges[i][0]][1] + center_y};
+    points[points_counter++] = (SDL_FPoint){p2[0] + center_x, p2[1] + center_y};
   }
 
-  SDL_RenderCopy(fx_renderer, texture_text, NULL, NULL);
+  SDL_RenderTexture(fx_renderer, texture_text, NULL, NULL);
   SDL_SetRenderDrawColor(fx_renderer, line_color.r, line_color.g, line_color.b, line_color.a);
-  SDL_RenderDrawLines(fx_renderer, points, 24);
+  SDL_RenderLines(fx_renderer, points, 24);
 
   SDL_SetRenderTarget(fx_renderer, og_texture);
-  SDL_RenderCopy(fx_renderer, texture_cube, NULL, NULL);
+  SDL_RenderTexture(fx_renderer, texture_cube, NULL, NULL);
 }

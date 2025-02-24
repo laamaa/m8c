@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include "command.h"
 
-int initialize_sdl(int init_fullscreen, int init_use_gpu);
+int initialize_sdl(unsigned int init_fullscreen);
 void close_renderer();
 
 void draw_waveform(struct draw_oscilloscope_waveform_command *command);

@@ -10,8 +10,8 @@ jobs:
   build-macos:
     runs-on: macos-14
     env:
-      SDL_VERSION: 2.32.0
-      SDL_SHA256: f5c2b52498785858f3de1e2996eba3c1b805d08fe168a47ea527c7fc339072d0
+      SDL_VERSION: 3.2.4
+      SDL_SHA256: 2938328317301dfbe30176d79c251733aa5e7ec5c436c800b99ed4da7adcb0f0
 
     steps:
       - name: 'Install dependencies'
@@ -40,32 +40,32 @@ jobs:
       - name: Set current date as env variable
         run: echo "NOW=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
-      - name: 'Cache SDL2 files'
-        id: cache-x86_64-sdl2-files
+      - name: 'Cache SDL3 files'
+        id: cache-x86_64-sdl3-files
         uses: actions/cache@v4
         with:
-          path: 'SDL2-2.30.4'
-          key: mac-x86_64-sdl2-files        
+          path: 'SDL3-3.2.4'
+          key: mac-x86_64-sdl3-files
         
-      - name: 'Download SDL2 sources'
+      - name: 'Download SDL3 sources'
         if: steps.cache-x86_64-sdl2-files.outputs.cache-hit != 'true'
         run: |
-          (curl https://www.libsdl.org/release/SDL2-$SDL_VERSION.tar.gz || curl -L https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL2-$SDL_VERSION.tar.gz) | tar xvf -
+          (curl https://www.libsdl.org/release/SDL3-$SDL_VERSION.tar.gz || curl -L https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL3-$SDL_VERSION.tar.gz) | echo $SDL_SHA256 | tar xvf -
         
-      - name: 'Build SDL2'
+      - name: 'Build SDL3'
         if: steps.cache-x86_64-sdl2-files.outputs.cache-hit != 'true'
         run: |
           export MACOSX_DEPLOYMENT_TARGET="10.9"
-          pushd SDL2-$SDL_VERSION
+          pushd SDL3-$SDL_VERSION
           mkdir build_x86_64
           cd build_x86_64
           ../configure CPPFLAGS="-arch x86_64 -mmacosx-version-min=10.7 -DMAC_OS_X_VERSION_MIN_REQUIRED=1070 -isysroot $HOME/x86_64/SDKs/MacOSX10.7.sdk" CFLAGS="-arch x86_64" CXXFLAGS="-arch x86_64" LDFLAGS="-arch x86_64 -F$HOME/x86_64/SDKs/MacOSX10.7.sdk/System/Library/Frameworks -L/usr/lib -L/usr/lib/system -Wl,-syslibroot,$HOME/x86_64/SDKs/MacOSX10.7.sdk" --host=x86_64-apple-darwin13 --prefix="$HOME/x86_64prefix"
           make
           popd
 
-      - name: 'Install SDL2'
+      - name: 'Install SDL3'
         run: |
-          pushd SDL2-$SDL_VERSION/build_x86_64
+          pushd SDL3-$SDL_VERSION/build_x86_64
           make install 
           popd
 

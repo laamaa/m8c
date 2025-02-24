@@ -2,7 +2,7 @@
 
 #include "ringbuffer.h"
 #include "usb.h"
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <errno.h>
 #include <libusb.h>
 
