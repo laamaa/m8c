@@ -50,7 +50,7 @@ jobs:
       - name: 'Download SDL3 sources'
         if: steps.cache-x86_64-sdl2-files.outputs.cache-hit != 'true'
         run: |
-          (curl https://www.libsdl.org/release/SDL3-$SDL_VERSION.tar.gz || curl -L https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL3-$SDL_VERSION.tar.gz) | echo $SDL_SHA256 | tar xvf -
+          (curl https://www.libsdl.org/release/SDL3-$SDL_VERSION.tar.gz || curl -L https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL3-$SDL_VERSION.tar.gz) | tar xvf -
         
       - name: 'Build SDL3'
         if: steps.cache-x86_64-sdl2-files.outputs.cache-hit != 'true'

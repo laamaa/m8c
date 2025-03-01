@@ -14,7 +14,36 @@ jobs:
       - name: 'Install dependencies'
         run: |
           sudo apt-get update
-          sudo apt-get install --fix-missing build-essential libsdl3-dev libserialport-dev zip
+          sudo apt-get install --fix-missing build-essential libserialport-dev zip
+
+      - name: 'Cache SDL3 files'
+        id: cache-x86_64-sdl3-files
+        uses: actions/cache@v4
+        with:
+          path: 'SDL3-3.2.4'
+          key: linux-x86_64-sdl3-files
+
+      - name: 'Download SDL3 sources'
+        if: steps.cache-x86_64-sdl3-files.outputs.cache-hit != 'true'
+        run: |
+          (curl https://www.libsdl.org/release/SDL3-$SDL_VERSION.tar.gz || curl -L https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL3-$SDL_VERSION.tar.gz) | tar xvf -
+
+      - name: 'Build SDL3'
+        if: steps.cache-x86_64-sdl3-files.outputs.cache-hit != 'true'
+        run: |
+          pushd SDL3-$SDL_VERSION
+          mkdir build_x86_64
+          cd build_x86_64
+          ../configure
+          make
+          popd
+
+      - name: 'Install SDL3'
+        run: |
+          pushd SDL3-$SDL_VERSION/build_x86_64
+          make install 
+          popd
+
       - name: 'Checkout'
         uses: actions/checkout@v4
 

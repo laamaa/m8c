@@ -31,7 +31,7 @@
         { stdenv
         , gnumake
         , pkg-config
-        , SDL2
+        , SDL3
         , libserialport
         , fetchFromGitHub
         }:
@@ -47,7 +47,7 @@
 
           installFlags = [ "PREFIX=$(out)" ];
           nativeBuildInputs = [ gnumake pkg-config ];
-          buildInputs = [ SDL2 libserialport ];
+          buildInputs = [ SDL3 libserialport ];
         };
       eachSystem = f: nixpkgs.lib.genAttrs (import systems) (system: f
         (import nixpkgs { inherit system; })
