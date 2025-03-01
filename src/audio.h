@@ -3,8 +3,9 @@
 #ifndef AUDIO_H
 #define AUDIO_H
 
-int audio_init(unsigned int audio_buffer_size, const char *output_device_name);
-void toggle_audio(unsigned int audio_buffer_size, const char *output_device_name);
+int audio_init(const char *output_device_name, unsigned int audio_buffer_size);
+void toggle_audio(const char *output_device_name, unsigned int audio_buffer_size);
+void process_audio();
 void audio_destroy();
 
 #endif

@@ -27,7 +27,7 @@ enum m8_command_bytes {
 };
 
 static void dump_packet(const uint32_t size, const uint8_t *recv_buf) {
-  for (uint16_t a = 0; a < size; a++) {
+  for (uint32_t a = 0; a < size; a++) {
     SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "0x%02X ", recv_buf[a]);
   }
   SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "\n");

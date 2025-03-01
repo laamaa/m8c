@@ -197,9 +197,9 @@ void handle_sdl_events(config_params_s *conf) {
     prev_key_analog = key_analog;
   }
 
-  input_msg_s gcmsg = gamecontrollers_handle_special_messages(conf);
-  if (gcmsg.type == special) {
-    key = gcmsg;
+  const input_msg_s gamepad_msg = gamecontrollers_handle_special_messages(conf);
+  if (gamepad_msg.type == special) {
+    key = gamepad_msg;
   }
 
   while (SDL_PollEvent(&event)) {
@@ -305,8 +305,7 @@ input_msg_s get_input_msg(config_params_s *conf) {
        handle_sdl_events(), the value is stored in keycode variable */
     const input_msg_s input = (input_msg_s){key.type, keycode, 0, 0};
     return input;
-  } else {
-    // Special event keys already have the correct keycode baked in
-    return key;
   }
+  // Special event keys already have the correct keycode baked in
+  return key;
 }

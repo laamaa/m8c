@@ -58,8 +58,8 @@ void fx_cube_init(SDL_Renderer *target_renderer, const SDL_Color foreground_colo
 
   SDL_Texture *og_target = SDL_GetRenderTarget(fx_renderer);
 
-  texture_size.x = SDL_GetNumberProperty(SDL_GetTextureProperties(og_target),SDL_PROP_TEXTURE_WIDTH_NUMBER, 0);
-  texture_size.y = SDL_GetNumberProperty(SDL_GetTextureProperties(og_target),SDL_PROP_TEXTURE_HEIGHT_NUMBER, 0);
+  texture_size.x = (int)SDL_GetNumberProperty(SDL_GetTextureProperties(og_target),SDL_PROP_TEXTURE_WIDTH_NUMBER, 0);
+  texture_size.y = (int)SDL_GetNumberProperty(SDL_GetTextureProperties(og_target),SDL_PROP_TEXTURE_HEIGHT_NUMBER, 0);
 
   texture_cube = SDL_CreateTexture(fx_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
                                    texture_size.x, texture_size.y);
@@ -104,9 +104,9 @@ void fx_cube_update() {
   SDL_RenderClear(fx_renderer);
 
   const unsigned int seconds = SDL_GetTicks() / 1000;
-  const float scalefactor = 1 + SDL_sinf(seconds) * 0.005;
+  const float scale_factor = 1 + SDL_sinf((float)seconds) * (float)0.005;
 
-  scale(scalefactor, scalefactor, scalefactor);
+  scale(scale_factor, scale_factor, scale_factor);
   rotate_cube(M_PI / 180, M_PI / 270);
 
   for (int i = 0; i < 12; i++) {

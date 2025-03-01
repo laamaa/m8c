@@ -12,8 +12,8 @@
 #include "audio.h"
 #include "command.h"
 #include "config.h"
-#include "input.h"
 #include "gamecontrollers.h"
+#include "input.h"
 #include "render.h"
 #include "serial.h"
 #include "slip.h"
@@ -95,9 +95,9 @@ int main(const int argc, char *argv[]) {
     SDL_Quit();
     return 1;
   }
-    run = QUIT;
+  run = QUIT;
 
-  // initial scan for (existing) game controllers
+  // initial scan for (existing) gamepads
   gamecontrollers_initialize();
 
 #ifdef DEBUG_MSG
@@ -112,7 +112,7 @@ int main(const int argc, char *argv[]) {
     if (port_inited == 1 && enable_and_reset_display() == 1) {
       // if audio routing is enabled, try to initialize audio devices
       if (conf.audio_enabled == 1) {
-        audio_init(conf.audio_buffer_size, conf.audio_device_name);
+        audio_init(conf.audio_device_name, conf.audio_buffer_size);
         // if audio is enabled, reset the display for second time to avoid glitches
         reset_display();
       }
@@ -155,7 +155,7 @@ int main(const int argc, char *argv[]) {
           if (run == WAIT_FOR_DEVICE && init_serial(0, preferred_device) == 1) {
 
             if (conf.audio_enabled == 1) {
-              if (audio_init(conf.audio_buffer_size, conf.audio_device_name) == 0) {
+              if (audio_init(conf.audio_device_name, conf.audio_buffer_size) == 0) {
                 SDL_Log("Cannot initialize audio");
                 conf.audio_enabled = 0;
               }
@@ -220,14 +220,15 @@ int main(const int argc, char *argv[]) {
           prev_input = input.value;
           switch (input.value) {
           case msg_quit:
-            SDL_Log("Received msg_quit from input device.");
+            SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Received msg_quit from input device.");
             run = 0;
             break;
           case msg_reset_display:
             reset_display();
             break;
           case msg_toggle_audio:
-            toggle_audio(conf.audio_buffer_size, conf.audio_device_name);
+            conf.audio_enabled = !conf.audio_enabled;
+            toggle_audio(conf.audio_device_name,conf.audio_buffer_size);
             break;
           default:
             break;
@@ -292,13 +293,14 @@ int main(const int argc, char *argv[]) {
   // main loop end
 
   // exit, clean up
-  SDL_Log("Shutting down\n");
+  SDL_Log("Shutting down");
   if (conf.audio_enabled == 1) {
     audio_destroy();
   }
   gamecontrollers_close();
   close_renderer();
-  if (port_inited == 1) close_serial_port();
+  if (port_inited == 1)
+    close_serial_port();
   SDL_free(serial_buf);
   SDL_Quit();
   return 0;

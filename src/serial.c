@@ -196,7 +196,7 @@ int reset_display() {
   SDL_Log("Reset display\n");
 
   const char buf[1] = {'R'};
-  int result = sp_blocking_write(m8_port, buf, 1, 5);
+  const int result = sp_blocking_write(m8_port, buf, 1, 5);
   if (result != 1) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error resetting M8 display, code %d", result);
     return 0;
@@ -244,7 +244,7 @@ int serial_read(uint8_t *serial_buf, const int count) {
 int send_msg_controller(const uint8_t input) {
   const char buf[2] = {'C', input};
   const size_t nbytes = 2;
-  int result = sp_blocking_write(m8_port, buf, nbytes, 5);
+  const int result = sp_blocking_write(m8_port, buf, nbytes, 5);
   if (result != nbytes) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error sending input, code %d", result);
     return -1;
@@ -257,7 +257,7 @@ int send_msg_keyjazz(const uint8_t note, uint8_t velocity) {
     velocity = 0x7F;
   const char buf[3] = {'K', note, velocity};
   const size_t nbytes = 3;
-  int result = sp_blocking_write(m8_port, buf, nbytes, 5);
+  const int result = sp_blocking_write(m8_port, buf, nbytes, 5);
   if (result != nbytes) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error sending keyjazz, code %d", result);
     return -1;

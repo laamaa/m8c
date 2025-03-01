@@ -51,14 +51,15 @@ void kill_inline_font(void) {
 void inrenderer(SDL_Renderer *renderer) { selected_renderer = renderer; }
 
 void infont(SDL_Texture *font) {
-  int w, h;
 
   if (font == NULL) {
     return;
   }
 
-  w = SDL_GetNumberProperty(SDL_GetTextureProperties(font),SDL_PROP_TEXTURE_WIDTH_NUMBER, 0);
-  h = SDL_GetNumberProperty(SDL_GetTextureProperties(font),SDL_PROP_TEXTURE_HEIGHT_NUMBER, 0);
+  const int w =
+      (int)SDL_GetNumberProperty(SDL_GetTextureProperties(font), SDL_PROP_TEXTURE_WIDTH_NUMBER, 0);
+  const int h =
+      (int)SDL_GetNumberProperty(SDL_GetTextureProperties(font), SDL_PROP_TEXTURE_HEIGHT_NUMBER, 0);
 
   selected_font = font;
   selected_font_w = w;
@@ -83,10 +84,10 @@ void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y, const Uint3
 
   static uint32_t previous_fgcolor;
 
-  d_rect.x = x;
-  d_rect.y = y;
-  s_rect.w = selected_font_w / CHARACTERS_PER_ROW;
-  s_rect.h = selected_font_h / CHARACTERS_PER_COLUMN;
+  d_rect.x = (float)x;
+  d_rect.y = (float)y;
+  s_rect.w = (float)selected_font_w / CHARACTERS_PER_ROW;
+  s_rect.h = (float)selected_font_h / CHARACTERS_PER_COLUMN;
   d_rect.w = s_rect.w;
   d_rect.h = s_rect.h;
 
@@ -94,7 +95,7 @@ void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y, const Uint3
     dst = selected_renderer;
 
   for (; *str; str++) {
-    int ascii_code = (int)*str;
+    const int ascii_code = (int)*str;
     int id = ascii_code - font_offset;
 
 #if (CHARACTERS_PER_COLUMN != 1)
@@ -103,11 +104,11 @@ void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y, const Uint3
     s_rect.x = col * s_rect.w;
     s_rect.y = row * s_rect.h;
 #else
-    s_rect.x = id * s_rect.w;
+    s_rect.x = (float)id * s_rect.w;
     s_rect.y = 0;
 #endif
     if (id + font_offset == '\n') {
-      d_rect.x = x;
+      d_rect.x = (float)x;
       d_rect.y += s_rect.h + 1;
       continue;
     }
@@ -121,8 +122,8 @@ void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y, const Uint3
                              (bgcolor & 0x0000FF00) >> 8, bgcolor & 0x000000FF,
                              0xFF);
       bg_rect = d_rect;
-      bg_rect.w = selected_inline_font->glyph_x;
-      bg_rect.h = selected_inline_font->glyph_y;
+      bg_rect.w = (float)selected_inline_font->glyph_x;
+      bg_rect.h = (float)selected_inline_font->glyph_y;
 
       SDL_RenderFillRect(dst, &bg_rect);
     }
@@ -130,7 +131,7 @@ void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y, const Uint3
     if (ascii_code != 32) {
       SDL_RenderTexture(dst, selected_font, &s_rect, &d_rect);
     }
-    d_rect.x += selected_inline_font->glyph_x + 1;
+    d_rect.x += (float)selected_inline_font->glyph_x + 1;
   }
 }
 SDL_Texture *get_inline_font(void) { return selected_font; }
