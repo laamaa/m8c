@@ -37,37 +37,44 @@ jobs:
       with:
         msystem: ${{ matrix.sys }}
         update: true
-        install: mingw-w64-${{ matrix.env }}-toolchain make mingw-w64-${{ matrix.env }}-sdl3 zip dos2unix autoconf automake-wrapper libtool make unzip
+        install: mingw-w64-${{ matrix.env }}-toolchain make mingw-w64-${{ matrix.env }}-cmake zip dos2unix autoconf automake-wrapper libtool make unzip
 
     - name: 'Cache SDL3 files'
       id: cache-sdl3-files
       uses: actions/cache@v4
       with:
         path: 'SDL3-3.2.4'
-        key: win-sdl3-files
+        key: win-sdl3-files-${{ matrix.sys }}
 
     - name: 'Download SDL3 sources'
       if: steps.cache-sdl3-files.outputs.cache-hit != 'true'
       run: |
-        (curl https://www.libsdl.org/release/SDL3-$SDL_VERSION.tar.gz || curl -L https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL3-$SDL_VERSION.tar.gz) | tar xvf -
+        (curl https://www.libsdl.org/release/SDL3-$SDL_VERSION.tar.gz || curl -L https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL3-$SDL_VERSION.tar.gz) | tar zxvf -
 
-    - name: 'Build SDL3'
+    - name: 'Build and install SDL3'
       if: steps.cache-sdl3-files.outputs.cache-hit != 'true'
       run: |
         pushd SDL3-$SDL_VERSION
         mkdir build_${{ matrix.env }}
-        cd build_${{ matrix.env }}
-        ../configure
-        make
+        cmake -S . -B build_${{ matrix.env }} -DCMAKE_TOOLCHAIN_FILE=build-scripts/cmake-toolchain-mingw64-${{ matrix.env }}.cmake
+        cmake --build build_${{ matrix.env }} --parallel
         popd
 
     - name: 'Install SDL3'
       run: |
-        pushd SDL3-$SDL_VERSION/build_x86_64
-        make install 
-        popd        
+        pushd SDL3-$SDL_VERSION
+        cmake --install build_${{ matrix.env }} --prefix C:/Libraries
+        popd
+
+    - name: 'Cache libserialport files'
+      id: cache-libserialport-files
+      uses: actions/cache@v4
+      with:
+        path: 'libserialport-master'
+        key: win-libserialport-files-${{ matrix.sys }}
 
     - name: 'Build libserialport manually'
+      if: steps.cache-libserialport-files.outputs.cache-hit != 'true'
       run: |
         wget https://github.com/sigrokproject/libserialport/archive/refs/heads/master.zip
         unzip master.zip
@@ -75,6 +82,11 @@ jobs:
         ./autogen.sh
         ./configure
         make
+        popd
+
+    - name: 'Install libserialport'
+      run: |
+        pushd libserialport-master
         make install
         popd
 
@@ -83,16 +95,17 @@ jobs:
 
     - name: 'Build package'
       run: |
-        make
+        cmake . -G Ninja -DCMAKE_PREFIX_PATH=C:/Libraries
+        cmake --build .
         strip -g m8c.exe
         if [ ${{ matrix.win }} == "win32" ]
         then        
-          cp /mingw32/bin/SDL3.dll .
+          cp C:/Libraries/bin/SDL3.dll .
           cp /mingw32/bin/libgcc_s_dw2-1.dll .
           cp /mingw32/bin/libserialport-0.dll .
           cp /mingw32/bin/libwinpthread-1.dll .
         else
-          cp /mingw64/bin/SDL3.dll .
+          cp C:/Libraries/bin/SDL3.dll .
           cp /mingw64/bin/libserialport-0.dll .
         fi
         unix2dos README.md LICENSE AUDIOGUIDE.md

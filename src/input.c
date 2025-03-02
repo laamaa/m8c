@@ -187,6 +187,7 @@ static input_msg_s handle_normal_keys(const SDL_Event *event, const config_param
 void handle_sdl_events(config_params_s *conf) {
 
   static int prev_key_analog = 0;
+  static unsigned int ticks_window_resized = 0;
 
   SDL_Event event;
 
@@ -218,7 +219,6 @@ void handle_sdl_events(config_params_s *conf) {
       break;
 
     case SDL_EVENT_WINDOW_RESIZED:
-        static uint32_t ticks_window_resized = 0;
         if (SDL_GetTicks() - ticks_window_resized > 500) {
           SDL_Log("Resizing window...");
           key = (input_msg_s){special, msg_reset_display, 0, 0};

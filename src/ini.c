@@ -106,6 +106,7 @@ end:
 /* Splits data in place into strings containing section-headers, keys and
  * values using one or more '\0' as a delimiter. Unescapes quoted values */
 static void split_data(const ini_t *ini) {
+  char *value_start, *line_start;
   char *p = ini->data;
 
   while (p < ini->end) {
@@ -131,7 +132,7 @@ static void split_data(const ini_t *ini) {
       break;
 
     default:
-      char *line_start = p;
+      line_start = p;
       p += strcspn(p, "=\n");
 
       /* Is line missing a '='? */
@@ -154,7 +155,7 @@ static void split_data(const ini_t *ini) {
 
       if (*p == '"') {
         /* Handle quoted string value */
-        char *value_start = p;
+        value_start = p;
         p = unescape_quoted_value(ini, p);
 
         /* Was the string empty? */
