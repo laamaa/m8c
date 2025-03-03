@@ -95,7 +95,9 @@ void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y, const Uint3
     dst = selected_renderer;
 
   for (; *str; str++) {
-    int id = (int)*str - font_offset;
+    const int ascii_code = (int)*str;
+    int id = ascii_code - font_offset;
+
 #if (CHARACTERS_PER_COLUMN != 1)
     int row = id / CHARACTERS_PER_ROW;
     int col = id % CHARACTERS_PER_ROW;
@@ -125,8 +127,10 @@ void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y, const Uint3
 
       SDL_RenderFillRect(dst, &bg_rect);
     }
-    SDL_RenderCopy(dst, selected_font, &s_rect, &d_rect);
-    d_rect.x += selected_inline_font->glyph_x + 1;
+    // Do not try to render a whitespace character because the font doesn't have one
+    if (ascii_code != 32) {
+      SDL_RenderCopy(dst, selected_font, &s_rect, &d_rect);
+    }    d_rect.x += selected_inline_font->glyph_x + 1;
   }
 }
 SDL_Texture *get_inline_font(void) { return selected_font; }
