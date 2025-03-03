@@ -50,7 +50,8 @@ cp gamecontrollerdb.txt $APP.AppDir
 
 mkdir -p $APP.AppDir/usr/share/applications/ $APP.AppDir/usr/share/metainfo/
 cp package/appimage/m8c.desktop $APP.AppDir/usr/share/applications/
-cp package/appimage/m8c.appdata.xml $APP.AppDir/usr/share/metainfo/
+#appstreamcli seems to crash
+#cp package/appimage/m8c.appdata.xml $APP.AppDir/usr/share/metainfo/
 cp package/appimage/icon.svg $APP.AppDir
 
 wget -c https://github.com/$(wget -q https://github.com/probonopd/go-appimage/releases/expanded_assets/continuous -O - | grep "appimagetool-.*-x86_64.AppImage" | head -n 1 | cut -d '"' -f 2)
