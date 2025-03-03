@@ -74,4 +74,4 @@ jobs:
         with:
           name: m8c-${{ env.NOW }}-linux-x86_64.AppImage
           path: |
-            *.AppImage
+            m8c*.AppImage
