@@ -31,6 +31,7 @@ jobs:
         run: |
           (curl -O https://www.libsdl.org/release/SDL3-$SDL_VERSION.tar.gz || curl -O -L https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL3-$SDL_VERSION.tar.gz)
           if ! echo $SDL_SHA256 | sha256sum -c --status -; then echo "SDL archive checksum failed"; exit 1; fi
+          tar zxvf SDL3-$SDL_VERSION.tar.gz
 
       - name: 'Build SDL3'
         if: steps.cache-x86_64-sdl3-files.outputs.cache-hit != 'true'
