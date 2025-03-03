@@ -10,13 +10,13 @@ jobs:
   build-linux:
     env:
       SDL_VERSION: 3.2.4
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     name: linux-x86_64
     steps:
       - name: 'Install dependencies'
         run: |
           sudo apt-get update
-          sudo apt-get install --fix-missing build-essential libserialport-dev zip git make pkg-config cmake ninja-build gnome-desktop-testing libasound2-dev libpulse-dev libaudio-dev libjack-dev libsndio-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev
+          sudo apt-get install --fix-missing build-essential libserialport-dev zip git make pkg-config cmake ninja-build gnome-desktop-testing libasound2-dev libpulse-dev libaudio-dev libjack-dev libsndio-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libpipewire-0.3-dev libwayland-dev libdecor-0-dev
 
       - name: 'Cache SDL3 files'
         id: cache-x86_64-sdl3-files
@@ -47,9 +47,10 @@ jobs:
       - name: Set current date as env variable
         run: echo "NOW=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
-      - name: 'Build package'
+      - name: 'Build binary'
         run: |
           make
+
       - name: 'Upload artifact'
         uses: actions/upload-artifact@v4
         with:
@@ -60,3 +61,14 @@ jobs:
             AUDIOGUIDE.md
             m8c
             gamecontrollerdb.txt
+          
+      - name: 'Build AppImage'
+        run: |
+          bash package/appimage/package.sh
+
+      - name: 'Upload artifact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: m8c-${{ env.NOW }}-linux-x86_64.AppImage
+          path: |
+            *.AppImage

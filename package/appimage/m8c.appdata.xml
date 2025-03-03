@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+	<id>m8c</id>
+	<metadata_license>MIT</metadata_license>
+	<project_license>MIT</project_license>
+	<name>m8c</name>
+	<summary>A Dirtywave M8 remote client</summary>
+	<description>
+		<p>m8c is a client for Dirtywave M8 tracker's remote (headless) mode and can mirror the display and route audio.</p>
+	</description>
+	<launchable type="desktop-id">m8c.desktop</launchable>
+	<url type="homepage">https://m8c.laamaa.fi</url>
+	<screenshots>
+		<screenshot type="default">
+			<image></image>
+		</screenshot>
+	</screenshots>
+	<provides>
+		<id>m8c.desktop</id>
+	</provides>
+</component>
