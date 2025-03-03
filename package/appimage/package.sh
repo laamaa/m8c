@@ -6,7 +6,7 @@ set -xe
 APP=m8c
 VERSION=2.0.0
 
-if [ $1 = "build-sdl" ]; then
+if [ "$1" == "build-sdl" ]; then
 
     ## Build SDL
     SDL_VERSION=3.2.6

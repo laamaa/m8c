@@ -9,7 +9,8 @@ jobs:
  
   build-linux:
     env:
-      SDL_VERSION: 3.2.4
+      SDL_VERSION: 3.2.6
+      SDL_SHA256: "096a0b843dd1124afda41c24bd05034af75af37e9a1b9d205cc0a70193b27e1a  SDL3-3.2.6.tar.gz"
     runs-on: ubuntu-22.04
     name: linux-x86_64
     steps:
@@ -22,13 +23,14 @@ jobs:
         id: cache-x86_64-sdl3-files
         uses: actions/cache@v4
         with:
-          path: 'SDL3-3.2.4'
+          path: SDL3-${{ env.SDL_VERSION }}
           key: linux-x86_64-sdl3-files
 
       - name: 'Download SDL3 sources'
         if: steps.cache-x86_64-sdl3-files.outputs.cache-hit != 'true'
         run: |
-          (curl https://www.libsdl.org/release/SDL3-$SDL_VERSION.tar.gz || curl -L https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL3-$SDL_VERSION.tar.gz) | tar zxvf -
+          (curl -O https://www.libsdl.org/release/SDL3-$SDL_VERSION.tar.gz || curl -O -L https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL3-$SDL_VERSION.tar.gz)
+          if ! echo $SDL_SHA256 | sha256sum -c --status -; then echo "SDL archive checksum failed"; exit 1; fi
 
       - name: 'Build SDL3'
         if: steps.cache-x86_64-sdl3-files.outputs.cache-hit != 'true'
