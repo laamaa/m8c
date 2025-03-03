@@ -40,8 +40,12 @@ if [ "$1" == "build-sdl" ]; then
 
 fi
 
+if [ "$2" == "build-m8c" ]; then
+make
+fi
+
 mkdir -p $APP.AppDir/usr/bin
-cp m8c_x86_64/m8c $APP.AppDir/usr/bin/
+cp m8c $APP.AppDir/usr/bin/
 cp gamecontrollerdb.txt $APP.AppDir
 
 mkdir -p $APP.AppDir/usr/share/applications/ $APP.AppDir/usr/share/metainfo/
