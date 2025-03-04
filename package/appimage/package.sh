@@ -56,7 +56,7 @@ cp package/appimage/icon.svg $APP.AppDir
 
 wget -c https://github.com/$(wget -q https://github.com/probonopd/go-appimage/releases/expanded_assets/continuous -O - | grep "appimagetool-.*-x86_64.AppImage" | head -n 1 | cut -d '"' -f 2)
 chmod +x ./appimagetool-*.AppImage
-./appimagetool-*.AppImage deploy ./$APP.AppDir/usr/share/applications/m8c.desktop
+./appimagetool-*.AppImage -s deploy ./$APP.AppDir/usr/share/applications/m8c.desktop
 ./appimagetool-*.AppImage ./$APP.AppDir
 
 
