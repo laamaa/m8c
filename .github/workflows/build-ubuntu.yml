@@ -24,7 +24,7 @@ jobs:
         id: cache-x86_64-sdl3-files
         uses: actions/cache@v4
         with:
-          path: SDL3-${{ env.SDL_VERSION }}
+          path: 'SDL3-3.2.6'
           key: linux-x86_64-sdl3-files
 
       - name: 'Download SDL3 sources'
