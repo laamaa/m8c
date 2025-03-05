@@ -20,7 +20,7 @@ jobs:
         shell: msys2 {0}
     env:
       MINGW_ARCH: ${{ matrix.sys }}
-      SDL_VERSION: 3.2.4
+      SDL_VERSION: 3.2.8
     steps:
 
     - name: 'git config'

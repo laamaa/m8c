@@ -9,13 +9,10 @@ jobs:
      
   build-macos:
     runs-on: macos-13
-    env:
-      SDL_VERSION: 3.2.6
-      SDL_SHA256: 2938328317301dfbe30176d79c251733aa5e7ec5c436c800b99ed4da7adcb0f0
 
     steps:
       - name: 'Install dependencies'
-        run: brew install cmake pkg-config autoconf automake libtool sdl3 libserialport
+        run: brew update && brew install cmake pkg-config sdl3 libserialport
 
       - name: 'Checkout'
         uses: actions/checkout@v4
