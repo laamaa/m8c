@@ -1,4 +1,4 @@
-name: Update Version and Hash in flake.nix
+name: Update Version and Hash in flake.nix/RPM spec 
 
 on:
   push:
@@ -42,15 +42,16 @@ jobs:
             echo "valid=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Update version in flake.nix
+      - name: Update version in flake.nix and RPM spec
         if: steps.valid-tag.outputs.valid
         run: |
           latest_annotated_tag="${{ steps.newest-tag.outputs.latest_annotated_tag }}"
           latest_annotated_tag_without_v="${latest_annotated_tag#v}"  # Remove 'v' prefix
           sed -i "s/version = \".*\";/version = \"$latest_annotated_tag_without_v\";/" flake.nix
+          sed -i "s/Version:.*/Version:        $latest_annotated_tag_without_v/" package/rpm/m8c.spec
           new_hash=$(nix-prefetch-url --unpack --type sha256 "https://github.com/laamaa/m8c/archive/v$latest_annotated_tag_without_v.tar.gz")  # Use updated variable name
           sed -i "s/hash = \".*\";/hash = \"sha256:$new_hash\";/" flake.nix
           git config user.email "github-actions@github.com"
           git config user.name "GitHub Actions"
-          git commit -am "Update version and hash in flake.nix to $latest_annotated_tag_without_v"
+          git commit -am "Update version and hash in flake.nix, update RPM spec version to $latest_annotated_tag_without_v"
           git push origin HEAD:main
