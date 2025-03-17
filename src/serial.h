@@ -3,18 +3,16 @@
 
 #ifndef _SERIAL_H_
 #define _SERIAL_H_
-#include <stdint.h>
+#ifdef USE_LIBSERIALPORT
 
-#ifdef USE_LIBUSB
-// Max packet length of the USB endpoint
-#define serial_read_size 1024
-int init_serial_with_file_descriptor(int file_descriptor);
-#else
+#include <stdint.h>
+#include "config.h"
+
 // maximum amount of bytes to read from the serial in one read()
 #define serial_read_size 1024
-#endif
 
 int init_serial(int verbose, const char *preferred_device);
+int destroy_serial();
 int list_devices();
 int check_serial_port();
 int reset_display();
@@ -23,5 +21,7 @@ int disconnect();
 int serial_read(uint8_t *serial_buf, int count);
 int send_msg_controller(uint8_t input);
 int send_msg_keyjazz(uint8_t note, uint8_t velocity);
+int process_serial(config_params_s conf);
 
+#endif
 #endif

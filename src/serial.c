@@ -4,7 +4,7 @@
 // Contains portions of code from libserialport's examples released to the
 // public domain
 
-#ifndef USE_LIBUSB
+#ifdef USE_LIBSERIALPORT
 #include <SDL3/SDL.h>
 #include <libserialport.h>
 #include <stdio.h>
@@ -12,9 +12,17 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "command.h"
 #include "serial.h"
+#include "slip.h"
+#include "config.h"
 
 struct sp_port *m8_port = NULL;
+// allocate memory for serial buffers
+static uint8_t serial_buffer[serial_read_size] = {0};
+static uint8_t slip_buffer[serial_read_size] = {0};
+static slip_handler_s slip;
+static uint16_t zero_byte_packets = 0; // used to detect device disconnection
 
 // Helper function for error handling
 static int check(enum sp_return result);
@@ -94,6 +102,17 @@ int init_serial(const int verbose, const char *preferred_device) {
     // Port is already initialized
     return 1;
   }
+
+  // settings for the slip packet handler
+  static const slip_descriptor_s slip_descriptor = {
+      .buf = slip_buffer,
+      .buf_size = sizeof(slip_buffer),
+      .recv_message = process_command, // the function where complete slip
+                                       // packets are processed further
+  };
+
+  slip_init(&slip, &slip_descriptor);
+
   /* A pointer to a null-terminated array of pointers to
    * struct sp_port, which will contain the ports found.*/
   struct sp_port **port_list;
@@ -264,5 +283,56 @@ int send_msg_keyjazz(const uint8_t note, uint8_t velocity) {
   }
 
   return 1;
+}
+
+int process_serial(config_params_s conf) {
+  while (1) {
+    // read serial port
+    const int bytes_read = serial_read(serial_buffer, serial_read_size);
+    if (bytes_read < 0) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %d reading serial.", bytes_read);
+      disconnect();
+      return -1;
+      break;
+    }
+    if (bytes_read > 0) {
+      // input from device: reset the zero byte counter and create a
+      // pointer to the serial buffer
+      zero_byte_packets = 0;
+      const uint8_t *cur = serial_buffer;
+      const uint8_t *end = serial_buffer + bytes_read;
+      while (cur < end) {
+        // process the incoming bytes into commands and draw them
+        const int n = slip_read_byte(&slip, *cur++);
+        if (n != SLIP_NO_ERROR) {
+          if (n == SLIP_ERROR_INVALID_PACKET) {
+            reset_display();
+          } else {
+            SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SLIP error %d\n", n);
+          }
+        }
+      }
+    } else {
+      // zero byte packet, increment counter
+      zero_byte_packets++;
+      if (zero_byte_packets > conf.wait_packets) {
+        zero_byte_packets = 0;
+
+        // try opening the serial port to check if it's alive
+        if (check_serial_port()) {
+          // the device is still there, carry on
+          break;
+        }
+        disconnect();
+        return 0;
+      }
+      break;
+    }
+  }
+  return 1;
+}
+
+int destroy_serial() {
+  return disconnect();
 }
 #endif

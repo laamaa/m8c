@@ -8,7 +8,9 @@ DEPS = src/serial.h src/slip.h src/command.h src/render.h src/ini.h src/config.h
 INCLUDES = $(shell pkg-config --libs sdl3 libserialport | sed 's/-mwindows//')
 
 #Set any compiler flags you want to use (e.g. -I/usr/include/somefolder `pkg-config --cflags gtk+-3.0` ), or leave blank
-local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl3 libserialport) -Wall -Wextra -O2 -pipe -I.
+local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl3 libserialport) -DUSE_LIBSERIALPORT -Wall -Wextra -O2 -pipe -I.
+# local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl3 libserialport) -DUSE_RTMIDI -Wall -Wextra -O2 -pipe -I.
+
 
 #Set the compiler you are using ( gcc for C or g++ for C++ )
 CC = gcc

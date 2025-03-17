@@ -43,7 +43,7 @@ jobs:
       id: cache-sdl3-files
       uses: actions/cache@v4
       with:
-        path: 'SDL3-3.2.4'
+        path: 'SDL3-3.2.8'
         key: win-sdl3-files-${{ matrix.sys }}
 
     - name: 'Download SDL3 sources'
