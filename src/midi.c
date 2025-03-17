@@ -16,7 +16,7 @@ RtMidiInPtr midi_in;
 RtMidiOutPtr midi_out;
 message_queue_s queue;
 
-const unsigned char m8_sysex_header[4] = {0xF0, 0x00, 0x02, 0x61};
+const unsigned char m8_sysex_header[5] = {0xF0, 0x00, 0x02, 0x61, 0x00};
 const unsigned int m8_sysex_header_size = sizeof(m8_sysex_header);
 const unsigned char sysex_message_end = 0xF7;
 
