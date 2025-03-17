@@ -5,6 +5,7 @@
 #include "midi.h"
 #include "command.h"
 #include "config.h"
+#include "queue.h"
 #include <SDL3/SDL.h>
 #include <rtmidi_c.h>
 #include <stdbool.h>
@@ -13,6 +14,7 @@
 
 RtMidiInPtr midi_in;
 RtMidiOutPtr midi_out;
+message_queue_s queue;
 
 const unsigned char m8_sysex_header[4] = {0xF0, 0x00, 0x02, 0x61};
 const unsigned int m8_sysex_header_size = sizeof(m8_sysex_header);
@@ -38,7 +40,7 @@ void midi_decode(const uint8_t *encoded_data, size_t length, uint8_t **decoded_d
   size_t pos = m8_sysex_header_size + 1;
 
   // Calculate expected output size (ignoring EOT if present)
-  size_t expected_output_size =
+  const size_t expected_output_size =
       (length - m8_sysex_header_size) - ((length - m8_sysex_header_size) / 8);
   if (encoded_data[length - 1] == sysex_message_end) {
     length--; // Ignore the EOT byte
@@ -84,7 +86,7 @@ static void midi_callback(double delta_time, const unsigned char *message, size_
   if (message_size < 5 || !message_is_m8_sysex(message))
     return;
 
-  uint8_t *decoded_data;
+  unsigned char *decoded_data;
   size_t decoded_length;
   midi_decode(message, message_size, &decoded_data, &decoded_length);
 
@@ -99,7 +101,7 @@ static void midi_callback(double delta_time, const unsigned char *message, size_
       // printf("%02X ", decoded_data[i]);
     }
     // printf("\n");
-    process_command(decoded_data, decoded_length);
+    push_message(&queue, decoded_data, decoded_length);
     SDL_free(decoded_data);
   } else {
     printf("Decoding failed.\n");
@@ -116,7 +118,9 @@ int initialize_rtmidi(void) {
   return 1;
 }
 
-int init_serial(int verbose, const char *preferred_device) {
+int init_serial(const int verbose, const char *preferred_device) {
+
+  init_queue(&queue);
 
   int midi_in_initialized = 0;
   int midi_out_initialized = 0;
@@ -125,7 +129,7 @@ int init_serial(int verbose, const char *preferred_device) {
   if (midi_in == NULL || midi_out == NULL) {
     initialize_rtmidi();
   };
-  unsigned int ports_total_in = rtmidi_get_port_count(midi_in);
+  const unsigned int ports_total_in = rtmidi_get_port_count(midi_in);
   if (verbose)
     SDL_Log("Number of MIDI in ports: %d", ports_total_in);
   for (unsigned int port_number = 0; port_number < ports_total_in; port_number++) {
@@ -138,7 +142,6 @@ int init_serial(int verbose, const char *preferred_device) {
     if (strncmp("M8", port_name, 2) == 0) {
       if (verbose)
         SDL_Log("Found M8 Input in MIDI port %d", port_number);
-
       rtmidi_in_ignore_types(midi_in, false, true, true);
       rtmidi_open_port(midi_in, port_number, "M8");
       midi_in_initialized = 1;
@@ -157,7 +160,7 @@ int check_serial_port(void) {
 int reset_display(void) {
   SDL_Log("Reset display\n");
   const unsigned char reset_sysex[8] = {0xF0, 0x00, 0x02, 0x61, 0x00, 0x00, 'R', 0xF7};
-  int result = rtmidi_out_send_message(midi_out, &reset_sysex[0], sizeof(reset_sysex));
+  const int result = rtmidi_out_send_message(midi_out, &reset_sysex[0], sizeof(reset_sysex));
   if (result != 0) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error resetting M8 display, code %d", result);
     return 0;
@@ -166,7 +169,7 @@ int reset_display(void) {
 }
 
 int enable_and_reset_display(void) {
-  //rtmidi_in_set_callback(midi_in, midi_callback, NULL);
+  rtmidi_in_set_callback(midi_in, midi_callback, NULL);
   const unsigned char enable_sysex[8] = {0xF0, 0x00, 0x02, 0x61, 0x00, 0x00, 'E', 0xF7};
   int result = rtmidi_out_send_message(midi_out, &enable_sysex[0], sizeof(enable_sysex));
   if (result != 0) {
@@ -179,7 +182,8 @@ int enable_and_reset_display(void) {
 
 int disconnect(void) {
   const unsigned char disconnect_sysex[8] = {0xF0, 0x00, 0x02, 0x61, 0x00, 0x00, 'D', 0xF7};
-  int result = rtmidi_out_send_message(midi_out, &disconnect_sysex[0], sizeof(disconnect_sysex));
+  const int result =
+      rtmidi_out_send_message(midi_out, &disconnect_sysex[0], sizeof(disconnect_sysex));
   if (result != 0) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to send disconnect");
   }
@@ -191,7 +195,7 @@ int disconnect(void) {
 
 int send_msg_controller(const unsigned char input) {
   const unsigned char input_sysex[9] = {0xF0, 0x00, 0x02, 0x61, 0x00, 0x00, 'C', input, 0xF7};
-  int result = rtmidi_out_send_message(midi_out, &input_sysex[0], sizeof(input_sysex));
+  const int result = rtmidi_out_send_message(midi_out, &input_sysex[0], sizeof(input_sysex));
   if (result != 0) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to send key input message");
     return 0;
@@ -205,7 +209,7 @@ int send_msg_keyjazz(const unsigned char note, unsigned char velocity) {
   }
   const unsigned char keyjazz_sysex[10] = {0xF0, 0x00, 0x02, 0x61,     0x00,
                                            0x00, 'K',  note, velocity, 0xF7};
-  int result = rtmidi_out_send_message(midi_out, &keyjazz_sysex[0], sizeof(keyjazz_sysex));
+  const int result = rtmidi_out_send_message(midi_out, &keyjazz_sysex[0], sizeof(keyjazz_sysex));
   if (result != 0) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to send keyjazz input message");
     return 0;
@@ -214,36 +218,21 @@ int send_msg_keyjazz(const unsigned char note, unsigned char velocity) {
 }
 
 int process_serial(config_params_s conf) {
-  unsigned char midi_message[1024];
-  size_t midi_message_size = 1024;
-  while (rtmidi_in_get_message(midi_in,midi_message,&midi_message_size)) {
-    if (midi_message_size < 5 || !message_is_m8_sysex(midi_message))
-      return 1;
-
-    uint8_t *decoded_data;
-    size_t decoded_length;
-    midi_decode(midi_message, midi_message_size, &decoded_data, &decoded_length);
-
-    // printf("Original data: ");
-    for (size_t i = 0; i < midi_message_size; i++) {
-      // printf("%02X ", message[i]);
-    }
-
-    if (decoded_data) {
-      // printf("\nDecoded MIDI Data: ");
-      for (size_t i = 0; i < decoded_length; i++) {
-        // printf("%02X ", decoded_data[i]);
-      }
-      // printf("\n");
-      process_command(decoded_data, decoded_length);
-      SDL_free(decoded_data);
-    }
-    printf("Decoding failed.\n");
-    return 0;
+  unsigned char *command;
+  size_t length = 0;
+  while ((command = pop_message(&queue, &length)) != NULL) {
+    process_command(command, length);
   }
   return 1;
 }
 
-int destroy_serial() { return disconnect(); }
+int destroy_serial() {
+  if (queue.mutex != NULL) {
+    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Destroying command queue");
+    SDL_DestroyMutex(queue.mutex);
+    SDL_DestroyCondition(queue.cond);
+  }
+  return disconnect();
+}
 
 #endif
