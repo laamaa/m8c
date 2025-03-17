@@ -1,15 +1,14 @@
 #Set all your object files (the object files of all the .c files in your project, e.g. main.o my_sub_functions.o )
-OBJ = src/main.o src/serial.o src/slip.o src/command.o src/render.o src/ini.o src/config.o src/input.o src/gamecontrollers.o src/fx_cube.o src/usb.o src/audio.o src/usb_audio.o src/ringbuffer.o src/inprint2.o
+OBJ = src/main.o src/serial.o src/slip.o src/command.o src/render.o src/ini.o src/config.o src/input.o src/gamecontrollers.o src/fx_cube.o src/usb.o src/audio.o src/usb_audio.o src/ringbuffer.o src/inprint2.o src/midi.o
 
 #Set any dependant header files so that if they are edited they cause a complete re-compile (e.g. main.h some_subfunctions.h some_definitions_file.h ), or leave blank
-DEPS = src/serial.h src/slip.h src/command.h src/render.h src/ini.h src/config.h src/input.h src/gamecontrollers.h src/fx_cube.h src/audio.h src/ringbuffer.h src/inline_font.h
+DEPS = src/serial.h src/slip.h src/command.h src/render.h src/ini.h src/config.h src/input.h src/gamecontrollers.h src/fx_cube.h src/audio.h src/ringbuffer.h src/inline_font.h src/midi.h
 
 #Any special libraries you are using in your project (e.g. -lbcm2835 -lrt `pkg-config --libs gtk+-3.0` ), or leave blank
 INCLUDES = $(shell pkg-config --libs sdl3 libserialport | sed 's/-mwindows//')
 
 #Set any compiler flags you want to use (e.g. -I/usr/include/somefolder `pkg-config --cflags gtk+-3.0` ), or leave blank
 local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl3 libserialport) -DUSE_LIBSERIALPORT -Wall -Wextra -O2 -pipe -I.
-# local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl3 libserialport) -DUSE_RTMIDI -Wall -Wextra -O2 -pipe -I.
 
 
 #Set the compiler you are using ( gcc for C or g++ for C++ )
@@ -30,8 +29,12 @@ m8c: $(OBJ)
 	$(CC) -o $@ $^ $(local_CFLAGS) $(INCLUDES)
 
 libusb: INCLUDES = $(shell pkg-config --libs sdl3 libusb-1.0)
-libusb: local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl3 libusb-1.0) -Wall -O2 -pipe -I. -DUSE_LIBUSB=1
+libusb: local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl3 libusb-1.0) -Wall -Wextra -O2 -pipe -I. -DUSE_LIBUSB=1
 libusb: m8c
+
+rtmidi: INCLUDES = $(shell pkg-config --libs sdl3 rtmidi)
+rtmidi: local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl3 rtmidi) -Wall -Wextra -O2 -pipe -I. -DUSE_RTMIDI
+rtmidi: m8c
 
 #Cleanup
 .PHONY: clean

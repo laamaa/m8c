@@ -76,7 +76,7 @@ int initialize_sdl(const unsigned int init_fullscreen) {
 
   set_font_mode(0);
 
-  SDL_SetLogPriorities(SDL_LOG_PRIORITY_INFO);
+  SDL_SetLogPriorities(SDL_LOG_PRIORITY_DEBUG);
 
   dirty = 1;
 

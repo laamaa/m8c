@@ -14,9 +14,9 @@
 #include "config.h"
 #include "gamecontrollers.h"
 #include "input.h"
+#include "midi.h"
 #include "render.h"
 #include "serial.h"
-#include "slip.h"
 
 enum state { QUIT, WAIT_FOR_DEVICE, RUN };
 
@@ -77,12 +77,13 @@ int process_inputs(config_params_s conf) {
 
 int main(const int argc, char *argv[]) {
 
+  char *preferred_device = NULL;
+
+#ifdef USE_LIBSERIALPORT // Device selection should be only available with libserialport
   if (argc == 2 && SDL_strcmp(argv[1], "--list") == 0) {
     return list_devices();
   }
 
-  char *preferred_device = NULL;
-#ifdef USE_LIBSERIALPORT // Device selection should be only available with libserialport
   if (argc == 3 && SDL_strcmp(argv[1], "--dev") == 0) {
     preferred_device = argv[2];
     SDL_Log("Using preferred device %s.\n", preferred_device);
@@ -220,7 +221,6 @@ int main(const int argc, char *argv[]) {
     // main loop
     while (run == RUN) {
       process_inputs(conf);
-
       const int result = process_serial(conf);
       if (result == 0) {
         port_inited = 0;
@@ -230,7 +230,6 @@ int main(const int argc, char *argv[]) {
         run = QUIT;
       }
       render_screen();
-      SDL_Delay(conf.idle_ms);
     }
   } while (run > QUIT);
   // main loop end
