@@ -2,11 +2,11 @@ cmake_minimum_required(VERSION 3.15)
 
 project(m8c LANGUAGES C)
 
-set(CMAKE_C_FLAGS "-g -Wall -Wextra")
+set(CMAKE_C_FLAGS "-O2 -Wall -Wextra")
 
 set(APP_NAME m8c)
 
-set(USE_RTMIDI 1)
+set(USE_LIBSERIALPORT 1)
 
 find_package(PkgConfig REQUIRED)
 find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3)
