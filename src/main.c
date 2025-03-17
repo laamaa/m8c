@@ -230,6 +230,7 @@ int main(const int argc, char *argv[]) {
         run = QUIT;
       }
       render_screen();
+      SDL_Delay(conf.idle_ms);
     }
   } while (run > QUIT);
   // main loop end
