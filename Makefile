@@ -1,8 +1,37 @@
 #Set all your object files (the object files of all the .c files in your project, e.g. main.o my_sub_functions.o )
-OBJ = src/main.o src/backends/serialport.o src/backends/slip.o src/command.o src/render.o src/ini.o src/config.o src/input.o src/gamecontrollers.o src/fx_cube.o src/backends/usb.o src/audio.o src/backends/usb_audio.o src/backends/ringbuffer.o src/inprint2.o src/backends/rtmidi.o src/backends/queue.o
+OBJ = src/main.o \
+src/audio.o \
+src/command.o \
+src/config.o \
+src/fx_cube.o \
+src/gamecontrollers.o \
+src/ini.o \
+src/inprint2.o \
+src/input.o \
+src/backends/queue.o \
+src/render.o \
+src/backends/rtmidi.o \
+src/backends/ringbuffer.o \
+src/backends/serialport.o \
+src/backends/slip.o \
+src/backends/usb.o \
+src/backends/usb_audio.o \
 
 #Set any dependant header files so that if they are edited they cause a complete re-compile (e.g. main.h some_subfunctions.h some_definitions_file.h ), or leave blank
-DEPS = src/backends/serialport.h src/backends/slip.h src/command.h src/render.h src/ini.h src/config.h src/input.h src/gamecontrollers.h src/fx_cube.h src/audio.h src/backends/ringbuffer.h src/inline_font.h src/backends/rtmidi.h src/backends/queue.h
+DEPS = src/audio.h \
+src/command.h \
+src/config.h \
+src/fx_cube.h \
+src/gamecontrollers.h \
+src/ini.h \
+src/input.h \
+src/render.h \
+src/backends/ringbuffer.h \
+src/backends/rtmidi.h \
+src/backends/queue.h \
+src/backends/serialport.h \
+src/backends/slip.h \
+src/fonts/inline_font.h
 
 #Any special libraries you are using in your project (e.g. -lbcm2835 -lrt `pkg-config --libs gtk+-3.0` ), or leave blank
 INCLUDES = $(shell pkg-config --libs sdl3 libserialport | sed 's/-mwindows//')
@@ -39,7 +68,7 @@ rtmidi: m8c
 .PHONY: clean
 
 clean:
-	rm -f src/*.o *~ m8c
+	rm -f src/*.o src/backends/*.o *~ m8c
 
 # PREFIX is environment variable, but if it is not set, then set default value
 ifeq ($(PREFIX),)
