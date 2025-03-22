@@ -12,28 +12,17 @@ static unsigned int audio_initialized = 0;
 static SDL_AudioSpec audio_spec_in = {SDL_AUDIO_S16LE, 2, 44100};
 static SDL_AudioSpec audio_spec_out = {SDL_AUDIO_S16LE, 2, 44100};
 
-static void SDLCALL audio_cb_out(void *userdata, SDL_AudioStream *stream, int length, int unused) {
+static void SDLCALL audio_cb_in(void *userdata, SDL_AudioStream *stream, int length, int unused) {
   // suppress compiler warnings
   (void)userdata;
-  (void)length;
   (void)unused;
 
-  const int bytes_available = SDL_GetAudioStreamAvailable(audio_stream_in);
-  if (bytes_available == -1) {
-    SDL_LogError(SDL_LOG_CATEGORY_AUDIO,
-                 "Error getting available audio stream bytes: %s, destroying audio",
-                 SDL_GetError());
-    audio_close();
-    return;
-  }
-
-  Uint8 *src_audio_data = SDL_malloc(bytes_available);
-  const int bytes_read = SDL_GetAudioStreamData(audio_stream_in, src_audio_data, bytes_available);
-  if (bytes_read == bytes_available) {
-    SDL_PutAudioStreamData(stream, src_audio_data, bytes_read);
+  Uint8 *src_audio_data = SDL_malloc(length);
+  const int bytes_read = SDL_GetAudioStreamData(stream, src_audio_data, length);
+  if (bytes_read == length) {
+    SDL_PutAudioStreamData(audio_stream_out, src_audio_data, bytes_read);
   } else {
-    SDL_LogError(SDL_LOG_CATEGORY_AUDIO,
-                 "Error getting available audio stream bytes: %s, destroying audio",
+    SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Error getting audio stream data: %s, destroying audio",
                  SDL_GetError());
     audio_close();
   }
@@ -117,8 +106,7 @@ int audio_initialize(const char *output_device_name, const unsigned int audio_bu
   SDL_snprintf(audio_buffer_size_str, sizeof(audio_buffer_size_str), "%d", audio_buffer_size);
   SDL_SetHint(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, audio_buffer_size_str);
 
-  audio_stream_out =
-      SDL_OpenAudioDeviceStream(output_device_id, &audio_spec_out, audio_cb_out, NULL);
+  audio_stream_out = SDL_OpenAudioDeviceStream(output_device_id, &audio_spec_out, NULL, NULL);
 
   if (!audio_stream_out) {
     SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Error opening audio output device: %s", SDL_GetError());
@@ -127,7 +115,7 @@ int audio_initialize(const char *output_device_name, const unsigned int audio_bu
   SDL_Log("Audiospec Out: format %d, channels %d, rate %d", audio_spec_out.format,
           audio_spec_out.channels, audio_spec_out.freq);
 
-  audio_stream_in = SDL_OpenAudioDeviceStream(m8_device_id, &audio_spec_in, NULL, NULL);
+  audio_stream_in = SDL_OpenAudioDeviceStream(m8_device_id, &audio_spec_in, audio_cb_in, NULL);
   if (!audio_stream_in) {
     SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Error opening audio input device: %s", SDL_GetError());
     SDL_DestroyAudioStream(audio_stream_out);
