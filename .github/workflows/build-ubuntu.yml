@@ -45,7 +45,7 @@ jobs:
         run: |
           pushd SDL3-$SDL_VERSION
           mkdir build_x86_64
-          cmake -S . -B build_x86_64
+          cmake -S . -B build_x86_64 -DCMAKE_BUILD_TYPE=Release
           cmake --build build_x86_64
           sudo cmake --install build_x86_64
           popd

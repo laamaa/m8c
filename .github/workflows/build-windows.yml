@@ -95,7 +95,7 @@ jobs:
 
     - name: 'Build package'
       run: |
-        cmake . -G Ninja -DCMAKE_PREFIX_PATH=C:/Libraries
+        cmake . -G Ninja -DCMAKE_PREFIX_PATH=C:/Libraries -DCMAKE_BUILD_TYPE=Release
         cmake --build .
         strip -g m8c.exe
         if [ ${{ matrix.win }} == "win32" ]
