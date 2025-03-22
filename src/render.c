@@ -283,7 +283,7 @@ void display_keyjazz_overlay(const uint8_t show, const uint8_t base_octave,
 
   if (show) {
     char overlay_text[7];
-    snprintf(overlay_text, sizeof(overlay_text), "%02X %u", velocity, base_octave);
+    SDL_snprintf(overlay_text, sizeof(overlay_text), "%02X %u", velocity, base_octave);
     inprint(rend, overlay_text, overlay_offset_x, overlay_offset_y, 0xC8C8C8, bg_color);
     inprint(rend, "*", overlay_offset_x + (fonts[font_mode]->glyph_x * 5 + 5), overlay_offset_y,
             0xFF0000, bg_color);
