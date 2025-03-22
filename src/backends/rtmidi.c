@@ -2,7 +2,7 @@
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 #ifdef USE_RTMIDI
 
-#ifdef DEBUG
+#ifndef NDEBUG
 #define RTMIDI_DEBUG
 #endif
 
@@ -13,7 +13,6 @@
 #include <SDL3/SDL.h>
 #include <rtmidi_c.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <string.h>
 
 RtMidiInPtr midi_in;
@@ -57,14 +56,14 @@ void midi_decode(const uint8_t *encoded_data, size_t length, uint8_t **decoded_d
     return;
   }
 
-  uint8_t bitCounter = 0;
-  uint8_t bitByteCounter = 0;
+  uint8_t bit_counter = 0;
+  uint8_t bit_byte_counter = 0;
   uint8_t *out = *decoded_data;
   *decoded_length = 0;
 
   while (pos < length) {
     // Extract MSB from the "bit field" position
-    uint8_t msb = (encoded_data[bitByteCounter * 8 + m8_sysex_header_size] >> bitCounter) & 0x01;
+    uint8_t msb = (encoded_data[bit_byte_counter * 8 + m8_sysex_header_size] >> bit_counter) & 0x01;
 
     // Extract LSB from data byte
     uint8_t lsb = encoded_data[pos] & 0x7F;
@@ -74,12 +73,12 @@ void midi_decode(const uint8_t *encoded_data, size_t length, uint8_t **decoded_d
     out++;
     (*decoded_length)++;
 
-    bitCounter++;
+    bit_counter++;
     pos++;
 
-    if (bitCounter == 7) {
-      bitCounter = 0;
-      bitByteCounter++;
+    if (bit_counter == 7) {
+      bit_counter = 0;
+      bit_byte_counter++;
       pos++; // Skip the MSB byte
     }
   }
@@ -87,6 +86,10 @@ void midi_decode(const uint8_t *encoded_data, size_t length, uint8_t **decoded_d
 
 static void midi_callback(double delta_time, const unsigned char *message, size_t message_size,
                           void *user_data) {
+  // Unused variables
+  (void)delta_time;
+  (void)user_data;
+
   if (message_size < 5 || !message_is_m8_sysex(message))
     return;
 
@@ -94,26 +97,28 @@ static void midi_callback(double delta_time, const unsigned char *message, size_
   size_t decoded_length;
   midi_decode(message, message_size, &decoded_data, &decoded_length);
 
-  // printf("Original data: ");
+  // If you need to debug incoming MIDI packets, you can uncomment the lines below:
+
+  /* printf("Original data: ");
   for (size_t i = 0; i < message_size; i++) {
-    // printf("%02X ", message[i]);
-  }
+    printf("%02X ", message[i]);
+  } */
 
   if (decoded_data) {
-    // printf("\nDecoded MIDI Data: ");
+    /* printf("\nDecoded MIDI Data: ");
     for (size_t i = 0; i < decoded_length; i++) {
-      // printf("%02X ", decoded_data[i]);
+      printf("%02X ", decoded_data[i]);
     }
-    // printf("\n");
+    printf("\n"); */
     push_message(&queue, decoded_data, decoded_length);
     SDL_free(decoded_data);
   } else {
-    printf("Decoding failed.\n");
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Decoding failed.\n");
   }
 }
 
-int initialize_rtmidi(void) {
-  SDL_Log("init rtmidi");
+int initialize_rtmidi() {
+  SDL_Log("Initializing rtmidi");
   midi_in = rtmidi_in_create(RTMIDI_API_UNSPECIFIED, "m8c_in", 1024);
   midi_out = rtmidi_out_create(RTMIDI_API_UNSPECIFIED, "m8c_out");
   if (midi_in == NULL || midi_out == NULL) {
@@ -123,8 +128,6 @@ int initialize_rtmidi(void) {
 }
 
 int m8_connect(const int verbose, const char *preferred_device) {
-
-  init_queue(&queue);
 
   int midi_in_initialized = 0;
   int midi_out_initialized = 0;
@@ -143,7 +146,8 @@ int m8_connect(const int verbose, const char *preferred_device) {
     rtmidi_get_port_name(midi_in, port_number, &port_name[0], &port_name_length_in);
     if (verbose)
       SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "MIDI IN port %d, name: %s", port_number, port_name);
-    if (strncmp("M8", port_name, 2) == 0) {
+
+    if (SDL_strncmp("M8", port_name, 2) == 0) {
       if (verbose)
         SDL_Log("Found M8 Input in MIDI port %d", port_number);
       rtmidi_in_ignore_types(midi_in, false, true, true);
@@ -151,9 +155,14 @@ int m8_connect(const int verbose, const char *preferred_device) {
       midi_in_initialized = 1;
       rtmidi_open_port(midi_out, port_number, "M8");
       midi_out_initialized = 1;
+      init_queue(&queue);
+      if (preferred_device != NULL && SDL_strcmp(preferred_device, port_name) == 0) {
+        SDL_Log("Found preferred device, breaking");
+        break;
+      }
     }
   }
-  return (midi_in_initialized && midi_out_initialized);
+  return midi_in_initialized && midi_out_initialized;
 }
 
 int check_serial_port(void) {
@@ -162,7 +171,7 @@ int check_serial_port(void) {
 }
 
 int reset_display(void) {
-  SDL_Log("Reset display\n");
+  SDL_Log("Reset display");
   const unsigned char reset_sysex[8] = {0xF0, 0x00, 0x02, 0x61, 0x00, 0x00, 'R', 0xF7};
   const int result = rtmidi_out_send_message(midi_out, &reset_sysex[0], sizeof(reset_sysex));
   if (result != 0) {
@@ -191,7 +200,7 @@ int disconnect(void) {
   if (result != 0) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to send disconnect");
   }
-  SDL_Log("Freeing MIDI ports");
+  SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Freeing MIDI ports");
   rtmidi_in_free(midi_in);
   rtmidi_out_free(midi_out);
   return !result;
@@ -222,6 +231,8 @@ int send_msg_keyjazz(const unsigned char note, unsigned char velocity) {
 }
 
 int process_serial(config_params_s conf) {
+  (void)conf; // unused parameter
+
   unsigned char *command;
   size_t length = 0;
   while ((command = pop_message(&queue, &length)) != NULL) {
@@ -239,6 +250,22 @@ int m8_close() {
   return disconnect();
 }
 
-int m8_list_devices() {return 0;}
+int m8_list_devices() {
+  if (midi_in == NULL || midi_out == NULL) {
+    initialize_rtmidi();
+  };
+  const unsigned int ports_total_in = rtmidi_get_port_count(midi_in);
+  SDL_Log("Number of MIDI in ports: %d", ports_total_in);
+  for (unsigned int port_number = 0; port_number < ports_total_in; port_number++) {
+    int port_name_length_in;
+    rtmidi_get_port_name(midi_in, port_number, NULL, &port_name_length_in);
+    char port_name[port_name_length_in];
+    rtmidi_get_port_name(midi_in, port_number, &port_name[0], &port_name_length_in);
+    SDL_Log("MIDI IN port %d, name: %s", port_number, port_name);
+  }
+  rtmidi_in_free(midi_in);
+  rtmidi_out_free(midi_out);
+  return 1;
+}
 
 #endif
