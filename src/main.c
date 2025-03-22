@@ -21,7 +21,7 @@
 enum app_state app_state = WAIT_FOR_DEVICE;
 
 // Handle CTRL+C / SIGINT, SIGKILL etc.
-void signal_handler(int unused) { app_state = QUIT; }
+void signal_handler(int unused) { (void)unused; app_state = QUIT; }
 
 int main(const int argc, char *argv[]) {
 
@@ -73,8 +73,9 @@ int main(const int argc, char *argv[]) {
   // initial scan for (existing) gamepads
   gamecontrollers_initialize();
 
-#ifdef DEBUG
-  SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
+#ifndef NDEBUG
+  SDL_SetLogPriorities(SDL_LOG_PRIORITY_DEBUG);
+  SDL_LogDebug(SDL_LOG_CATEGORY_TEST,"Running a Debug build");
 #endif
 
   // main loop begin

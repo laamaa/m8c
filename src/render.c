@@ -4,7 +4,6 @@
 #include "render.h"
 
 #include <SDL3/SDL.h>
-#include <stdio.h>
 
 #include "SDL2_inprint.h"
 #include "command.h"
@@ -75,8 +74,6 @@ int renderer_initialize(const unsigned int init_fullscreen) {
   SDL_RenderClear(rend);
 
   renderer_set_font_mode(0);
-
-  SDL_SetLogPriorities(SDL_LOG_PRIORITY_INFO);
 
   dirty = 1;
 

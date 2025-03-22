@@ -2,11 +2,11 @@ cmake_minimum_required(VERSION 3.15)
 
 project(m8c LANGUAGES C)
 
-set(CMAKE_C_FLAGS "-O2 -Wall -Wextra")
-
 set(APP_NAME m8c)
 
-set(USE_LIBSERIALPORT 1)
+if (NOT DEFINED USE_LIBSERIALPORT AND NOT DEFINED USE_LIBUSB AND NOT DEFINED USE_RTMIDI)
+    set(USE_LIBSERIALPORT 1)
+endif ()
 
 find_package(PkgConfig REQUIRED)
 find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3)
@@ -29,7 +29,7 @@ if (USE_RTMIDI)
 endif (USE_RTMIDI)
 
 
-file(GLOB m8c_SRC "src/*.h" "src/*.c")
+file(GLOB m8c_SRC "src/*.h" "src/*.c" "src/backends/*.h" "src/backends/*.c" "src/fonts/*.h")
 
 set(MACOS_CONTENTS "${CMAKE_CURRENT_SOURCE_DIR}/package/macos/m8c.app/Contents")
 
