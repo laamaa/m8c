@@ -10,12 +10,12 @@
 #include "command.h"
 #include "fx_cube.h"
 
-#include "font1.h"
-#include "font2.h"
-#include "font3.h"
-#include "font4.h"
-#include "font5.h"
-#include "inline_font.h"
+#include "fonts/font1.h"
+#include "fonts/font2.h"
+#include "fonts/font3.h"
+#include "fonts/font4.h"
+#include "fonts/font5.h"
+#include "fonts/inline_font.h"
 
 #include <stdlib.h>
 
@@ -44,7 +44,7 @@ uint8_t fullscreen = 0;
 static uint8_t dirty = 0;
 
 // Initializes SDL and creates a renderer and required surfaces
-int initialize_sdl(const unsigned int init_fullscreen) {
+int renderer_initialize(const unsigned int init_fullscreen) {
 
   if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMEPAD) == false) {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "SDL_Init: %s\n", SDL_GetError());
@@ -74,9 +74,9 @@ int initialize_sdl(const unsigned int init_fullscreen) {
 
   SDL_RenderClear(rend);
 
-  set_font_mode(0);
+  renderer_set_font_mode(0);
 
-  SDL_SetLogPriorities(SDL_LOG_PRIORITY_DEBUG);
+  SDL_SetLogPriorities(SDL_LOG_PRIORITY_INFO);
 
   dirty = 1;
 
@@ -84,9 +84,9 @@ int initialize_sdl(const unsigned int init_fullscreen) {
 }
 
 static void change_font(struct inline_font *font) {
-  kill_inline_font();
-  inrenderer(rend);
-  prepare_inline_font(font);
+  inline_font_close();
+  inline_font_set_renderer(rend);
+  inline_font_initialize(font);
 }
 
 static void check_and_adjust_window_and_texture_size(const int new_width, const int new_height) {
@@ -126,7 +126,7 @@ void set_m8_model(const unsigned int model) {
   }
 }
 
-void set_font_mode(int mode) {
+void renderer_set_font_mode(int mode) {
   if (mode < 0 || mode > 2) {
     // bad font mode
     return;
@@ -146,8 +146,8 @@ void set_font_mode(int mode) {
   SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "Font mode %i, Screen offset %i", mode, screen_offset_y);
 }
 
-void close_renderer() {
-  kill_inline_font();
+void renderer_close() {
+  inline_font_close();
   SDL_DestroyTexture(main_texture);
   SDL_DestroyRenderer(rend);
   SDL_DestroyWindow(win);
@@ -321,7 +321,7 @@ void render_screen() {
 }
 
 void screensaver_init() {
-  set_font_mode(1);
+  renderer_set_font_mode(1);
   fx_cube_init(rend, (SDL_Color){255, 255, 255, 255}, texture_width, texture_height,
                fonts[font_mode]->glyph_x);
   SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Screensaver initialized");
@@ -334,6 +334,6 @@ void screensaver_draw() {
 
 void screensaver_destroy() {
   fx_cube_destroy();
-  set_font_mode(0);
+  renderer_set_font_mode(0);
   SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Screensaver destroyed");
 }

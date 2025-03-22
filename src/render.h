@@ -7,15 +7,14 @@
 #include <stdint.h>
 #include "command.h"
 
-int initialize_sdl(unsigned int init_fullscreen);
-void close_renderer();
+int renderer_initialize(unsigned int init_fullscreen);
+void renderer_close();
 
 void draw_waveform(struct draw_oscilloscope_waveform_command *command);
 void draw_rectangle(struct draw_rectangle_command *command);
 int draw_character(struct draw_character_command *command);
-void set_font_mode(int mode);
+void renderer_set_font_mode(int mode);
 void set_m8_model(unsigned int model);
-void view_changed(int view);
 
 void render_screen();
 void toggle_fullscreen();

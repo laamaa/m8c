@@ -19,7 +19,7 @@ static int strcmpci(const char *a, const char *b) {
   }
 }
 
-config_params_s init_config(char *filename) {
+config_params_s config_initialize(char *filename) {
   config_params_s c;
 
   if (filename == NULL) {
@@ -182,7 +182,7 @@ void write_config(const config_params_s *conf) {
 }
 
 // Read config
-void read_config(config_params_s *conf) {
+void config_read(config_params_s *conf) {
 
   char config_path[1024] = {0};
   snprintf(config_path, sizeof(config_path), "%s%s", SDL_GetPrefPath("", "m8c"), conf->filename);

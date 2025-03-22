@@ -1,8 +1,8 @@
+#include "queue.h"
+#include <SDL3/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <SDL3/SDL.h>
-#include "queue.h"
 
 // Initialize the message queue
 void init_queue(message_queue_s *queue) {
@@ -26,7 +26,7 @@ void push_message(message_queue_s *queue, const unsigned char *message, size_t l
     } else {
         // Allocate space for the message and store it
         queue->messages[queue->rear] = SDL_malloc(length);
-        memcpy(queue->messages[queue->rear], message, length);
+        SDL_memcpy(queue->messages[queue->rear], message, length);
         queue->lengths[queue->rear] = length;
         queue->rear = (queue->rear + 1) % MAX_QUEUE_SIZE;
         SDL_SignalCondition(queue->cond);  // Signal consumer thread

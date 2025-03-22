@@ -23,7 +23,7 @@ static void SDLCALL audio_cb_out(void *userdata, SDL_AudioStream *stream, int le
     SDL_LogError(SDL_LOG_CATEGORY_AUDIO,
                  "Error getting available audio stream bytes: %s, destroying audio",
                  SDL_GetError());
-    audio_destroy();
+    audio_close();
     return;
   }
 
@@ -35,14 +35,14 @@ static void SDLCALL audio_cb_out(void *userdata, SDL_AudioStream *stream, int le
     SDL_LogError(SDL_LOG_CATEGORY_AUDIO,
                  "Error getting available audio stream bytes: %s, destroying audio",
                  SDL_GetError());
-    audio_destroy();
+    audio_close();
   }
   SDL_free(src_audio_data);
 }
 
-void toggle_audio(const char *output_device_name, unsigned int audio_buffer_size) {
+void audio_toggle(const char *output_device_name, unsigned int audio_buffer_size) {
   if (!audio_initialized) {
-    audio_init(output_device_name, audio_buffer_size);
+    audio_initialize(output_device_name, audio_buffer_size);
     return;
   }
   if (audio_paused) {
@@ -56,7 +56,7 @@ void toggle_audio(const char *output_device_name, unsigned int audio_buffer_size
   SDL_Log(audio_paused ? "Audio paused" : "Audio resumed");
 }
 
-int audio_init(const char *output_device_name, const unsigned int audio_buffer_size) {
+int audio_initialize(const char *output_device_name, const unsigned int audio_buffer_size) {
 
   // wait for system to initialize possible new audio devices
   SDL_Delay(500);
@@ -147,7 +147,7 @@ int audio_init(const char *output_device_name, const unsigned int audio_buffer_s
   return 1;
 }
 
-void audio_destroy() {
+void audio_close() {
   if (!audio_initialized)
     return;
   SDL_Log("Closing audio devices");

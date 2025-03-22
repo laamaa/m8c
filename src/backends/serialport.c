@@ -7,15 +7,13 @@
 #ifdef USE_LIBSERIALPORT
 #include <SDL3/SDL.h>
 #include <libserialport.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
-#include "command.h"
-#include "serial.h"
+#include "../command.h"
+#include "../config.h"
+#include "serialport.h"
 #include "slip.h"
-#include "config.h"
 
 struct sp_port *m8_port = NULL;
 // allocate memory for serial buffers
@@ -43,7 +41,7 @@ static int detect_m8_serial_device(const struct sp_port *m8_port) {
   return 0;
 }
 
-int list_devices() {
+int m8_list_devices() {
   struct sp_port **port_list;
   const enum sp_return result = sp_list_ports(&port_list);
 
@@ -97,7 +95,7 @@ int check_serial_port() {
   return device_found;
 }
 
-int init_serial(const int verbose, const char *preferred_device) {
+int m8_connect(const int verbose, const char *preferred_device) {
   if (m8_port != NULL) {
     // Port is already initialized
     return 1;
@@ -332,7 +330,7 @@ int process_serial(config_params_s conf) {
   return 1;
 }
 
-int destroy_serial() {
+int m8_close() {
   return disconnect();
 }
 #endif

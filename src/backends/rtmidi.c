@@ -2,9 +2,13 @@
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 #ifdef USE_RTMIDI
 
-#include "midi.h"
-#include "command.h"
-#include "config.h"
+#ifdef DEBUG
+#define RTMIDI_DEBUG
+#endif
+
+#include "rtmidi.h"
+#include "../command.h"
+#include "../config.h"
 #include "queue.h"
 #include <SDL3/SDL.h>
 #include <rtmidi_c.h>
@@ -118,7 +122,7 @@ int initialize_rtmidi(void) {
   return 1;
 }
 
-int init_serial(const int verbose, const char *preferred_device) {
+int m8_connect(const int verbose, const char *preferred_device) {
 
   init_queue(&queue);
 
@@ -226,7 +230,7 @@ int process_serial(config_params_s conf) {
   return 1;
 }
 
-int destroy_serial() {
+int m8_close() {
   if (queue.mutex != NULL) {
     SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Destroying command queue");
     SDL_DestroyMutex(queue.mutex);
@@ -234,5 +238,7 @@ int destroy_serial() {
   }
   return disconnect();
 }
+
+int m8_list_devices() {return 0;}
 
 #endif

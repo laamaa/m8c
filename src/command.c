@@ -168,7 +168,7 @@ int process_command(uint8_t *data, uint32_t size) {
       set_m8_model(0);
     }
 
-    set_font_mode(recv_buf[5]);
+    renderer_set_font_mode(recv_buf[5]);
 
     return 1;
   }

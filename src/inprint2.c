@@ -2,7 +2,7 @@
 // https://github.com/driedfruit/SDL_inprint Released into public domain.
 // Modified to support multiple fonts & adding a background to text.
 
-#include "inline_font.h"
+#include "fonts/inline_font.h"
 #include <SDL3/SDL.h>
 
 #define CHARACTERS_PER_ROW 94
@@ -17,7 +17,7 @@ static SDL_Texture *selected_font = NULL;
 static struct inline_font *selected_inline_font;
 static Uint16 selected_font_w, selected_font_h;
 
-void prepare_inline_font(struct inline_font *font) {
+void inline_font_initialize(struct inline_font *font) {
 
   selected_font_w = font->width;
   selected_font_h = font->height;
@@ -43,12 +43,12 @@ void prepare_inline_font(struct inline_font *font) {
   selected_font = inline_font;
 }
 
-void kill_inline_font(void) {
+void inline_font_close(void) {
   SDL_DestroyTexture(inline_font);
   inline_font = NULL;
 }
 
-void inrenderer(SDL_Renderer *renderer) { selected_renderer = renderer; }
+void inline_font_set_renderer(SDL_Renderer *renderer) { selected_renderer = renderer; }
 
 void infont(SDL_Texture *font) {
 

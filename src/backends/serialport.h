@@ -5,15 +5,15 @@
 #define _SERIAL_H_
 #ifdef USE_LIBSERIALPORT
 
+#include "../config.h"
 #include <stdint.h>
-#include "config.h"
 
 // maximum amount of bytes to read from the serial in one read()
 #define serial_read_size 1024
 
-int init_serial(int verbose, const char *preferred_device);
-int destroy_serial();
-int list_devices();
+int m8_connect(int verbose, const char *preferred_device);
+int m8_close();
+int m8_list_devices();
 int check_serial_port();
 int reset_display();
 int enable_and_reset_display();

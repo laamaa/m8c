@@ -1,7 +1,10 @@
 #include "input.h"
+#include "backends/rtmidi.h"
+#include "backends/serialport.h"
 #include "config.h"
 #include "gamecontrollers.h"
 #include "render.h"
+#include "audio.h"
 #include <SDL3/SDL.h>
 
 uint8_t keyjazz_enabled = 0;
@@ -11,6 +14,55 @@ uint8_t keyjazz_velocity = 0x64;
 static uint8_t keycode = 0; // value of the pressed key
 
 static input_msg_s key = {normal, 0, 0, 0};
+
+int input_process(config_params_s conf, enum app_state *app_state) {
+  static uint8_t prev_input = 0;
+  static uint8_t prev_note = 0;
+
+  // get current inputs
+  const input_msg_s input = input_get_msg(&conf);
+
+  switch (input.type) {
+  case normal:
+    if (input.value != prev_input) {
+      prev_input = input.value;
+      send_msg_controller(input.value);
+    }
+    break;
+  case keyjazz:
+    if (input.value != 0) {
+      if (input.eventType == SDL_EVENT_KEY_DOWN && input.value != prev_input) {
+        send_msg_keyjazz(input.value, input.value2);
+        prev_note = input.value;
+      } else if (input.eventType == SDL_EVENT_KEY_UP && input.value == prev_note) {
+        send_msg_keyjazz(0xFF, 0);
+      }
+    }
+    prev_input = input.value;
+    break;
+  case special:
+    if (input.value != prev_input) {
+      prev_input = input.value;
+      switch (input.value) {
+      case msg_quit:
+        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Received msg_quit from input device.");
+        *app_state = 0;
+        break;
+      case msg_reset_display:
+        reset_display();
+        break;
+      case msg_toggle_audio:
+        conf.audio_enabled = !conf.audio_enabled;
+        audio_toggle(conf.audio_device_name, conf.audio_buffer_size);
+        break;
+      default:
+        break;
+      }
+      break;
+    }
+  }
+  return 1;
+}
 
 uint8_t toggle_input_keyjazz() {
   keyjazz_enabled = !keyjazz_enabled;
@@ -289,7 +341,7 @@ void handle_sdl_events(config_params_s *conf) {
 }
 
 // Returns the currently pressed keys to main
-input_msg_s get_input_msg(config_params_s *conf) {
+input_msg_s input_get_msg(config_params_s *conf) {
 
   key = (input_msg_s){normal, 0, 0, 0};
 

@@ -10,8 +10,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "usb.h"
-
 static int ep_out_addr = 0x03;
 static int ep_in_addr = 0x83;
 
