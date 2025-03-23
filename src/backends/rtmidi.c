@@ -127,7 +127,7 @@ int initialize_rtmidi() {
   return 1;
 }
 
-int m8_connect(const int verbose, const char *preferred_device) {
+int m8_initialize(const int verbose, const char *preferred_device) {
 
   int midi_in_initialized = 0;
   int midi_out_initialized = 0;
@@ -170,7 +170,7 @@ int check_serial_port(void) {
   return 0;
 }
 
-int reset_display(void) {
+int m8_reset_display(void) {
   SDL_Log("Reset display");
   const unsigned char reset_sysex[8] = {0xF0, 0x00, 0x02, 0x61, 0x00, 0x00, 'R', 0xF7};
   const int result = rtmidi_out_send_message(midi_out, &reset_sysex[0], sizeof(reset_sysex));
@@ -181,7 +181,7 @@ int reset_display(void) {
   return 1;
 }
 
-int enable_and_reset_display(void) {
+int m8_enable_and_reset_display(void) {
   rtmidi_in_set_callback(midi_in, midi_callback, NULL);
   const unsigned char enable_sysex[8] = {0xF0, 0x00, 0x02, 0x61, 0x00, 0x00, 'E', 0xF7};
   int result = rtmidi_out_send_message(midi_out, &enable_sysex[0], sizeof(enable_sysex));
@@ -189,7 +189,7 @@ int enable_and_reset_display(void) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to enable display");
     return 0;
   }
-  result = reset_display();
+  result = m8_reset_display();
   return result;
 }
 
@@ -206,7 +206,7 @@ int disconnect(void) {
   return !result;
 }
 
-int send_msg_controller(const unsigned char input) {
+int m8_send_msg_controller(const unsigned char input) {
   const unsigned char input_sysex[9] = {0xF0, 0x00, 0x02, 0x61, 0x00, 0x00, 'C', input, 0xF7};
   const int result = rtmidi_out_send_message(midi_out, &input_sysex[0], sizeof(input_sysex));
   if (result != 0) {
@@ -216,7 +216,7 @@ int send_msg_controller(const unsigned char input) {
   return 1;
 }
 
-int send_msg_keyjazz(const unsigned char note, unsigned char velocity) {
+int m8_send_msg_keyjazz(const unsigned char note, unsigned char velocity) {
   if (velocity > 0x7F) {
     velocity = 0x7F;
   }
@@ -230,7 +230,7 @@ int send_msg_keyjazz(const unsigned char note, unsigned char velocity) {
   return 1;
 }
 
-int process_serial(config_params_s conf) {
+int m8_process_data(config_params_s conf) {
   (void)conf; // unused parameter
 
   unsigned char *command;

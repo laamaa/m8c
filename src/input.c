@@ -1,10 +1,11 @@
 #include "input.h"
+#include "backends/audio.h"
 #include "backends/rtmidi.h"
 #include "backends/serialport.h"
+#include "backends/usb.h"
 #include "config.h"
 #include "gamecontrollers.h"
 #include "render.h"
-#include "audio.h"
 #include <SDL3/SDL.h>
 
 uint8_t keyjazz_enabled = 0;
@@ -26,16 +27,16 @@ int input_process(config_params_s conf, enum app_state *app_state) {
   case normal:
     if (input.value != prev_input) {
       prev_input = input.value;
-      send_msg_controller(input.value);
+      m8_send_msg_controller(input.value);
     }
     break;
   case keyjazz:
     if (input.value != 0) {
       if (input.eventType == SDL_EVENT_KEY_DOWN && input.value != prev_input) {
-        send_msg_keyjazz(input.value, input.value2);
+        m8_send_msg_keyjazz(input.value, input.value2);
         prev_note = input.value;
       } else if (input.eventType == SDL_EVENT_KEY_UP && input.value == prev_note) {
-        send_msg_keyjazz(0xFF, 0);
+        m8_send_msg_keyjazz(0xFF, 0);
       }
     }
     prev_input = input.value;
@@ -49,7 +50,7 @@ int input_process(config_params_s conf, enum app_state *app_state) {
         *app_state = 0;
         break;
       case msg_reset_display:
-        reset_display();
+        m8_reset_display();
         break;
       case msg_toggle_audio:
         conf.audio_enabled = !conf.audio_enabled;

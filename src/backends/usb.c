@@ -24,7 +24,7 @@ libusb_device_handle *devh = NULL;
 
 static int do_exit = 0;
 
-int list_devices() {
+int m8_list_devices() {
   int r;
   r = libusb_init(&ctx);
   if (r < 0) {
@@ -54,7 +54,7 @@ int list_devices() {
 }
 
 int usb_loop(void *data) {
-  SDL_SetThreadPriority(SDL_THREAD_PRIORITY_TIME_CRITICAL);
+  SDL_SetCurrentThreadPriority(SDL_THREAD_PRIORITY_TIME_CRITICAL);
   while (!do_exit) {
     int rc = libusb_handle_events(ctx);
     if (rc != LIBUSB_SUCCESS) {
@@ -113,7 +113,7 @@ int blocking_write(void *buf, int count, unsigned int timeout_ms) {
   return bulk_transfer(ep_out_addr, buf, count, timeout_ms);
 }
 
-int serial_read(uint8_t *serial_buf, int count) {
+int m8_process_data(uint8_t *serial_buf, int count) {
   return bulk_transfer(ep_in_addr, serial_buf, count, 1);
 }
 
@@ -201,7 +201,7 @@ int init_serial_with_file_descriptor(int file_descriptor) {
   return init_interface();
 }
 
-int init_serial(int verbose, char *preferred_device) {
+int m8_initialize(int verbose, char *preferred_device) {
 
   if (devh != NULL) {
     return 1;
@@ -219,8 +219,8 @@ int init_serial(int verbose, char *preferred_device) {
     char *port;
     char *saveptr = NULL;
     char *bus;
-    port = SDL_strtokr(preferred_device, ":", &saveptr);
-    bus = SDL_strtokr(NULL, ":", &saveptr);
+    port = SDL_strtok_r(preferred_device, ":", &saveptr);
+    bus = SDL_strtok_r(NULL, ":", &saveptr);
     libusb_device **device_list = NULL;
     int count = libusb_get_device_list(ctx, &device_list);
     for (size_t idx = 0; idx < count; ++idx) {
@@ -262,7 +262,7 @@ int init_serial(int verbose, char *preferred_device) {
   return init_interface();
 }
 
-int reset_display() {
+int m8_reset_display() {
   int result;
 
   SDL_Log("Reset display\n");
@@ -277,7 +277,7 @@ int reset_display() {
   return 1;
 }
 
-int enable_and_reset_display() {
+int m8_enable_and_reset_display() {
   int result;
 
   SDL_Log("Enabling and resetting M8 display\n");
@@ -290,11 +290,11 @@ int enable_and_reset_display() {
   }
 
   SDL_Delay(5);
-  result = reset_display();
+  result = m8_reset_display();
   return result;
 }
 
-int disconnect() {
+int m8_close() {
 
   char buf[1] = {'D'};
   int result;
@@ -331,7 +331,7 @@ int disconnect() {
   return 1;
 }
 
-int send_msg_controller(uint8_t input) {
+int m8_send_msg_controller(uint8_t input) {
   char buf[2] = {'C', input};
   int nbytes = 2;
   int result;
@@ -343,7 +343,7 @@ int send_msg_controller(uint8_t input) {
   return 1;
 }
 
-int send_msg_keyjazz(uint8_t note, uint8_t velocity) {
+int m8_send_msg_keyjazz(uint8_t note, uint8_t velocity) {
   if (velocity > 0x7F)
     velocity = 0x7F;
   char buf[3] = {'K', note, velocity};

@@ -1,6 +1,5 @@
 #Set all your object files (the object files of all the .c files in your project, e.g. main.o my_sub_functions.o )
 OBJ = src/main.o \
-src/audio.o \
 src/command.o \
 src/config.o \
 src/fx_cube.o \
@@ -10,6 +9,7 @@ src/inprint2.o \
 src/input.o \
 src/backends/queue.o \
 src/render.o \
+src/backends/audio.o \
 src/backends/rtmidi.o \
 src/backends/ringbuffer.o \
 src/backends/serialport.o \
@@ -18,7 +18,7 @@ src/backends/usb.o \
 src/backends/usb_audio.o \
 
 #Set any dependant header files so that if they are edited they cause a complete re-compile (e.g. main.h some_subfunctions.h some_definitions_file.h ), or leave blank
-DEPS = src/audio.h \
+DEPS = \
 src/command.h \
 src/config.h \
 src/fx_cube.h \
@@ -26,6 +26,7 @@ src/gamecontrollers.h \
 src/ini.h \
 src/input.h \
 src/render.h \
+src/backends/audio.h \
 src/backends/ringbuffer.h \
 src/backends/rtmidi.h \
 src/backends/queue.h \

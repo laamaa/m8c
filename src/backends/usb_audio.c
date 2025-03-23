@@ -81,7 +81,10 @@ static int benchmark_in() {
   return 1;
 }
 
-int audio_init(int audio_buffer_size, const char *output_device_name) {
+int audio_initialize(int audio_buffer_size, const char *output_device_name) {
+  SDL_LogError(SDL_LOG_CATEGORY_AUDIO,"LIBUSB audio not implemented yet");
+  return -1;
+  /*
   SDL_Log("USB audio setup");
 
   int rc;
@@ -118,7 +121,7 @@ int audio_init(int audio_buffer_size, const char *output_device_name) {
   }
 
   static SDL_AudioSpec audio_spec;
-  audio_spec.format = AUDIO_S16;
+  audio_spec.format = SDL_AUDIO_S16;
   audio_spec.channels = 2;
   audio_spec.freq = 44100;
   audio_spec.samples = audio_buffer_size;
@@ -153,9 +156,10 @@ int audio_init(int audio_buffer_size, const char *output_device_name) {
 
   SDL_Log("Successful init");
   return 1;
+  */
 }
 
-int audio_destroy() {
+int audio_close() {
   if (devh == NULL) {
     return -1;
   }
@@ -193,7 +197,7 @@ int audio_destroy() {
   return 1;
 }
 
-void toggle_audio(unsigned int audio_buffer_size, const char *output_device_name) {
+void audio_toggle(unsigned int audio_buffer_size, const char *output_device_name) {
   SDL_Log("Libusb audio toggling not implemented yet");
 }
 

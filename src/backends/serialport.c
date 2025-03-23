@@ -22,6 +22,8 @@ static uint8_t slip_buffer[serial_read_size] = {0};
 static slip_handler_s slip;
 static uint16_t zero_byte_packets = 0; // used to detect device disconnection
 
+SDL_Thread *serial_thread = NULL;
+
 // Helper function for error handling
 static int check(enum sp_return result);
 
@@ -64,7 +66,6 @@ int m8_list_devices() {
 
 // Checks for connected devices and whether the specified device still exists
 int check_serial_port() {
-
   int device_found = 0;
 
   /* A pointer to a null-terminated array of pointers to
@@ -95,7 +96,7 @@ int check_serial_port() {
   return device_found;
 }
 
-int m8_connect(const int verbose, const char *preferred_device) {
+int m8_initialize(const int verbose, const char *preferred_device) {
   if (m8_port != NULL) {
     // Port is already initialized
     return 1;
@@ -184,7 +185,6 @@ int m8_connect(const int verbose, const char *preferred_device) {
 
 // Helper function for error handling.
 static int check(const enum sp_return result) {
-
   char *error_message;
 
   switch (result) {
@@ -209,7 +209,7 @@ static int check(const enum sp_return result) {
   return result;
 }
 
-int reset_display() {
+int m8_reset_display() {
   SDL_Log("Reset display\n");
 
   const char buf[1] = {'R'};
@@ -221,8 +221,7 @@ int reset_display() {
   return 1;
 }
 
-int enable_and_reset_display() {
-
+int m8_enable_and_reset_display() {
   SDL_Log("Enabling and resetting M8 display\n");
 
   const char buf[1] = {'E'};
@@ -232,13 +231,12 @@ int enable_and_reset_display() {
     return 0;
   }
 
-  result = reset_display();
+  result = m8_reset_display();
 
   return result;
 }
 
 int disconnect() {
-
   SDL_Log("Disconnecting M8\n");
 
   const char buf[1] = {'D'};
@@ -258,7 +256,7 @@ int serial_read(uint8_t *serial_buf, const int count) {
   return sp_nonblocking_read(m8_port, serial_buf, count);
 }
 
-int send_msg_controller(const uint8_t input) {
+int m8_send_msg_controller(const uint8_t input) {
   const char buf[2] = {'C', input};
   const size_t nbytes = 2;
   const int result = sp_blocking_write(m8_port, buf, nbytes, 5);
@@ -269,7 +267,7 @@ int send_msg_controller(const uint8_t input) {
   return 1;
 }
 
-int send_msg_keyjazz(const uint8_t note, uint8_t velocity) {
+int m8_send_msg_keyjazz(const uint8_t note, uint8_t velocity) {
   if (velocity > 0x7F)
     velocity = 0x7F;
   const char buf[3] = {'K', note, velocity};
@@ -283,7 +281,7 @@ int send_msg_keyjazz(const uint8_t note, uint8_t velocity) {
   return 1;
 }
 
-int process_serial(config_params_s conf) {
+int m8_process_data(const config_params_s conf) {
   while (1) {
     // read serial port
     const int bytes_read = serial_read(serial_buffer, serial_read_size);
@@ -291,7 +289,6 @@ int process_serial(config_params_s conf) {
       SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %d reading serial.", bytes_read);
       disconnect();
       return -1;
-      break;
     }
     if (bytes_read > 0) {
       // input from device: reset the zero byte counter and create a
@@ -304,7 +301,7 @@ int process_serial(config_params_s conf) {
         const int n = slip_read_byte(&slip, *cur++);
         if (n != SLIP_NO_ERROR) {
           if (n == SLIP_ERROR_INVALID_PACKET) {
-            reset_display();
+            m8_reset_display();
           } else {
             SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SLIP error %d\n", n);
           }
@@ -330,7 +327,5 @@ int process_serial(config_params_s conf) {
   return 1;
 }
 
-int m8_close() {
-  return disconnect();
-}
+int m8_close() { return disconnect(); }
 #endif

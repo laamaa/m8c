@@ -9,9 +9,10 @@
 #include <signal.h>
 
 #include "SDL2_inprint.h"
-#include "audio.h"
+#include "backends/audio.h"
 #include "backends/rtmidi.h"
 #include "backends/serialport.h"
+#include "backends/usb.h"
 #include "command.h"
 #include "config.h"
 #include "gamecontrollers.h"
@@ -21,7 +22,62 @@
 enum app_state app_state = WAIT_FOR_DEVICE;
 
 // Handle CTRL+C / SIGINT, SIGKILL etc.
-void signal_handler(int unused) { (void)unused; app_state = QUIT; }
+void signal_handler(int unused) {
+  (void)unused;
+  app_state = QUIT;
+}
+
+void do_wait_for_device(const char *preferred_device, unsigned char *m8_connected,
+                        config_params_s *conf) {
+  static Uint64 ticks_poll_device = 0;
+  static Uint64 ticks_update_screen = 0;
+
+  if (*m8_connected == 0) {
+    screensaver_init();
+  }
+
+  while (app_state == WAIT_FOR_DEVICE) {
+    // get current input
+    const input_msg_s input = input_get_msg(&*conf);
+    if (input.type == special && input.value == msg_quit) {
+      SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Input message QUIT.");
+      app_state = QUIT;
+    }
+
+    if (SDL_GetTicks() - ticks_update_screen > 16) {
+      ticks_update_screen = SDL_GetTicks();
+      screensaver_draw();
+      render_screen();
+    }
+
+    // Poll for M8 device every second
+    if (*m8_connected == 0 && SDL_GetTicks() - ticks_poll_device > 1000) {
+      ticks_poll_device = SDL_GetTicks();
+      if (app_state == WAIT_FOR_DEVICE && m8_initialize(0, preferred_device) == 1) {
+
+        if (conf->audio_enabled == 1) {
+          if (audio_initialize(conf->audio_device_name, conf->audio_buffer_size) == 0) {
+            SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Cannot initialize audio");
+            conf->audio_enabled = 0;
+          }
+        }
+
+        const int m8_enabled = m8_enable_and_reset_display();
+        // Device was found; enable display and proceed to the main loop
+        if (m8_enabled == 1) {
+          app_state = RUN;
+          *m8_connected = 1;
+          screensaver_destroy();
+        } else {
+          SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected.");
+          app_state = QUIT;
+          screensaver_destroy();
+        }
+      }
+    }
+    SDL_Delay(conf->idle_ms);
+  }
+}
 
 int main(const int argc, char *argv[]) {
 
@@ -57,7 +113,7 @@ int main(const int argc, char *argv[]) {
   // First device detection to avoid SDL init if it isn't necessary. To be run
   // only if we shouldn't wait for M8 to be connected.
   if (conf.wait_for_device == 0) {
-    m8_connected = m8_connect(1, preferred_device);
+    m8_connected = m8_initialize(1, preferred_device);
     if (m8_connected == 0) {
       return 1;
     }
@@ -75,18 +131,18 @@ int main(const int argc, char *argv[]) {
 
 #ifndef NDEBUG
   SDL_SetLogPriorities(SDL_LOG_PRIORITY_DEBUG);
-  SDL_LogDebug(SDL_LOG_CATEGORY_TEST,"Running a Debug build");
+  SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "Running a Debug build");
 #endif
 
   // main loop begin
   do {
     // try to init connection to M8
-    m8_connected = m8_connect(1, preferred_device);
-    if (m8_connected == 1 && enable_and_reset_display() == 1) {
+    m8_connected = m8_initialize(1, preferred_device);
+    if (m8_connected == 1 && m8_enable_and_reset_display() == 1) {
       if (conf.audio_enabled == 1) {
         audio_initialize(conf.audio_device_name, conf.audio_buffer_size);
         // if audio is enabled, reset the display for second time to avoid glitches
-        reset_display();
+        m8_reset_display();
       }
       app_state = RUN;
     } else {
@@ -100,54 +156,7 @@ int main(const int argc, char *argv[]) {
 
     // wait until device is connected
     if (conf.wait_for_device == 1) {
-      static Uint64 ticks_poll_device = 0;
-      static Uint64 ticks_update_screen = 0;
-
-      if (m8_connected == 0) {
-        screensaver_init();
-      }
-
-      while (app_state == WAIT_FOR_DEVICE) {
-        // get current input
-        const input_msg_s input = input_get_msg(&conf);
-        if (input.type == special && input.value == msg_quit) {
-          SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Input message QUIT.");
-          app_state = QUIT;
-        }
-
-        if (SDL_GetTicks() - ticks_update_screen > 16) {
-          ticks_update_screen = SDL_GetTicks();
-          screensaver_draw();
-          render_screen();
-        }
-
-        // Poll for M8 device every second
-        if (m8_connected == 0 && SDL_GetTicks() - ticks_poll_device > 1000) {
-          ticks_poll_device = SDL_GetTicks();
-          if (app_state == WAIT_FOR_DEVICE && m8_connect(0, preferred_device) == 1) {
-
-            if (conf.audio_enabled == 1) {
-              if (audio_initialize(conf.audio_device_name, conf.audio_buffer_size) == 0) {
-                SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Cannot initialize audio");
-                conf.audio_enabled = 0;
-              }
-            }
-
-            const int result = enable_and_reset_display();
-            // Device was found; enable display and proceed to the main loop
-            if (result == 1) {
-              app_state = RUN;
-              m8_connected = 1;
-              screensaver_destroy();
-            } else {
-              SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected.");
-              app_state = QUIT;
-              screensaver_destroy();
-            }
-          }
-        }
-        SDL_Delay(conf.idle_ms);
-      }
+      do_wait_for_device(preferred_device, &m8_connected, &conf);
     } else {
       // classic startup behaviour, exit if device is not found
       if (m8_connected == 0) {
@@ -165,7 +174,7 @@ int main(const int argc, char *argv[]) {
     // main loop
     while (app_state == RUN) {
       input_process(conf, &app_state);
-      const int result = process_serial(conf);
+      const int result = m8_process_data(conf);
       if (result == 0) {
         // Device disconnected
         m8_connected = 0;
