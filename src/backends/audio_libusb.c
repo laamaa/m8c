@@ -1,7 +1,7 @@
 #ifdef USE_LIBUSB
 
+#include "m8.h"
 #include "ringbuffer.h"
-#include "usb.h"
 #include <SDL3/SDL.h>
 #include <errno.h>
 #include <libusb.h>
@@ -13,7 +13,10 @@
 #define PACKET_SIZE 180
 #define NUM_PACKETS 2
 
+extern libusb_device_handle *devh;
+
 SDL_AudioDeviceID sdl_audio_device_id = 0;
+int audio_initialized = 0;
 RingBuffer *audio_buffer = NULL;
 
 static void audio_callback(void *userdata, Uint8 *stream, int len) {
@@ -81,7 +84,10 @@ static int benchmark_in() {
   return 1;
 }
 
-int audio_init(int audio_buffer_size, const char *output_device_name) {
+int audio_initialize(int audio_buffer_size, const char *output_device_name) {
+  SDL_LogError(SDL_LOG_CATEGORY_AUDIO,"LIBUSB audio not implemented yet");
+  return -1;
+  /*
   SDL_Log("USB audio setup");
 
   int rc;
@@ -118,7 +124,7 @@ int audio_init(int audio_buffer_size, const char *output_device_name) {
   }
 
   static SDL_AudioSpec audio_spec;
-  audio_spec.format = AUDIO_S16;
+  audio_spec.format = SDL_AUDIO_S16;
   audio_spec.channels = 2;
   audio_spec.freq = 44100;
   audio_spec.samples = audio_buffer_size;
@@ -153,18 +159,19 @@ int audio_init(int audio_buffer_size, const char *output_device_name) {
 
   SDL_Log("Successful init");
   return 1;
+  */
 }
 
-int audio_destroy() {
-  if (devh == NULL) {
-    return -1;
+void audio_close() {
+  if (devh == NULL || !audio_initialized) {
+    return;
   }
 
   SDL_LogDebug(SDL_LOG_CATEGORY_AUDIO, "Closing audio");
 
-  int i, rc;
+  int rc;
 
-  for (i = 0; i < NUM_TRANSFERS; i++) {
+  for (int i = 0; i < NUM_TRANSFERS; i++) {
     rc = libusb_cancel_transfer(xfr[i]);
     if (rc < 0) {
       SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error cancelling transfer: %s\n",
@@ -177,12 +184,12 @@ int audio_destroy() {
   rc = libusb_release_interface(devh, IFACE_NUM);
   if (rc < 0) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error releasing interface: %s\n", libusb_error_name(rc));
-    return rc;
+    return;
   }
 
   if (sdl_audio_device_id != 0) {
     SDL_Log("Closing audio device %d", sdl_audio_device_id);
-    SDL_AudioDeviceID device = sdl_audio_device_id;
+    const SDL_AudioDeviceID device = sdl_audio_device_id;
     sdl_audio_device_id = 0;
     SDL_CloseAudioDevice(device);
   }
@@ -190,10 +197,9 @@ int audio_destroy() {
   SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Audio closed");
 
   ring_buffer_free(audio_buffer);
-  return 1;
 }
 
-void toggle_audio(unsigned int audio_buffer_size, const char *output_device_name) {
+void audio_toggle(unsigned int audio_buffer_size, const char *output_device_name) {
   SDL_Log("Libusb audio toggling not implemented yet");
 }
 

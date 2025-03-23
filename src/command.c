@@ -1,7 +1,7 @@
 // Copyright 2021 Jonne Kokkonen
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
-#include <SDL3/SDL_log.h>
+#include <SDL3/SDL.h>
 
 #include "command.h"
 #include "render.h"
@@ -168,7 +168,7 @@ int process_command(uint8_t *data, uint32_t size) {
       set_m8_model(0);
     }
 
-    set_font_mode(recv_buf[5]);
+    renderer_set_font_mode(recv_buf[5]);
 
     return 1;
   }

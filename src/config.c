@@ -19,7 +19,7 @@ static int strcmpci(const char *a, const char *b) {
   }
 }
 
-config_params_s init_config(char *filename) {
+config_params_s config_initialize(char *filename) {
   config_params_s c;
 
   if (filename == NULL) {
@@ -34,7 +34,7 @@ config_params_s init_config(char *filename) {
   c.wait_packets = 1024; // default zero-byte attempts to disconnect (about 2
   // sec for default idle_ms)
   c.audio_enabled = 0;        // route M8 audio to default output
-  c.audio_buffer_size = 1024; // requested audio buffer size in samples
+  c.audio_buffer_size = 0; // requested audio buffer size in samples: 0 = let SDL decide
   c.audio_device_name = NULL; // Use this device, leave NULL to use the default output device
 
   c.key_up = SDL_SCANCODE_UP;
@@ -182,7 +182,7 @@ void write_config(const config_params_s *conf) {
 }
 
 // Read config
-void read_config(config_params_s *conf) {
+void config_read(config_params_s *conf) {
 
   char config_path[1024] = {0};
   snprintf(config_path, sizeof(config_path), "%s%s", SDL_GetPrefPath("", "m8c"), conf->filename);

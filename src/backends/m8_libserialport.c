@@ -4,17 +4,28 @@
 // Contains portions of code from libserialport's examples released to the
 // public domain
 
-#ifndef USE_LIBUSB
+#ifdef USE_LIBSERIALPORT
 #include <SDL3/SDL.h>
 #include <libserialport.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
-#include "serial.h"
+#include "../command.h"
+#include "../config.h"
+#include "m8.h"
+#include "slip.h"
+
+// maximum amount of bytes to read from the serial in one read()
+#define serial_read_size 1024
 
 struct sp_port *m8_port = NULL;
+// allocate memory for serial buffers
+static uint8_t serial_buffer[serial_read_size] = {0};
+static uint8_t slip_buffer[serial_read_size] = {0};
+static slip_handler_s slip;
+static uint16_t zero_byte_packets = 0; // used to detect device disconnection
+
+SDL_Thread *serial_thread = NULL;
 
 // Helper function for error handling
 static int check(enum sp_return result);
@@ -35,7 +46,7 @@ static int detect_m8_serial_device(const struct sp_port *m8_port) {
   return 0;
 }
 
-int list_devices() {
+int m8_list_devices() {
   struct sp_port **port_list;
   const enum sp_return result = sp_list_ports(&port_list);
 
@@ -58,7 +69,6 @@ int list_devices() {
 
 // Checks for connected devices and whether the specified device still exists
 int check_serial_port() {
-
   int device_found = 0;
 
   /* A pointer to a null-terminated array of pointers to
@@ -89,11 +99,22 @@ int check_serial_port() {
   return device_found;
 }
 
-int init_serial(const int verbose, const char *preferred_device) {
+int m8_initialize(const int verbose, const char *preferred_device) {
   if (m8_port != NULL) {
     // Port is already initialized
     return 1;
   }
+
+  // settings for the slip packet handler
+  static const slip_descriptor_s slip_descriptor = {
+      .buf = slip_buffer,
+      .buf_size = sizeof(slip_buffer),
+      .recv_message = process_command, // the function where complete slip
+                                       // packets are processed further
+  };
+
+  slip_init(&slip, &slip_descriptor);
+
   /* A pointer to a null-terminated array of pointers to
    * struct sp_port, which will contain the ports found.*/
   struct sp_port **port_list;
@@ -167,7 +188,6 @@ int init_serial(const int verbose, const char *preferred_device) {
 
 // Helper function for error handling.
 static int check(const enum sp_return result) {
-
   char *error_message;
 
   switch (result) {
@@ -192,7 +212,7 @@ static int check(const enum sp_return result) {
   return result;
 }
 
-int reset_display() {
+int m8_reset_display() {
   SDL_Log("Reset display\n");
 
   const char buf[1] = {'R'};
@@ -204,8 +224,7 @@ int reset_display() {
   return 1;
 }
 
-int enable_and_reset_display() {
-
+int m8_enable_and_reset_display() {
   SDL_Log("Enabling and resetting M8 display\n");
 
   const char buf[1] = {'E'};
@@ -215,13 +234,12 @@ int enable_and_reset_display() {
     return 0;
   }
 
-  result = reset_display();
+  result = m8_reset_display();
 
   return result;
 }
 
 int disconnect() {
-
   SDL_Log("Disconnecting M8\n");
 
   const char buf[1] = {'D'};
@@ -241,7 +259,7 @@ int serial_read(uint8_t *serial_buf, const int count) {
   return sp_nonblocking_read(m8_port, serial_buf, count);
 }
 
-int send_msg_controller(const uint8_t input) {
+int m8_send_msg_controller(const uint8_t input) {
   const char buf[2] = {'C', input};
   const size_t nbytes = 2;
   const int result = sp_blocking_write(m8_port, buf, nbytes, 5);
@@ -252,7 +270,7 @@ int send_msg_controller(const uint8_t input) {
   return 1;
 }
 
-int send_msg_keyjazz(const uint8_t note, uint8_t velocity) {
+int m8_send_msg_keyjazz(const uint8_t note, uint8_t velocity) {
   if (velocity > 0x7F)
     velocity = 0x7F;
   const char buf[3] = {'K', note, velocity};
@@ -265,4 +283,52 @@ int send_msg_keyjazz(const uint8_t note, uint8_t velocity) {
 
   return 1;
 }
+
+int m8_process_data(const config_params_s conf) {
+  while (1) {
+    // read serial port
+    const int bytes_read = serial_read(serial_buffer, serial_read_size);
+    if (bytes_read < 0) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %d reading serial.", bytes_read);
+      disconnect();
+      return -1;
+    }
+    if (bytes_read > 0) {
+      // input from device: reset the zero byte counter and create a
+      // pointer to the serial buffer
+      zero_byte_packets = 0;
+      const uint8_t *cur = serial_buffer;
+      const uint8_t *end = serial_buffer + bytes_read;
+      while (cur < end) {
+        // process the incoming bytes into commands and draw them
+        const int n = slip_read_byte(&slip, *cur++);
+        if (n != SLIP_NO_ERROR) {
+          if (n == SLIP_ERROR_INVALID_PACKET) {
+            m8_reset_display();
+          } else {
+            SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SLIP error %d\n", n);
+          }
+        }
+      }
+    } else {
+      // zero byte packet, increment counter
+      zero_byte_packets++;
+      if (zero_byte_packets > conf.wait_packets) {
+        zero_byte_packets = 0;
+
+        // try opening the serial port to check if it's alive
+        if (check_serial_port()) {
+          // the device is still there, carry on
+          break;
+        }
+        disconnect();
+        return 0;
+      }
+      break;
+    }
+  }
+  return 1;
+}
+
+int m8_close() { return disconnect(); }
 #endif

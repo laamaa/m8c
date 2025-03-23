@@ -1,14 +1,43 @@
 #Set all your object files (the object files of all the .c files in your project, e.g. main.o my_sub_functions.o )
-OBJ = src/main.o src/serial.o src/slip.o src/command.o src/render.o src/ini.o src/config.o src/input.o src/gamecontrollers.o src/fx_cube.o src/usb.o src/audio.o src/usb_audio.o src/ringbuffer.o src/inprint2.o
+OBJ = src/main.o \
+src/command.o \
+src/config.o \
+src/fx_cube.o \
+src/gamecontrollers.o \
+src/ini.o \
+src/inprint2.o \
+src/input.o \
+src/backends/queue.o \
+src/render.o \
+src/backends/audio_sdl.o \
+src/backends/audio_libusb.o \
+src/backends/m8_libserialport.o \
+src/backends/m8_libusb.o \
+src/backends/m8_rtmidi.o \
+src/backends/ringbuffer.o \
+src/backends/slip.o \
 
 #Set any dependant header files so that if they are edited they cause a complete re-compile (e.g. main.h some_subfunctions.h some_definitions_file.h ), or leave blank
-DEPS = src/serial.h src/slip.h src/command.h src/render.h src/ini.h src/config.h src/input.h src/gamecontrollers.h src/fx_cube.h src/audio.h src/ringbuffer.h src/inline_font.h
+DEPS = \
+src/command.h \
+src/config.h \
+src/fx_cube.h \
+src/gamecontrollers.h \
+src/ini.h \
+src/input.h \
+src/render.h \
+src/backends/audio.h \
+src/backends/m8.h \
+src/backends/ringbuffer.h \
+src/backends/queue.h \
+src/backends/slip.h \
+src/fonts/inline_font.h
 
 #Any special libraries you are using in your project (e.g. -lbcm2835 -lrt `pkg-config --libs gtk+-3.0` ), or leave blank
 INCLUDES = $(shell pkg-config --libs sdl3 libserialport | sed 's/-mwindows//')
 
 #Set any compiler flags you want to use (e.g. -I/usr/include/somefolder `pkg-config --cflags gtk+-3.0` ), or leave blank
-local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl3 libserialport) -Wall -Wextra -O2 -pipe -I.
+local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl3 libserialport) -DUSE_LIBSERIALPORT -Wall -Wextra -O2 -pipe -I. -DNDEBUG
 
 #Set the compiler you are using ( gcc for C or g++ for C++ )
 CC = gcc
@@ -28,14 +57,18 @@ m8c: $(OBJ)
 	$(CC) -o $@ $^ $(local_CFLAGS) $(INCLUDES)
 
 libusb: INCLUDES = $(shell pkg-config --libs sdl3 libusb-1.0)
-libusb: local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl3 libusb-1.0) -Wall -O2 -pipe -I. -DUSE_LIBUSB=1
+libusb: local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl3 libusb-1.0) -Wall -Wextra -O2 -pipe -I. -DUSE_LIBUSB=1 -DNDEBUG
 libusb: m8c
+
+rtmidi: INCLUDES = $(shell pkg-config --libs sdl3 rtmidi)
+rtmidi: local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl3 rtmidi) -Wall -Wextra -O2 -pipe -I. -DUSE_RTMIDI -DNDEBUG
+rtmidi: m8c
 
 #Cleanup
 .PHONY: clean
 
 clean:
-	rm -f src/*.o *~ m8c
+	rm -f src/*.o src/backends/*.o *~ m8c
 
 # PREFIX is environment variable, but if it is not set, then set default value
 ifeq ($(PREFIX),)

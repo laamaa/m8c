@@ -28,7 +28,7 @@ jobs:
         id: buildApplication
         continue-on-error: true
         run: |
-          mkdir -p build_arm64 && cd build_arm64 && cmake .. && cpack -V
+          mkdir -p build_arm64 && cd build_arm64 && cmake .. -DCMAKE_BUILD_TYPE=Release && cpack -V
 
       - name: 'View debug log if compilation fails'
         if: failure() && steps.buildApplication.outcome == 'failure'

@@ -4,6 +4,8 @@
 
 #include <math.h>
 
+// Handle screensaver cube effect
+
 static SDL_Texture *texture_cube;
 static SDL_Texture *texture_text;
 static SDL_Renderer *fx_renderer;

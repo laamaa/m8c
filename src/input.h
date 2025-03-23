@@ -7,6 +7,8 @@
 #include "config.h"
 #include <stdint.h>
 
+enum app_state { QUIT, WAIT_FOR_DEVICE, RUN };
+
 typedef enum input_buttons_t {
   INPUT_UP,
   INPUT_DOWN,
@@ -46,6 +48,7 @@ typedef struct input_msg_s {
   uint32_t eventType;
 } input_msg_s;
 
-input_msg_s get_input_msg(config_params_s *conf);
+input_msg_s input_get_msg(config_params_s *conf);
+int input_process(config_params_s conf, enum app_state *app_state);
 
 #endif
