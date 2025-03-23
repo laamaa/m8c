@@ -241,8 +241,6 @@ int m8_send_msg_keyjazz(const unsigned char note, unsigned char velocity) {
 
 int m8_process_data(config_params_s conf) {
 
-  (void)conf; // unused parameter
-
   static unsigned int empty_cycles = 0;
 
   if (queue_size(&queue) > 0) {
