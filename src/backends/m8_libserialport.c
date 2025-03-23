@@ -4,7 +4,6 @@
 // Contains portions of code from libserialport's examples released to the
 // public domain
 
-#include "queue.h"
 #ifdef USE_LIBSERIALPORT
 #include <SDL3/SDL.h>
 #include <libserialport.h>
@@ -15,9 +14,10 @@
 #include "../config.h"
 #include "m8.h"
 #include "slip.h"
+#include "queue.h"
 
 #define SERIAL_READ_SIZE 1024  // maximum amount of bytes to read from the serial in one pass
-#define SERIAL_READ_DELAY_MS 2 // delay between serial reads in milliseconds
+#define SERIAL_READ_DELAY_MS 4 // delay between serial reads in milliseconds
 
 struct sp_port *m8_port = NULL;
 // allocate memory for serial buffers
@@ -154,7 +154,7 @@ int thread_process_serial_data(void *data) {
       process_received_bytes(serial_buffer, bytes_read, &slip);
     }
 
-    SDL_Delay(2);
+    SDL_Delay(SERIAL_READ_DELAY_MS);
   }
   return 1;
 }
