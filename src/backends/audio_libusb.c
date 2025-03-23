@@ -1,7 +1,7 @@
 #ifdef USE_LIBUSB
 
+#include "m8.h"
 #include "ringbuffer.h"
-#include "usb.h"
 #include <SDL3/SDL.h>
 #include <errno.h>
 #include <libusb.h>
@@ -13,7 +13,10 @@
 #define PACKET_SIZE 180
 #define NUM_PACKETS 2
 
+extern libusb_device_handle *devh;
+
 SDL_AudioDeviceID sdl_audio_device_id = 0;
+int audio_initialized = 0;
 RingBuffer *audio_buffer = NULL;
 
 static void audio_callback(void *userdata, Uint8 *stream, int len) {
@@ -159,16 +162,16 @@ int audio_initialize(int audio_buffer_size, const char *output_device_name) {
   */
 }
 
-int audio_close() {
-  if (devh == NULL) {
-    return -1;
+void audio_close() {
+  if (devh == NULL || !audio_initialized) {
+    return;
   }
 
   SDL_LogDebug(SDL_LOG_CATEGORY_AUDIO, "Closing audio");
 
-  int i, rc;
+  int rc;
 
-  for (i = 0; i < NUM_TRANSFERS; i++) {
+  for (int i = 0; i < NUM_TRANSFERS; i++) {
     rc = libusb_cancel_transfer(xfr[i]);
     if (rc < 0) {
       SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error cancelling transfer: %s\n",
@@ -181,12 +184,12 @@ int audio_close() {
   rc = libusb_release_interface(devh, IFACE_NUM);
   if (rc < 0) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error releasing interface: %s\n", libusb_error_name(rc));
-    return rc;
+    return;
   }
 
   if (sdl_audio_device_id != 0) {
     SDL_Log("Closing audio device %d", sdl_audio_device_id);
-    SDL_AudioDeviceID device = sdl_audio_device_id;
+    const SDL_AudioDeviceID device = sdl_audio_device_id;
     sdl_audio_device_id = 0;
     SDL_CloseAudioDevice(device);
   }
@@ -194,7 +197,6 @@ int audio_close() {
   SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Audio closed");
 
   ring_buffer_free(audio_buffer);
-  return 1;
 }
 
 void audio_toggle(unsigned int audio_buffer_size, const char *output_device_name) {

@@ -139,6 +139,8 @@ int init_interface() {
     rc = libusb_claim_interface(devh, if_num);
     if (rc < 0) {
       SDL_Log("Error claiming interface: %s", libusb_error_name(rc));
+      libusb_close(devh);
+      devh = NULL;
       return 0;
     }
   }
@@ -278,6 +280,10 @@ int m8_reset_display() {
 }
 
 int m8_enable_and_reset_display() {
+  if (devh == NULL) {
+    return 0;
+  }
+
   int result;
 
   SDL_Log("Enabling and resetting M8 display\n");

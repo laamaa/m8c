@@ -34,7 +34,7 @@ config_params_s config_initialize(char *filename) {
   c.wait_packets = 1024; // default zero-byte attempts to disconnect (about 2
   // sec for default idle_ms)
   c.audio_enabled = 0;        // route M8 audio to default output
-  c.audio_buffer_size = 1024; // requested audio buffer size in samples
+  c.audio_buffer_size = 0; // requested audio buffer size in samples: 0 = let SDL decide
   c.audio_device_name = NULL; // Use this device, leave NULL to use the default output device
 
   c.key_up = SDL_SCANCODE_UP;

@@ -6,9 +6,9 @@
 #define RTMIDI_DEBUG
 #endif
 
-#include "rtmidi.h"
 #include "../command.h"
 #include "../config.h"
+#include "m8.h"
 #include "queue.h"
 #include <SDL3/SDL.h>
 #include <rtmidi_c.h>

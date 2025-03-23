@@ -12,8 +12,11 @@
 
 #include "../command.h"
 #include "../config.h"
-#include "serialport.h"
+#include "m8.h"
 #include "slip.h"
+
+// maximum amount of bytes to read from the serial in one read()
+#define serial_read_size 1024
 
 struct sp_port *m8_port = NULL;
 // allocate memory for serial buffers
