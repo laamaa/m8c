@@ -165,7 +165,7 @@ int main(const int argc, char *argv[]) {
         renderer_close();
         inline_font_close();
         SDL_Quit();
-        return -1;
+        return 1;
       }
     }
 

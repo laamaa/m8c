@@ -12,7 +12,16 @@ void init_queue(message_queue_s *queue) {
     queue->cond = SDL_CreateCondition();
 }
 
+// Free allocated memory and destroy mutex
 void destroy_queue(message_queue_s *queue) {
+  SDL_LockMutex(queue->mutex);
+
+  while (queue->front != queue->rear) {
+    SDL_free(queue->messages[queue->front]);
+    queue->front = (queue->front + 1) % MAX_QUEUE_SIZE;
+  }
+
+  SDL_UnlockMutex(queue->mutex);
   SDL_DestroyMutex(queue->mutex);
   SDL_DestroyCondition(queue->cond);
 }
@@ -52,4 +61,11 @@ unsigned char *pop_message(message_queue_s *queue, size_t *length) {
 
   SDL_UnlockMutex(queue->mutex);
   return message;
+}
+
+unsigned int queue_size(const message_queue_s *queue) {
+  SDL_LockMutex(queue->mutex);
+  const unsigned int size = (queue->rear - queue->front + MAX_QUEUE_SIZE) % MAX_QUEUE_SIZE;
+  SDL_UnlockMutex(queue->mutex);
+  return size;
 }
