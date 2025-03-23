@@ -9,13 +9,13 @@ src/inprint2.o \
 src/input.o \
 src/backends/queue.o \
 src/render.o \
-src/backends/sdl_audio.o \
-src/backends/ringbuffer.o \
-src/backends/slip.o \
+src/backends/audio_sdl.o \
+src/backends/audio_libusb.o \
 src/backends/m8_libserialport.o \
 src/backends/m8_libusb.o \
 src/backends/m8_rtmidi.o \
-src/backends/libusb_audio.o \
+src/backends/ringbuffer.o \
+src/backends/slip.o \
 
 #Set any dependant header files so that if they are edited they cause a complete re-compile (e.g. main.h some_subfunctions.h some_definitions_file.h ), or leave blank
 DEPS = \
@@ -26,12 +26,10 @@ src/gamecontrollers.h \
 src/ini.h \
 src/input.h \
 src/render.h \
-src/backends/sdl_audio.h \
+src/backends/audio.h \
+src/backends/m8.h \
 src/backends/ringbuffer.h \
-src/backends/m8_rtmidi.h \
 src/backends/queue.h \
-src/backends/m8_libserialport.h \
-src/backends/m8_libusb.h \
 src/backends/slip.h \
 src/fonts/inline_font.h
 
