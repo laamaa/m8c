@@ -14,12 +14,12 @@ static uint8_t keycode = 0; // value of the pressed key
 
 static input_msg_s key = {normal, 0, 0, 0};
 
-int input_process(config_params_s conf, enum app_state *app_state) {
+int input_process(config_params_s *conf, enum app_state *app_state) {
   static uint8_t prev_input = 0;
   static uint8_t prev_note = 0;
 
   // get current inputs
-  const input_msg_s input = input_get_msg(&conf);
+  const input_msg_s input = input_get_msg(conf);
 
   switch (input.type) {
   case normal:
@@ -51,8 +51,8 @@ int input_process(config_params_s conf, enum app_state *app_state) {
         m8_reset_display();
         break;
       case msg_toggle_audio:
-        conf.audio_enabled = !conf.audio_enabled;
-        audio_toggle(conf.audio_device_name, conf.audio_buffer_size);
+        conf->audio_enabled = !conf->audio_enabled;
+        audio_toggle(conf->audio_device_name, conf->audio_buffer_size);
         break;
       default:
         break;
