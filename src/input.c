@@ -14,56 +14,7 @@ static uint8_t keycode = 0; // value of the pressed key
 
 static input_msg_s key = {normal, 0, 0, 0};
 
-int input_process(config_params_s *conf, enum app_state *app_state) {
-  static uint8_t prev_input = 0;
-  static uint8_t prev_note = 0;
-
-  // get current inputs
-  const input_msg_s input = input_get_msg(conf);
-
-  switch (input.type) {
-  case normal:
-    if (input.value != prev_input) {
-      prev_input = input.value;
-      m8_send_msg_controller(input.value);
-    }
-    break;
-  case keyjazz:
-    if (input.value != 0) {
-      if (input.eventType == SDL_EVENT_KEY_DOWN && input.value != prev_input) {
-        m8_send_msg_keyjazz(input.value, input.value2);
-        prev_note = input.value;
-      } else if (input.eventType == SDL_EVENT_KEY_UP && input.value == prev_note) {
-        m8_send_msg_keyjazz(0xFF, 0);
-      }
-    }
-    prev_input = input.value;
-    break;
-  case special:
-    if (input.value != prev_input) {
-      prev_input = input.value;
-      switch (input.value) {
-      case msg_quit:
-        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Received msg_quit from input device.");
-        *app_state = 0;
-        break;
-      case msg_reset_display:
-        m8_reset_display();
-        break;
-      case msg_toggle_audio:
-        conf->audio_enabled = !conf->audio_enabled;
-        audio_toggle(conf->audio_device_name, conf->audio_buffer_size);
-        break;
-      default:
-        break;
-      }
-      break;
-    }
-  }
-  return 1;
-}
-
-uint8_t toggle_input_keyjazz() {
+static unsigned char toggle_input_keyjazz() {
   keyjazz_enabled = !keyjazz_enabled;
   SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, keyjazz_enabled ? "Keyjazz enabled" : "Keyjazz disabled");
   return keyjazz_enabled;
@@ -145,7 +96,6 @@ static input_msg_s handle_keyjazz(SDL_Event *event, uint8_t keyvalue, config_par
   if (note_value >= 0) {
     key.value = note_value;
     return key;
-
   }
 
   // Not a note key, handle other settings
@@ -156,34 +106,59 @@ static input_msg_s handle_keyjazz(SDL_Event *event, uint8_t keyvalue, config_par
 }
 
 static input_msg_s handle_normal_keys(const SDL_Event *event, const config_params_s *conf) {
+  // Default message with normal type and no value
   input_msg_s key = {normal, 0, 0, 0};
 
-  if (event->key.scancode == conf->key_up) {
-    key.value = key_up;
-  } else if (event->key.scancode == conf->key_left) {
-    key.value = key_left;
-  } else if (event->key.scancode == conf->key_down) {
-    key.value = key_down;
-  } else if (event->key.scancode == conf->key_right) {
-    key.value = key_right;
-  } else if (event->key.scancode == conf->key_select ||
-             event->key.scancode == conf->key_select_alt) {
-    key.value = key_select;
-  } else if (event->key.scancode == conf->key_start || event->key.scancode == conf->key_start_alt) {
-    key.value = key_start;
-  } else if (event->key.scancode == conf->key_opt || event->key.scancode == conf->key_opt_alt) {
-    key.value = key_opt;
-  } else if (event->key.scancode == conf->key_edit || event->key.scancode == conf->key_edit_alt) {
-    key.value = key_edit;
-  } else if (event->key.scancode == conf->key_delete) {
-    key.value = key_opt | key_edit;
-  } else if (event->key.scancode == conf->key_reset) {
-    key = (input_msg_s){special, msg_reset_display, 0, 0};
-  } else if (event->key.scancode == conf->key_toggle_audio) {
-    key = (input_msg_s){special, msg_toggle_audio, 0, 0};
-  } else {
-    key.value = 0;
+  // Get the current scancode
+  const SDL_Scancode scancode = event->key.scancode;
+
+  // Handle standard keycodes (single key mapping)
+  const struct {
+    SDL_Scancode scancode;
+    uint8_t value;
+  } normal_key_map[] = {
+    {conf->key_up, key_up},
+    {conf->key_left, key_left},
+    {conf->key_down, key_down},
+    {conf->key_right, key_right},
+    {conf->key_select, key_select},
+    {conf->key_select_alt, key_select},
+    {conf->key_start, key_start},
+    {conf->key_start_alt, key_start},
+    {conf->key_opt, key_opt},
+    {conf->key_opt_alt, key_opt},
+    {conf->key_edit, key_edit},
+    {conf->key_edit_alt, key_edit},
+    {conf->key_delete, key_opt | key_edit},
+  };
+
+  // Handle special messages (different message type)
+  const struct {
+    SDL_Scancode scancode;
+    special_messages_t message;
+  } special_key_map[] = {
+    {conf->key_reset, msg_reset_display},
+    {conf->key_toggle_audio, msg_toggle_audio},
+  };
+
+  // Check normal key mappings
+  for (size_t i = 0; i < sizeof(normal_key_map) / sizeof(normal_key_map[0]); i++) {
+    if (scancode == normal_key_map[i].scancode) {
+      key.value = normal_key_map[i].value;
+      return key;
+    }
   }
+
+  // Check special key mappings
+  for (size_t i = 0; i < sizeof(special_key_map) / sizeof(special_key_map[0]); i++) {
+    if (scancode == special_key_map[i].scancode) {
+      key.type = special;
+      key.value = special_key_map[i].message;
+      return key;
+    }
+  }
+
+  // No matching key found, return default key message
   return key;
 }
 
@@ -290,6 +265,55 @@ static void handle_sdl_events(config_params_s *conf) {
       break;
     }
   }
+}
+
+int input_process(config_params_s *conf, enum app_state *app_state) {
+  static uint8_t prev_input = 0;
+  static uint8_t prev_note = 0;
+
+  // get current inputs
+  const input_msg_s input = input_get_msg(conf);
+
+  switch (input.type) {
+  case normal:
+    if (input.value != prev_input) {
+      prev_input = input.value;
+      m8_send_msg_controller(input.value);
+    }
+    break;
+  case keyjazz:
+    if (input.value != 0) {
+      if (input.eventType == SDL_EVENT_KEY_DOWN && input.value != prev_input) {
+        m8_send_msg_keyjazz(input.value, input.value2);
+        prev_note = input.value;
+      } else if (input.eventType == SDL_EVENT_KEY_UP && input.value == prev_note) {
+        m8_send_msg_keyjazz(0xFF, 0);
+      }
+    }
+    prev_input = input.value;
+    break;
+  case special:
+    if (input.value != prev_input) {
+      prev_input = input.value;
+      switch (input.value) {
+      case msg_quit:
+        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Received msg_quit from input device.");
+        *app_state = 0;
+        break;
+      case msg_reset_display:
+        m8_reset_display();
+        break;
+      case msg_toggle_audio:
+        conf->audio_enabled = !conf->audio_enabled;
+        audio_toggle(conf->audio_device_name, conf->audio_buffer_size);
+        break;
+      default:
+        break;
+      }
+      break;
+    }
+  }
+  return 1;
 }
 
 // Returns the currently pressed keys to main
