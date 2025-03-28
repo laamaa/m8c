@@ -145,6 +145,7 @@ static input_msg_s handle_keyjazz(SDL_Event *event, uint8_t keyvalue, config_par
   if (note_value >= 0) {
     key.value = note_value;
     return key;
+
   }
 
   // Not a note key, handle other settings

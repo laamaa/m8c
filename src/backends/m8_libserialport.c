@@ -238,6 +238,7 @@ int m8_initialize(const int verbose, const char *preferred_device) {
 }
 
 int m8_send_msg_controller(const uint8_t input) {
+  SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Sending controller input %d", input);
   const unsigned char buf[2] = {'C', input};
   const size_t nbytes = 2;
   const int result = sp_blocking_write(m8_port, buf, nbytes, 5);
@@ -249,8 +250,26 @@ int m8_send_msg_controller(const uint8_t input) {
 }
 
 int m8_send_msg_keyjazz(const uint8_t note, uint8_t velocity) {
+
+  // Cap velocity to 7bits
   if (velocity > 0x7F)
     velocity = 0x7F;
+
+  // Special case for note off
+  if (note == 0xFF && velocity == 0x00) {
+    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Sending keyjazz note off");
+    const unsigned char buf[2] = {'K', 0xFF};
+    const size_t nbytes = 2;
+    const int result = sp_blocking_write(m8_port, buf, nbytes, 5);
+    if (result != nbytes) {
+      SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error sending keyjazz, code %d", result);
+      return -1;
+    }
+    return 1;
+  }
+
+  // Regular note on message
+  SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Sending keyjazz note %d, velocity %d", note, velocity);
   const unsigned char buf[3] = {'K', note, velocity};
   const size_t nbytes = 3;
   const int result = sp_blocking_write(m8_port, buf, nbytes, 5);
