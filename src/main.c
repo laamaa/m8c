@@ -7,6 +7,7 @@
 
 #include <SDL3/SDL.h>
 #include <signal.h>
+#include <stdlib.h>
 
 #include "SDL2_inprint.h"
 #include "backends/audio.h"
@@ -17,7 +18,10 @@
 #include "input.h"
 #include "render.h"
 
-#include <stdlib.h>
+#if TARGET_OS_IOS
+#include <SDL3/SDL_main.h>
+unsigned char app_suspended = 0;
+#endif // TARGET_OS_IOS
 
 enum app_state app_state = WAIT_FOR_DEVICE;
 unsigned char device_connected = 0;
@@ -28,10 +32,10 @@ static void signal_handler(int unused) {
   app_state = QUIT;
 }
 
-static void initialize_signals() {
+static void initialize_signals(void) {
   signal(SIGINT, signal_handler);
   signal(SIGTERM, signal_handler);
-#ifdef SIGQUIT
+#ifdef SIGQUIT // Not available on Windows.
   signal(SIGQUIT, signal_handler);
 #endif
 }
@@ -46,12 +50,21 @@ static void do_wait_for_device(const char *preferred_device, unsigned char *m8_c
   }
 
   while (app_state == WAIT_FOR_DEVICE) {
+
     // get current input
     const input_msg_s input = input_get_msg(&*conf);
     if (input.type == special && input.value == msg_quit) {
       SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Input message QUIT.");
       app_state = QUIT;
     }
+
+#if TARGET_OS_IOS
+    // Handle app suspension
+    if (app_suspended) {
+      SDL_Delay(conf->idle_ms);
+      continue;
+    }
+#endif // TARGET_OS_IOS
 
     if (SDL_GetTicks() - ticks_update_screen > 16) {
       ticks_update_screen = SDL_GetTicks();
@@ -136,7 +149,7 @@ static unsigned char handle_device_initialization(unsigned char wait_for_device,
 
 #if TARGET_OS_IOS
 // IOS events handler
-unsigned char handle_app_events(void *userdata, SDL_Event *event) {
+static bool SDLCALL handle_app_events(void *userdata, SDL_Event *event) {
   const config_params_s *conf = (config_params_s *)userdata;
   switch (event->type) {
   case SDL_EVENT_TERMINATING:
@@ -152,9 +165,10 @@ unsigned char handle_app_events(void *userdata, SDL_Event *event) {
        seconds to save all your state or the app will be terminated. Your app is NOT active at this
        point.
     */
-    m8_close(); // Disconnect so that buffers and queues don't fill up
-    device_connected = 0;
-    app_state = WAIT_FOR_DEVICE;
+    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Received SDL_EVENT_DID_ENTER_BACKGROUND");
+    app_suspended = 1;
+    if (device_connected)
+      m8_pause_processing();
     return 0;
   case SDL_EVENT_LOW_MEMORY:
     /* You will get this when your app is paused and iOS wants more memory.
@@ -170,10 +184,16 @@ unsigned char handle_app_events(void *userdata, SDL_Event *event) {
     /* This call happens when your app is coming back to the foreground.
        Restore all your state here.
     */
+    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Received SDL_EVENT_WILL_ENTER_FOREGROUND");
+    app_suspended = 0;
+    if (device_connected)
+      m8_resume_processing();
+    return 0;
   case SDL_EVENT_DID_ENTER_FOREGROUND:
     /* Restart your loops here.
        Your app is interactive and getting CPU again.
     */
+    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Received SDL_EVENT_DID_ENTER_FOREGROUND");
     return 0;
   default:
     /* No special processing, add it to the event queue */
