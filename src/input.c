@@ -69,132 +69,87 @@ uint8_t toggle_input_keyjazz() {
   return keyjazz_enabled;
 }
 
+// Get note value for a scancode, or -1 if not found
+static int get_note_for_scancode(SDL_Scancode scancode) {
+
+  // Map from SDL scancodes to note offsets
+  const struct keyjazz_scancodes_t {
+    SDL_Scancode scancode;
+    uint8_t note_offset;
+  } NOTE_MAP[] = {
+      {SDL_SCANCODE_Z, 0},  {SDL_SCANCODE_S, 1},  {SDL_SCANCODE_X, 2},  {SDL_SCANCODE_D, 3},
+      {SDL_SCANCODE_C, 4},  {SDL_SCANCODE_V, 5},  {SDL_SCANCODE_G, 6},  {SDL_SCANCODE_B, 7},
+      {SDL_SCANCODE_H, 8},  {SDL_SCANCODE_N, 9},  {SDL_SCANCODE_J, 10}, {SDL_SCANCODE_M, 11},
+      {SDL_SCANCODE_Q, 12}, {SDL_SCANCODE_2, 13}, {SDL_SCANCODE_W, 14}, {SDL_SCANCODE_3, 15},
+      {SDL_SCANCODE_E, 16}, {SDL_SCANCODE_R, 17}, {SDL_SCANCODE_5, 18}, {SDL_SCANCODE_T, 19},
+      {SDL_SCANCODE_6, 20}, {SDL_SCANCODE_Y, 21}, {SDL_SCANCODE_7, 22}, {SDL_SCANCODE_U, 23},
+      {SDL_SCANCODE_I, 24}, {SDL_SCANCODE_9, 25}, {SDL_SCANCODE_O, 26}, {SDL_SCANCODE_0, 27},
+      {SDL_SCANCODE_P, 28},
+  };
+
+  const size_t NOTE_MAP_SIZE = (sizeof(NOTE_MAP) / sizeof(NOTE_MAP[0]));
+
+  for (size_t i = 0; i < NOTE_MAP_SIZE; i++) {
+    if (NOTE_MAP[i].scancode == scancode) {
+      return NOTE_MAP[i].note_offset + keyjazz_base_octave * 12;
+    }
+  }
+  return -1; // Not a note key
+}
+
+// Handle octave and velocity changes
+static void handle_keyjazz_settings(const SDL_Event *event, const config_params_s *conf) {
+
+  // Constants for keyjazz limits and adjustments
+  const unsigned char KEYJAZZ_MIN_OCTAVE = 0;
+  const unsigned char KEYJAZZ_MAX_OCTAVE = 8;
+  const unsigned char KEYJAZZ_MIN_VELOCITY = 0;
+  const unsigned char KEYJAZZ_MAX_VELOCITY = 0x7F;
+  const unsigned char KEYJAZZ_FINE_VELOCITY_STEP = 1;
+  const unsigned char KEYJAZZ_COARSE_VELOCITY_STEP = 0x10;
+
+  if (event->key.repeat > 0 || event->key.type == SDL_EVENT_KEY_UP) {
+    return;
+  }
+
+  const SDL_Scancode scancode = event->key.scancode;
+  const bool is_fine_adjustment = (event->key.mod & SDL_KMOD_ALT) > 0;
+
+  if (scancode == conf->key_jazz_dec_octave && keyjazz_base_octave > KEYJAZZ_MIN_OCTAVE) {
+    keyjazz_base_octave--;
+    display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
+  } else if (scancode == conf->key_jazz_inc_octave && keyjazz_base_octave < KEYJAZZ_MAX_OCTAVE) {
+    keyjazz_base_octave++;
+    display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
+  } else if (scancode == conf->key_jazz_dec_velocity) {
+    const int step = is_fine_adjustment ? KEYJAZZ_FINE_VELOCITY_STEP : KEYJAZZ_COARSE_VELOCITY_STEP;
+    if (keyjazz_velocity > (is_fine_adjustment ? KEYJAZZ_MIN_VELOCITY + step : step)) {
+      keyjazz_velocity -= step;
+      display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
+    }
+  } else if (scancode == conf->key_jazz_inc_velocity) {
+    const int step = is_fine_adjustment ? KEYJAZZ_FINE_VELOCITY_STEP : KEYJAZZ_COARSE_VELOCITY_STEP;
+    const int max = is_fine_adjustment ? KEYJAZZ_MAX_VELOCITY : (KEYJAZZ_MAX_VELOCITY - step);
+    if (keyjazz_velocity < max) {
+      keyjazz_velocity += step;
+      display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
+    }
+  }
+}
+
 static input_msg_s handle_keyjazz(SDL_Event *event, uint8_t keyvalue, config_params_s *conf) {
   input_msg_s key = {keyjazz, keyvalue, keyjazz_velocity, event->type};
-  switch (event->key.scancode) {
-  case SDL_SCANCODE_Z:
-    key.value = keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_S:
-    key.value = 1 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_X:
-    key.value = 2 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_D:
-    key.value = 3 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_C:
-    key.value = 4 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_V:
-    key.value = 5 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_G:
-    key.value = 6 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_B:
-    key.value = 7 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_H:
-    key.value = 8 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_N:
-    key.value = 9 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_J:
-    key.value = 10 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_M:
-    key.value = 11 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_Q:
-    key.value = 12 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_2:
-    key.value = 13 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_W:
-    key.value = 14 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_3:
-    key.value = 15 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_E:
-    key.value = 16 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_R:
-    key.value = 17 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_5:
-    key.value = 18 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_T:
-    key.value = 19 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_6:
-    key.value = 20 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_Y:
-    key.value = 21 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_7:
-    key.value = 22 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_U:
-    key.value = 23 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_I:
-    key.value = 24 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_9:
-    key.value = 25 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_O:
-    key.value = 26 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_0:
-    key.value = 27 + keyjazz_base_octave * 12;
-    break;
-  case SDL_SCANCODE_P:
-    key.value = 28 + keyjazz_base_octave * 12;
-    break;
-  default:
-    key.type = normal;
-    if (event->key.repeat > 0 || event->key.type == SDL_EVENT_KEY_UP) {
-      break;
-    }
-    if (event->key.scancode == conf->key_jazz_dec_octave) {
-      if (keyjazz_base_octave > 0) {
-        keyjazz_base_octave--;
-        display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
-      }
-    } else if (event->key.scancode == conf->key_jazz_inc_octave) {
-      if (keyjazz_base_octave < 8) {
-        keyjazz_base_octave++;
-        display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
-      }
-    } else if (event->key.scancode == conf->key_jazz_dec_velocity) {
-      if ((event->key.mod & SDL_KMOD_ALT) > 0) {
-        if (keyjazz_velocity > 1)
-          keyjazz_velocity -= 1;
-      } else {
-        if (keyjazz_velocity > 0x10)
-          keyjazz_velocity -= 0x10;
-      }
-      display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
-    } else if (event->key.scancode == conf->key_jazz_inc_velocity) {
-      if ((event->key.mod & SDL_KMOD_ALT) > 0) {
-        if (keyjazz_velocity < 0x7F)
-          keyjazz_velocity += 1;
-      } else {
-        if (keyjazz_velocity < 0x6F)
-          keyjazz_velocity += 0x10;
-      }
-      display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
-    }
-    break;
+
+  // Check if this is a note key
+  const int note_value = get_note_for_scancode(event->key.scancode);
+  if (note_value >= 0) {
+    key.value = note_value;
+    return key;
   }
+
+  // Not a note key, handle other settings
+  key.type = normal;
+  handle_keyjazz_settings(event, conf);
 
   return key;
 }
@@ -213,14 +168,11 @@ static input_msg_s handle_normal_keys(const SDL_Event *event, const config_param
   } else if (event->key.scancode == conf->key_select ||
              event->key.scancode == conf->key_select_alt) {
     key.value = key_select;
-  } else if (event->key.scancode == conf->key_start ||
-             event->key.scancode == conf->key_start_alt) {
+  } else if (event->key.scancode == conf->key_start || event->key.scancode == conf->key_start_alt) {
     key.value = key_start;
-  } else if (event->key.scancode == conf->key_opt ||
-             event->key.scancode == conf->key_opt_alt) {
+  } else if (event->key.scancode == conf->key_opt || event->key.scancode == conf->key_opt_alt) {
     key.value = key_opt;
-  } else if (event->key.scancode == conf->key_edit ||
-             event->key.scancode == conf->key_edit_alt) {
+  } else if (event->key.scancode == conf->key_edit || event->key.scancode == conf->key_edit_alt) {
     key.value = key_edit;
   } else if (event->key.scancode == conf->key_delete) {
     key.value = key_opt | key_edit;
@@ -235,7 +187,7 @@ static input_msg_s handle_normal_keys(const SDL_Event *event, const config_param
 }
 
 // Handles SDL input events
-void handle_sdl_events(config_params_s *conf) {
+static void handle_sdl_events(config_params_s *conf) {
 
   static int prev_key_analog = 0;
   static unsigned int ticks_window_resized = 0;
@@ -270,11 +222,11 @@ void handle_sdl_events(config_params_s *conf) {
       break;
 
     case SDL_EVENT_WINDOW_RESIZED:
-        if (SDL_GetTicks() - ticks_window_resized > 500) {
-          SDL_Log("Resizing window...");
-          key = (input_msg_s){special, msg_reset_display, 0, 0};
-          ticks_window_resized = SDL_GetTicks();
-        }
+      if (SDL_GetTicks() - ticks_window_resized > 500) {
+        SDL_Log("Resizing window...");
+        key = (input_msg_s){special, msg_reset_display, 0, 0};
+        ticks_window_resized = SDL_GetTicks();
+      }
       break;
 
     case SDL_EVENT_KEY_DOWN:
