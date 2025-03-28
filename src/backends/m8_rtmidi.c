@@ -216,19 +216,42 @@ int disconnect(void) {
 }
 
 int m8_send_msg_controller(const unsigned char input) {
-  const unsigned char input_sysex[9] = {0xF0, 0x00, 0x02, 0x61, 0x00, 0x00, 'C', input, 0xF7};
+  SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "MIDI key inputs not implemented yet");
+  return 0;
+#if 0
+  SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Sending controller input 0x%02X", input);
+  // Encode a 8bit byte to two 7-bit bytes
+  //const unsigned char sysex_encoded_input[2] = {input & 0x7F, (input >> 7) & 0x01};
+  const unsigned char input_sysex[10] = {0xF0, 0x00, 0x02, 0x61, 0x00, 0x00, 'C', sysex_encoded_input[0], sysex_encoded_input[1], 0xF7};
   const int result = rtmidi_out_send_message(midi_out, &input_sysex[0], sizeof(input_sysex));
   if (result != 0) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to send key input message");
     return 0;
   }
   return 1;
+#endif
 }
 
 int m8_send_msg_keyjazz(const unsigned char note, unsigned char velocity) {
+  SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "MIDI keyjazz not implemented yet");
+  return 0;
+#if 0
   if (velocity > 0x7F) {
     velocity = 0x7F;
   }
+
+  // Special case for note off
+  if (note == 0xFF && velocity == 0x00) {
+    const unsigned char all_notes_off_sysex[9] = {0xF0, 0x00, 0x02, 0x61, 0x00, 0x00, 'K', 0xFF, 0xF7};
+    const int result =
+        rtmidi_out_send_message(midi_out, &all_notes_off_sysex[0], sizeof(all_notes_off_sysex));
+    if (result != 0) {
+      SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to send all notes off");
+      return 0;
+    }
+    return 1;
+  }
+
   const unsigned char keyjazz_sysex[10] = {0xF0, 0x00, 0x02, 0x61,     0x00,
                                            0x00, 'K',  note, velocity, 0xF7};
   const int result = rtmidi_out_send_message(midi_out, &keyjazz_sysex[0], sizeof(keyjazz_sysex));
@@ -237,9 +260,10 @@ int m8_send_msg_keyjazz(const unsigned char note, unsigned char velocity) {
     return 0;
   }
   return 1;
+#endif
 }
 
-int m8_process_data(config_params_s conf) {
+int m8_process_data(const config_params_s *conf) {
 
   static unsigned int empty_cycles = 0;
 
@@ -253,7 +277,7 @@ int m8_process_data(config_params_s conf) {
     }
   } else {
     empty_cycles++;
-    if (empty_cycles >= conf.wait_packets) {
+    if (empty_cycles >= conf->wait_packets) {
       SDL_Log("No messages received for %d cycles, assuming device disconnected", empty_cycles);
       close_and_free_midi_ports();
       return 0;

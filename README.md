@@ -21,11 +21,12 @@ built in Linux, Windows (with MSYS2/MINGW64) and Mac OS.
 
 Many thanks to:
 
-* Trash80 for the great M8 hardware and the original font (stealth57.ttf) that was converted to a bitmap for use in the
+* Trash80: For the great M8 hardware and the original fonts that were converted to a bitmap for use in the
   progam.
-* driedfruit for a wonderful little routine to blit inline bitmap fonts, https://github.com/driedfruit/SDL_inprint/
-* marcinbor85 for the slip handling routine, https://github.com/marcinbor85/slip
-* turbolent for the great Golang-based g0m8 application, which I used as reference on how the M8 serial protocol works.
+* driedfruit: For a wonderful little routine to blit inline bitmap
+  fonts, [SDL_inprint](https://github.com/driedfruit/SDL_inprint/)
+* marcinbor85: For the slip handling routine, https://github.com/marcinbor85/slip
+* turbolent: For the great Golang-based g0m8 application, which I used as reference on how the M8 serial protocol works.
 * *Everyone who's contributed to m8c!*
 
 Disclaimer: I'm not a coder and hardly understand C, use at your own risk :)

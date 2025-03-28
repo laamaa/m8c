@@ -26,6 +26,13 @@ typedef struct {
 void init_queue(message_queue_s *queue);
 
 /**
+ * Destroys the message queue and releases associated resources.
+ *
+ * @param queue A pointer to the message queue structure to be destroyed.
+ */
+void destroy_queue(message_queue_s *queue);
+
+/**
  * Retrieves and removes a message from the front of the message queue.
  * If the queue is empty, the function returns NULL.
  *

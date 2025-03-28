@@ -17,15 +17,26 @@
 #include "input.h"
 #include "render.h"
 
+#include <stdlib.h>
+
 enum app_state app_state = WAIT_FOR_DEVICE;
 
 // Handle CTRL+C / SIGINT, SIGKILL etc.
-void signal_handler(int unused) {
+static void signal_handler(int unused) {
   (void)unused;
   app_state = QUIT;
 }
 
-void do_wait_for_device(const char *preferred_device, unsigned char *m8_connected,
+static void initialize_signals() {
+  signal(SIGINT, signal_handler);
+  signal(SIGTERM, signal_handler);
+#ifdef SIGQUIT
+  signal(SIGQUIT, signal_handler);
+#endif
+}
+
+
+static void do_wait_for_device(const char *preferred_device, unsigned char *m8_connected,
                         config_params_s *conf) {
   static Uint64 ticks_poll_device = 0;
   static Uint64 ticks_update_screen = 0;
@@ -77,54 +88,107 @@ void do_wait_for_device(const char *preferred_device, unsigned char *m8_connecte
   }
 }
 
-int main(const int argc, char *argv[]) {
-
-  char *preferred_device = NULL;
-  unsigned char m8_connected = 0;
-
-  if (argc == 2 && SDL_strcmp(argv[1], "--list") == 0) {
-    return m8_list_devices();
-  }
-
-  if (argc == 3 && SDL_strcmp(argv[1], "--dev") == 0) {
-    preferred_device = argv[2];
-    SDL_Log("Using preferred device %s.\n", preferred_device);
-  }
-
-  char *config_filename = NULL;
-  if (argc == 3 && SDL_strcmp(argv[1], "--config") == 0) {
-    config_filename = argv[2];
-    SDL_Log("Using config file %s.\n", config_filename);
-  }
-
-  // Initialize the config to defaults
-  config_params_s conf = config_initialize(config_filename);
-  // Read in the params from the configfile if present
-  config_read(&conf);
-
-  signal(SIGINT, signal_handler);
-  signal(SIGTERM, signal_handler);
-#ifdef SIGQUIT
-  signal(SIGQUIT, signal_handler);
-#endif
-
-  // First device detection to avoid SDL init if it isn't necessary. To be run
-  // only if we shouldn't wait for M8 to be connected.
-  if (conf.wait_for_device == 0) {
-    m8_connected = m8_initialize(1, preferred_device);
-    if (m8_connected == 0) {
-      return 1;
+static config_params_s initialize_config(int argc, char *argv[], char **preferred_device, char **config_filename) {
+  for (int i = 1; i < argc; i++) {
+    if (SDL_strcmp(argv[i], "--list") == 0) {
+      exit(m8_list_devices());
+    }
+    if (SDL_strcmp(argv[i], "--dev") == 0 && i + 1 < argc) {
+      *preferred_device = argv[i + 1];
+      SDL_Log("Using preferred device: %s.\n", *preferred_device);
+      i++;
+    } else if (SDL_strcmp(argv[i], "--config") == 0 && i + 1 < argc) {
+      *config_filename = argv[i + 1];
+      SDL_Log("Using config file: %s.\n", *config_filename);
+      i++;
     }
   }
 
-  // initialize all SDL systems
-  if (renderer_initialize(conf.init_fullscreen) == false) {
-    SDL_Quit();
-    return 1;
-  }
-  app_state = QUIT;
+  config_params_s conf = config_initialize(*config_filename);
+  config_read(&conf);
+  return conf;
+}
 
-  // initial scan for (existing) gamepads
+static void cleanup_resources(const unsigned char device_connected, const config_params_s *conf) {
+  if (conf->audio_enabled) {
+    audio_close();
+  }
+  gamecontrollers_close();
+  renderer_close();
+  inline_font_close();
+  if (device_connected) {
+    m8_close();
+  }
+  SDL_Quit();
+  SDL_Log("Shutting down.");
+}
+
+static unsigned char handle_device_initialization(unsigned char wait_for_device, const char *preferred_device) {
+  const unsigned char device_connected = m8_initialize(1, preferred_device);
+  if (!wait_for_device && device_connected == 0) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected!");
+    exit(EXIT_FAILURE);
+  }
+  return device_connected;
+}
+
+static void main_loop(config_params_s *conf, const char *preferred_device) {
+  unsigned char device_connected = 0;
+
+  do {
+    device_connected = m8_initialize(1, preferred_device);
+    if (device_connected && m8_enable_and_reset_display()) {
+      if (conf->audio_enabled) {
+        audio_initialize(conf->audio_device_name, conf->audio_buffer_size);
+        m8_reset_display();  // Avoid display glitches.
+      }
+      app_state = RUN;
+    } else {
+      SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected.");
+      app_state = conf->wait_for_device ? WAIT_FOR_DEVICE : QUIT;
+    }
+
+    if (conf->wait_for_device && app_state == WAIT_FOR_DEVICE) {
+      do_wait_for_device(preferred_device, &device_connected, conf);
+    } else if (!device_connected && app_state != WAIT_FOR_DEVICE) {
+      cleanup_resources(0, conf);
+      exit(EXIT_FAILURE);
+    }
+
+    // Handle input, process data, and render screen while running.
+    while (app_state == RUN) {
+      input_process(conf, &app_state);
+      const int result = m8_process_data(conf);
+      if (result == DEVICE_DISCONNECTED) {
+        device_connected = 0;
+        app_state = WAIT_FOR_DEVICE;
+        audio_close();
+      } else if (result == DEVICE_FATAL_ERROR) {
+        app_state = QUIT;
+      }
+      render_screen();
+      SDL_Delay(conf->idle_ms);
+    }
+  } while (app_state > QUIT);
+
+  cleanup_resources(device_connected, conf);
+}
+
+
+int main(const int argc, char *argv[]) {
+  char *preferred_device = NULL;
+  char *config_filename = NULL;
+
+  config_params_s conf = initialize_config(argc, argv, &preferred_device, &config_filename);
+  initialize_signals();
+
+  const unsigned char initial_device_connected = handle_device_initialization(conf.wait_for_device, preferred_device);
+  if (!renderer_initialize(conf.init_fullscreen)) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to initialize renderer.");
+    cleanup_resources(initial_device_connected, &conf);
+    return EXIT_FAILURE;
+  }
+
   gamecontrollers_initialize();
 
 #ifndef NDEBUG
@@ -132,69 +196,6 @@ int main(const int argc, char *argv[]) {
   SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "Running a Debug build");
 #endif
 
-  // main loop begin
-  do {
-    // try to init connection to M8
-    m8_connected = m8_initialize(1, preferred_device);
-    if (m8_connected == 1 && m8_enable_and_reset_display() == 1) {
-      if (conf.audio_enabled == 1) {
-        audio_initialize(conf.audio_device_name, conf.audio_buffer_size);
-        // if audio is enabled, reset the display for second time to avoid glitches
-        m8_reset_display();
-      }
-      app_state = RUN;
-    } else {
-      SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected on initial check.");
-      if (conf.wait_for_device == 1) {
-        app_state = WAIT_FOR_DEVICE;
-      } else {
-        app_state = QUIT;
-      }
-    }
-
-    // wait until device is connected
-    if (conf.wait_for_device == 1) {
-      do_wait_for_device(preferred_device, &m8_connected, &conf);
-    } else {
-      // classic startup behaviour, exit if device is not found
-      if (m8_connected == 0) {
-        if (conf.audio_enabled == 1) {
-          audio_close();
-        }
-        gamecontrollers_close();
-        renderer_close();
-        inline_font_close();
-        SDL_Quit();
-        return 1;
-      }
-    }
-
-    // main loop
-    while (app_state == RUN) {
-      input_process(conf, &app_state);
-      const int result = m8_process_data(conf);
-      if (result == 0) {
-        // Device disconnected
-        m8_connected = 0;
-        app_state = WAIT_FOR_DEVICE;
-        audio_close();
-      } else if (result == -1) {
-        // Fatal error
-        app_state = QUIT;
-      }
-      render_screen();
-      SDL_Delay(conf.idle_ms);
-    }
-  } while (app_state > QUIT);
-  // Main loop end
-
-  // Exit, clean up
-  SDL_Log("Shutting down");
-  audio_close();
-  gamecontrollers_close();
-  renderer_close();
-  if (m8_connected == 1)
-    m8_close();
-  SDL_Quit();
-  return 0;
+  main_loop(&conf, preferred_device);
+  return EXIT_SUCCESS;
 }
