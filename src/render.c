@@ -45,24 +45,36 @@ static uint8_t dirty = 0;
 // Initializes SDL and creates a renderer and required surfaces
 int renderer_initialize(const unsigned int init_fullscreen) {
 
-  if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMEPAD) == false) {
-    SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "SDL_Init: %s\n", SDL_GetError());
-    return false;
-  }
-
   // SDL documentation recommends this
   atexit(SDL_Quit);
 
-  win = SDL_CreateWindow("m8c", texture_width * 2, texture_height * 2,
-                         SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | init_fullscreen);
+  if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMEPAD) == false) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "SDL_Init: %s", SDL_GetError());
+    return false;
+  }
 
-  rend = SDL_CreateRenderer(win, NULL);
+  if (!SDL_CreateWindowAndRenderer(
+          "m8c", texture_width * 2, texture_height * 2,
+          SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | init_fullscreen, &win, &rend)) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create window and renderer: %s",
+                 SDL_GetError());
+    return false;
+  }
 
-  SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height, scaling_mode);
+  if (!SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height, scaling_mode)) {
+    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't set renderer logical presentation: %s",
+                 SDL_GetError());
+    return false;
+  }
 
   main_texture = NULL;
   main_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
                                    texture_width, texture_height);
+
+  if (main_texture == NULL) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create texture: %s", SDL_GetError());
+    return false;
+  }
 
   SDL_SetTextureScaleMode(main_texture, SDL_SCALEMODE_NEAREST);
 
@@ -333,4 +345,9 @@ void screensaver_destroy() {
   fx_cube_destroy();
   renderer_set_font_mode(0);
   SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Screensaver destroyed");
+}
+
+void fix_texture_scaling_after_window_resize(void) {
+  SDL_SetRenderTarget(rend, NULL);
+  SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height, scaling_mode);
 }

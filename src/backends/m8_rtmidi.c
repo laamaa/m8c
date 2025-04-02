@@ -23,6 +23,8 @@ const unsigned char m8_sysex_header[5] = {0xF0, 0x00, 0x02, 0x61, 0x00};
 const unsigned int m8_sysex_header_size = sizeof(m8_sysex_header);
 const unsigned char sysex_message_end = 0xF7;
 
+bool midi_processing_suspended = false;
+
 bool message_is_m8_sysex(const unsigned char *message) {
   if (memcmp(m8_sysex_header, message, m8_sysex_header_size) == 0) {
     return true;
@@ -90,7 +92,7 @@ static void midi_callback(double delta_time, const unsigned char *message, size_
   (void)delta_time;
   (void)user_data;
 
-  if (message_size < 5 || !message_is_m8_sysex(message))
+  if (midi_processing_suspended || message_size < 5 || !message_is_m8_sysex(message))
     return;
 
   unsigned char *decoded_data;
@@ -205,6 +207,7 @@ void close_and_free_midi_ports(void) {
 }
 
 int disconnect(void) {
+  SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Sending disconnect message to M8");
   const unsigned char disconnect_sysex[8] = {0xF0, 0x00, 0x02, 0x61, 0x00, 0x00, 'D', 0xF7};
   const int result =
       rtmidi_out_send_message(midi_out, &disconnect_sysex[0], sizeof(disconnect_sysex));
@@ -287,12 +290,9 @@ int m8_process_data(const config_params_s *conf) {
 }
 
 int m8_close() {
-  if (queue.mutex != NULL) {
-    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Destroying command queue");
-    SDL_DestroyMutex(queue.mutex);
-    SDL_DestroyCondition(queue.cond);
-  }
-  return disconnect();
+  const int result = disconnect();
+  destroy_queue(&queue);
+  return result;
 }
 
 int m8_list_devices() {
@@ -309,6 +309,18 @@ int m8_list_devices() {
     SDL_Log("MIDI IN port %d, name: %s", port_number, port_name);
   }
   close_and_free_midi_ports();
+  return 1;
+}
+
+int m8_pause_processing(void) {
+  midi_processing_suspended = true;
+  SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Pausing MIDI processing");
+  return 1;
+}
+int m8_resume_processing(void) {
+  midi_processing_suspended = false;
+  SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Resuming MIDI processing");
+  m8_reset_display();
   return 1;
 }
 

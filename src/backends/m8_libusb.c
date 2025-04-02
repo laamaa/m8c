@@ -364,4 +364,8 @@ int m8_send_msg_keyjazz(uint8_t note, uint8_t velocity) {
   return 1;
 }
 
+// These shouldn't be needed with serial
+int m8_pause_processing(void) { return 1; }
+int m8_resume_processing(void) { return 1; }
+
 #endif

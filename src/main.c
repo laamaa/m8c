@@ -7,6 +7,7 @@
 
 #include <SDL3/SDL.h>
 #include <signal.h>
+#include <stdlib.h>
 
 #include "SDL2_inprint.h"
 #include "backends/audio.h"
@@ -17,9 +18,13 @@
 #include "input.h"
 #include "render.h"
 
-#include <stdlib.h>
+#if TARGET_OS_IOS
+#include <SDL3/SDL_main.h>
+unsigned char app_suspended = 0;
+#endif // TARGET_OS_IOS
 
 enum app_state app_state = WAIT_FOR_DEVICE;
+unsigned char device_connected = 0;
 
 // Handle CTRL+C / SIGINT, SIGKILL etc.
 static void signal_handler(int unused) {
@@ -27,17 +32,16 @@ static void signal_handler(int unused) {
   app_state = QUIT;
 }
 
-static void initialize_signals() {
+static void initialize_signals(void) {
   signal(SIGINT, signal_handler);
   signal(SIGTERM, signal_handler);
-#ifdef SIGQUIT
+#ifdef SIGQUIT // Not available on Windows.
   signal(SIGQUIT, signal_handler);
 #endif
 }
 
-
 static void do_wait_for_device(const char *preferred_device, unsigned char *m8_connected,
-                        config_params_s *conf) {
+                               config_params_s *conf) {
   static Uint64 ticks_poll_device = 0;
   static Uint64 ticks_update_screen = 0;
 
@@ -46,12 +50,21 @@ static void do_wait_for_device(const char *preferred_device, unsigned char *m8_c
   }
 
   while (app_state == WAIT_FOR_DEVICE) {
+
     // get current input
     const input_msg_s input = input_get_msg(&*conf);
     if (input.type == special && input.value == msg_quit) {
       SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Input message QUIT.");
       app_state = QUIT;
     }
+
+#if TARGET_OS_IOS
+    // Handle app suspension
+    if (app_suspended) {
+      SDL_Delay(conf->idle_ms);
+      continue;
+    }
+#endif // TARGET_OS_IOS
 
     if (SDL_GetTicks() - ticks_update_screen > 16) {
       ticks_update_screen = SDL_GetTicks();
@@ -88,7 +101,8 @@ static void do_wait_for_device(const char *preferred_device, unsigned char *m8_c
   }
 }
 
-static config_params_s initialize_config(int argc, char *argv[], char **preferred_device, char **config_filename) {
+static config_params_s initialize_config(int argc, char *argv[], char **preferred_device,
+                                         char **config_filename) {
   for (int i = 1; i < argc; i++) {
     if (SDL_strcmp(argv[i], "--list") == 0) {
       exit(m8_list_devices());
@@ -123,7 +137,8 @@ static void cleanup_resources(const unsigned char device_connected, const config
   SDL_Log("Shutting down.");
 }
 
-static unsigned char handle_device_initialization(unsigned char wait_for_device, const char *preferred_device) {
+static unsigned char handle_device_initialization(unsigned char wait_for_device,
+                                                  const char *preferred_device) {
   const unsigned char device_connected = m8_initialize(1, preferred_device);
   if (!wait_for_device && device_connected == 0) {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected!");
@@ -132,15 +147,69 @@ static unsigned char handle_device_initialization(unsigned char wait_for_device,
   return device_connected;
 }
 
+#if TARGET_OS_IOS
+// IOS events handler
+static bool SDLCALL handle_app_events(void *userdata, SDL_Event *event) {
+  const config_params_s *conf = (config_params_s *)userdata;
+  switch (event->type) {
+  case SDL_EVENT_TERMINATING:
+    /* Terminate the app.
+       Shut everything down before returning from this function.
+    */
+    cleanup_resources(device_connected, conf);
+    return 0;
+  case SDL_EVENT_DID_ENTER_BACKGROUND:
+    /* This will get called if the user accepted whatever sent your app to the background.
+       If the user got a phone call and canceled it, you'll instead get an
+       SDL_EVENT_DID_ENTER_FOREGROUND event and restart your loops. When you get this, you have 5
+       seconds to save all your state or the app will be terminated. Your app is NOT active at this
+       point.
+    */
+    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Received SDL_EVENT_DID_ENTER_BACKGROUND");
+    app_suspended = 1;
+    if (device_connected)
+      m8_pause_processing();
+    return 0;
+  case SDL_EVENT_LOW_MEMORY:
+    /* You will get this when your app is paused and iOS wants more memory.
+       Release as much memory as possible.
+    */
+    return 0;
+  case SDL_EVENT_WILL_ENTER_BACKGROUND:
+    /* Prepare your app to go into the background.  Stop loops, etc.
+       This gets called when the user hits the home button, or gets a call.
+    */
+    return 0;
+  case SDL_EVENT_WILL_ENTER_FOREGROUND:
+    /* This call happens when your app is coming back to the foreground.
+       Restore all your state here.
+    */
+    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Received SDL_EVENT_WILL_ENTER_FOREGROUND");
+    app_suspended = 0;
+    if (device_connected)
+      m8_resume_processing();
+    return 0;
+  case SDL_EVENT_DID_ENTER_FOREGROUND:
+    /* Restart your loops here.
+       Your app is interactive and getting CPU again.
+    */
+    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Received SDL_EVENT_DID_ENTER_FOREGROUND");
+    return 0;
+  default:
+    /* No special processing, add it to the event queue */
+    return 1;
+  }
+}
+#endif // TARGET_OS_IOS
+
 static void main_loop(config_params_s *conf, const char *preferred_device) {
-  unsigned char device_connected = 0;
 
   do {
     device_connected = m8_initialize(1, preferred_device);
     if (device_connected && m8_enable_and_reset_display()) {
       if (conf->audio_enabled) {
         audio_initialize(conf->audio_device_name, conf->audio_buffer_size);
-        m8_reset_display();  // Avoid display glitches.
+        m8_reset_display(); // Avoid display glitches.
       }
       app_state = RUN;
     } else {
@@ -174,7 +243,6 @@ static void main_loop(config_params_s *conf, const char *preferred_device) {
   cleanup_resources(device_connected, conf);
 }
 
-
 int main(const int argc, char *argv[]) {
   char *preferred_device = NULL;
   char *config_filename = NULL;
@@ -182,12 +250,18 @@ int main(const int argc, char *argv[]) {
   config_params_s conf = initialize_config(argc, argv, &preferred_device, &config_filename);
   initialize_signals();
 
-  const unsigned char initial_device_connected = handle_device_initialization(conf.wait_for_device, preferred_device);
+  const unsigned char initial_device_connected =
+      handle_device_initialization(conf.wait_for_device, preferred_device);
   if (!renderer_initialize(conf.init_fullscreen)) {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to initialize renderer.");
     cleanup_resources(initial_device_connected, &conf);
     return EXIT_FAILURE;
   }
+
+#if TARGET_OS_IOS
+  // IOS events handler
+  SDL_SetEventFilter(handle_app_events, &conf);
+#endif
 
   gamecontrollers_initialize();
 

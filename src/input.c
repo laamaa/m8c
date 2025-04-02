@@ -117,19 +117,19 @@ static input_msg_s handle_normal_keys(const SDL_Event *event, const config_param
     SDL_Scancode scancode;
     uint8_t value;
   } normal_key_map[] = {
-    {conf->key_up, key_up},
-    {conf->key_left, key_left},
-    {conf->key_down, key_down},
-    {conf->key_right, key_right},
-    {conf->key_select, key_select},
-    {conf->key_select_alt, key_select},
-    {conf->key_start, key_start},
-    {conf->key_start_alt, key_start},
-    {conf->key_opt, key_opt},
-    {conf->key_opt_alt, key_opt},
-    {conf->key_edit, key_edit},
-    {conf->key_edit_alt, key_edit},
-    {conf->key_delete, key_opt | key_edit},
+      {conf->key_up, key_up},
+      {conf->key_left, key_left},
+      {conf->key_down, key_down},
+      {conf->key_right, key_right},
+      {conf->key_select, key_select},
+      {conf->key_select_alt, key_select},
+      {conf->key_start, key_start},
+      {conf->key_start_alt, key_start},
+      {conf->key_opt, key_opt},
+      {conf->key_opt_alt, key_opt},
+      {conf->key_edit, key_edit},
+      {conf->key_edit_alt, key_edit},
+      {conf->key_delete, key_opt | key_edit},
   };
 
   // Handle special messages (different message type)
@@ -137,8 +137,8 @@ static input_msg_s handle_normal_keys(const SDL_Event *event, const config_param
     SDL_Scancode scancode;
     special_messages_t message;
   } special_key_map[] = {
-    {conf->key_reset, msg_reset_display},
-    {conf->key_toggle_audio, msg_toggle_audio},
+      {conf->key_reset, msg_reset_display},
+      {conf->key_toggle_audio, msg_toggle_audio},
   };
 
   // Check normal key mappings
@@ -198,11 +198,7 @@ static void handle_sdl_events(config_params_s *conf) {
       break;
 
     case SDL_EVENT_WINDOW_RESIZED:
-      if (SDL_GetTicks() - ticks_window_resized > 500) {
-        SDL_Log("Resizing window...");
-        key = (input_msg_s){special, msg_reset_display, 0, 0};
-        ticks_window_resized = SDL_GetTicks();
-      }
+      fix_texture_scaling_after_window_resize();
       break;
 
     case SDL_EVENT_KEY_DOWN:

@@ -362,4 +362,8 @@ int m8_process_data(const config_params_s *conf) {
 }
 
 int m8_close() { return disconnect(); }
+
+// These shouldn't be needed with serial
+int m8_pause_processing(void) { return 1; }
+int m8_resume_processing(void) { return 1; }
 #endif

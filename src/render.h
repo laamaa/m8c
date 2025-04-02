@@ -24,4 +24,5 @@ void screensaver_init();
 void screensaver_draw();
 void screensaver_destroy();
 
+void fix_texture_scaling_after_window_resize(void);
 #endif
