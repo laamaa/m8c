@@ -198,11 +198,7 @@ static void handle_sdl_events(config_params_s *conf) {
       break;
 
     case SDL_EVENT_WINDOW_RESIZED:
-      if (SDL_GetTicks() - ticks_window_resized > 500) {
-        SDL_Log("Resizing window...");
-        key = (input_msg_s){special, msg_reset_display, 0, 0};
-        ticks_window_resized = SDL_GetTicks();
-      }
+      fix_texture_scaling_after_window_resize();
       break;
 
     case SDL_EVENT_KEY_DOWN:
