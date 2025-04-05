@@ -72,7 +72,7 @@ void fx_cube_init(SDL_Renderer *target_renderer, const SDL_Color foreground_colo
   SDL_SetRenderDrawColor(fx_renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
   SDL_RenderClear(fx_renderer);
 
-  inprint(fx_renderer, "DEVICE DISCONNECTED", texture_width - font_glyph_width * 19 - 21,
+  inprint(fx_renderer, "M8 DEVICE NOT DETECTED", texture_width - font_glyph_width * 22 - 23,
           texture_height - 12, 0xFFFFFF, 0x000000);
   inprint(fx_renderer, "M8C", 2, 2, 0xFFFFFF, 0x000000);
 
