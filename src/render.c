@@ -87,6 +87,10 @@ int renderer_initialize(const unsigned int init_fullscreen) {
 
   renderer_set_font_mode(0);
 
+#ifdef TARGET_OS_IOS
+  SDL_SetHint(SDL_HINT_IOS_HIDE_HOME_INDICATOR, "1");
+#endif
+
   dirty = 1;
 
   return 1;

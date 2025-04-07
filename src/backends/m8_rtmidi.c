@@ -24,6 +24,7 @@ const unsigned int m8_sysex_header_size = sizeof(m8_sysex_header);
 const unsigned char sysex_message_end = 0xF7;
 
 bool midi_processing_suspended = false;
+bool midi_sysex_received = false;
 
 bool message_is_m8_sysex(const unsigned char *message) {
   if (memcmp(m8_sysex_header, message, m8_sysex_header_size) == 0) {
@@ -95,6 +96,10 @@ static void midi_callback(double delta_time, const unsigned char *message, size_
   if (midi_processing_suspended || message_size < 5 || !message_is_m8_sysex(message))
     return;
 
+  if (!midi_sysex_received) {
+    midi_sysex_received = true;
+  }
+
   unsigned char *decoded_data;
   size_t decoded_length;
   midi_decode(message, message_size, &decoded_data, &decoded_length);
@@ -117,6 +122,16 @@ static void midi_callback(double delta_time, const unsigned char *message, size_
   } else {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Decoding failed.\n");
   }
+}
+
+void close_and_free_midi_ports(void) {
+  SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Freeing MIDI ports");
+  rtmidi_close_port(midi_in);
+  rtmidi_close_port(midi_out);
+  rtmidi_in_free(midi_in);
+  rtmidi_out_free(midi_out);
+  midi_in = NULL;
+  midi_out = NULL;
 }
 
 int initialize_rtmidi() {
@@ -185,25 +200,25 @@ int m8_reset_display(void) {
 }
 
 int m8_enable_and_reset_display(void) {
+  SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Sending enable command sysex");
   rtmidi_in_set_callback(midi_in, midi_callback, NULL);
   const unsigned char enable_sysex[8] = {0xF0, 0x00, 0x02, 0x61, 0x00, 0x00, 'E', 0xF7};
   int result = rtmidi_out_send_message(midi_out, &enable_sysex[0], sizeof(enable_sysex));
   if (result != 0) {
-    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to enable display");
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to send remote display enable command");
     return 0;
+  }
+  // Wait a second to get a reply from the device
+  const Uint64 timer_wait_for_response = SDL_GetTicks();
+  while (!midi_sysex_received) {
+    if (SDL_GetTicks() - timer_wait_for_response > 1000) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_SYSTEM,"No response from device. Please make sure you're using M8 firmware 6.0.0 or newer.");
+      close_and_free_midi_ports();
+      return 0;
+    }
   }
   result = m8_reset_display();
   return result;
-}
-
-void close_and_free_midi_ports(void) {
-  SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Freeing MIDI ports");
-  rtmidi_close_port(midi_in);
-  rtmidi_close_port(midi_out);
-  rtmidi_in_free(midi_in);
-  rtmidi_out_free(midi_out);
-  midi_in = NULL;
-  midi_out = NULL;
 }
 
 int disconnect(void) {

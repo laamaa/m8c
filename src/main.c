@@ -137,7 +137,7 @@ static void cleanup_resources(const unsigned char device_connected, const config
   SDL_Log("Shutting down.");
 }
 
-static unsigned char handle_device_initialization(unsigned char wait_for_device,
+static unsigned char handle_device_initialization(const unsigned char wait_for_device,
                                                   const char *preferred_device) {
   const unsigned char device_connected = m8_initialize(1, preferred_device);
   if (!wait_for_device && device_connected == 0) {
@@ -205,7 +205,9 @@ static bool SDLCALL handle_app_events(void *userdata, SDL_Event *event) {
 static void main_loop(config_params_s *conf, const char *preferred_device) {
 
   do {
-    device_connected = m8_initialize(1, preferred_device);
+    if (!device_connected) {
+      device_connected = m8_initialize(1, preferred_device);
+    }
     if (device_connected && m8_enable_and_reset_display()) {
       if (conf->audio_enabled) {
         audio_initialize(conf->audio_device_name, conf->audio_buffer_size);
@@ -214,6 +216,7 @@ static void main_loop(config_params_s *conf, const char *preferred_device) {
       app_state = RUN;
     } else {
       SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected.");
+      device_connected = 0;
       app_state = conf->wait_for_device ? WAIT_FOR_DEVICE : QUIT;
     }
 
@@ -250,11 +253,10 @@ int main(const int argc, char *argv[]) {
   config_params_s conf = initialize_config(argc, argv, &preferred_device, &config_filename);
   initialize_signals();
 
-  const unsigned char initial_device_connected =
-      handle_device_initialization(conf.wait_for_device, preferred_device);
+  device_connected = handle_device_initialization(conf.wait_for_device, preferred_device);
   if (!renderer_initialize(conf.init_fullscreen)) {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to initialize renderer.");
-    cleanup_resources(initial_device_connected, &conf);
+    cleanup_resources(device_connected, &conf);
     return EXIT_FAILURE;
   }
 

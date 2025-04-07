@@ -7,7 +7,7 @@
 
 #include <SDL3/SDL.h>
 
-#define MAX_QUEUE_SIZE 4096
+#define MAX_QUEUE_SIZE 8192
 
 typedef struct {
   unsigned char *messages[MAX_QUEUE_SIZE];
