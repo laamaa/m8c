@@ -95,8 +95,9 @@ static void do_wait_for_device(const char *preferred_device, unsigned char *m8_c
           app_state = QUIT;
           screensaver_destroy();
 #ifdef USE_RTMIDI
-          show_error_message("Cannot initialize M8 remote display. Make sure you're running "
-                             "firmware 6.0.0 or newer. Please close and restart the application to try again.");
+          show_error_message(
+              "Cannot initialize M8 remote display. Make sure you're running "
+              "firmware 6.0.0 or newer. Please close and restart the application to try again.");
 #endif
         }
       }
@@ -123,7 +124,10 @@ static config_params_s initialize_config(int argc, char *argv[], char **preferre
   }
 
   config_params_s conf = config_initialize(*config_filename);
+#ifndef TARGET_OS_IOS
+  // It's not possible to edit the config on iOS so let's just go with the defaults
   config_read(&conf);
+#endif
   return conf;
 }
 

@@ -23,7 +23,8 @@ SDL_Window *win;
 SDL_Renderer *rend;
 SDL_Texture *main_texture;
 SDL_Color global_background_color = (SDL_Color){.r = 0x00, .g = 0x00, .b = 0x00, .a = 0x00};
-SDL_RendererLogicalPresentation scaling_mode = SDL_LOGICAL_PRESENTATION_INTEGER_SCALE;
+SDL_RendererLogicalPresentation window_scaling_mode = SDL_LOGICAL_PRESENTATION_INTEGER_SCALE;
+SDL_ScaleMode texture_scaling_mode = SDL_SCALEMODE_NEAREST;
 
 static uint32_t ticks_fps;
 static int fps;
@@ -45,11 +46,13 @@ static uint8_t dirty = 0;
 
 static void use_integer_scaling(const unsigned int use_integer_scaling) {
   if (use_integer_scaling) {
-    scaling_mode = SDL_LOGICAL_PRESENTATION_INTEGER_SCALE;
+    window_scaling_mode = SDL_LOGICAL_PRESENTATION_INTEGER_SCALE;
+    texture_scaling_mode = SDL_SCALEMODE_NEAREST;
   } else {
-    scaling_mode = SDL_LOGICAL_PRESENTATION_LETTERBOX;
+    window_scaling_mode = SDL_LOGICAL_PRESENTATION_LETTERBOX;
+    texture_scaling_mode = SDL_SCALEMODE_LINEAR;
   }
-  fix_texture_scaling_after_window_resize();
+  renderer_fix_texture_scaling_after_window_resize();
 }
 
 // Initializes SDL and creates a renderer and required surfaces
@@ -63,15 +66,16 @@ int renderer_initialize(config_params_s *conf) {
     return false;
   }
 
-  if (!SDL_CreateWindowAndRenderer(
-          "m8c", texture_width * 2, texture_height * 2,
-          SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | conf->init_fullscreen, &win, &rend)) {
+  if (!SDL_CreateWindowAndRenderer("m8c", texture_width * 2, texture_height * 2,
+                                   SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY |
+                                       SDL_WINDOW_OPENGL | conf->init_fullscreen,
+                                   &win, &rend)) {
     SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create window and renderer: %s",
                     SDL_GetError());
     return false;
   }
 
-  if (!SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height, scaling_mode)) {
+  if (!SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height, window_scaling_mode)) {
     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't set renderer logical presentation: %s",
                  SDL_GetError());
     return false;
@@ -86,7 +90,7 @@ int renderer_initialize(config_params_s *conf) {
     return false;
   }
 
-  SDL_SetTextureScaleMode(main_texture, SDL_SCALEMODE_NEAREST);
+  SDL_SetTextureScaleMode(main_texture, texture_scaling_mode);
   use_integer_scaling(conf->integer_scaling);
 
   SDL_SetRenderTarget(rend, main_texture);
@@ -131,10 +135,10 @@ static void check_and_adjust_window_and_texture_size(const int new_width, const 
   }
 
   SDL_DestroyTexture(main_texture);
-  SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height, scaling_mode);
+  SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height, window_scaling_mode);
   main_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
                                    texture_width, texture_height);
-  SDL_SetTextureScaleMode(main_texture, SDL_SCALEMODE_NEAREST);
+  SDL_SetTextureScaleMode(main_texture, texture_scaling_mode);
   SDL_SetRenderTarget(rend, main_texture);
 }
 
@@ -363,9 +367,10 @@ void screensaver_destroy() {
   SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Screensaver destroyed");
 }
 
-void fix_texture_scaling_after_window_resize(void) {
+void renderer_fix_texture_scaling_after_window_resize(void) {
   SDL_SetRenderTarget(rend, NULL);
-  SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height, scaling_mode);
+  SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height, window_scaling_mode);
+  SDL_SetTextureScaleMode(main_texture, texture_scaling_mode);
 }
 
 void show_error_message(const char *message) {

@@ -29,10 +29,10 @@ config_params_s config_initialize(char *filename) {
   }
 
   c.init_fullscreen = 0; // default fullscreen state at load
-  c.integer_scaling = 0; // use integer scaling for the user interface
+  c.integer_scaling = 1; // use integer scaling for the user interface
   c.idle_ms = 10;        // default to high performance
   c.wait_for_device = 1; // default to exit if device disconnected
-  c.wait_packets = 512; // amount of empty command queue reads before assuming device disconnected
+  c.wait_packets = 512;  // amount of empty command queue reads before assuming device disconnected
   c.audio_enabled = 0;        // route M8 audio to default output
   c.audio_buffer_size = 0; // requested audio buffer size in samples: 0 = let SDL decide
   c.audio_device_name = NULL; // Use this device, leave NULL to use the default output device
@@ -103,7 +103,8 @@ void write_config(const config_params_s *conf) {
   snprintf(ini_values[initPointer++], LINELEN, "wait_for_device=%s\n",
            conf->wait_for_device ? "true" : "false");
   snprintf(ini_values[initPointer++], LINELEN, "wait_packets=%d\n", conf->wait_packets);
-  snprintf(ini_values[initPointer++], LINELEN, "integer_scaling=%s\n", conf->integer_scaling ? "true" : "false");
+  snprintf(ini_values[initPointer++], LINELEN, "integer_scaling=%s\n",
+           conf->integer_scaling ? "true" : "false");
   snprintf(ini_values[initPointer++], LINELEN, "[audio]\n");
   snprintf(ini_values[initPointer++], LINELEN, "audio_enabled=%s\n",
            conf->audio_enabled ? "true" : "false");

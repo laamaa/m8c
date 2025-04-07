@@ -198,7 +198,7 @@ static void handle_sdl_events(config_params_s *conf) {
       break;
 
     case SDL_EVENT_WINDOW_RESIZED:
-      fix_texture_scaling_after_window_resize();
+      renderer_fix_texture_scaling_after_window_resize();
       break;
 
     case SDL_EVENT_KEY_DOWN:

@@ -218,6 +218,7 @@ int m8_enable_and_reset_display(void) {
       close_and_free_midi_ports();
       return 0;
     }
+    SDL_Delay(5);
   }
   result = m8_reset_display();
   return result;
