@@ -29,10 +29,10 @@ config_params_s config_initialize(char *filename) {
   }
 
   c.init_fullscreen = 0; // default fullscreen state at load
+  c.integer_scaling = 0; // use integer scaling for the user interface
   c.idle_ms = 10;        // default to high performance
   c.wait_for_device = 1; // default to exit if device disconnected
-  c.wait_packets = 1024; // default zero-byte attempts to disconnect (about 2
-  // sec for default idle_ms)
+  c.wait_packets = 512; // amount of empty command queue reads before assuming device disconnected
   c.audio_enabled = 0;        // route M8 audio to default output
   c.audio_buffer_size = 0; // requested audio buffer size in samples: 0 = let SDL decide
   c.audio_device_name = NULL; // Use this device, leave NULL to use the default output device
@@ -90,7 +90,7 @@ void write_config(const config_params_s *conf) {
 
   SDL_Log("Writing config file to %s", config_path);
 
-  const unsigned int INI_LINE_COUNT = 49;
+  const unsigned int INI_LINE_COUNT = 50;
   const unsigned int LINELEN = 50;
 
   // Entries for the config file
@@ -103,6 +103,7 @@ void write_config(const config_params_s *conf) {
   snprintf(ini_values[initPointer++], LINELEN, "wait_for_device=%s\n",
            conf->wait_for_device ? "true" : "false");
   snprintf(ini_values[initPointer++], LINELEN, "wait_packets=%d\n", conf->wait_packets);
+  snprintf(ini_values[initPointer++], LINELEN, "integer_scaling=%s\n", conf->integer_scaling ? "true" : "false");
   snprintf(ini_values[initPointer++], LINELEN, "[audio]\n");
   snprintf(ini_values[initPointer++], LINELEN, "audio_enabled=%s\n",
            conf->audio_enabled ? "true" : "false");
@@ -233,11 +234,13 @@ void read_graphics_config(const ini_t *ini, config_params_s *conf) {
   const char *idle_ms = ini_get(ini, "graphics", "idle_ms");
   const char *param_wait = ini_get(ini, "graphics", "wait_for_device");
   const char *wait_packets = ini_get(ini, "graphics", "wait_packets");
+  const char *integer_scaling = ini_get(ini, "graphics", "integer_scaling");
 
-  if (strcmpci(param_fs, "true") == 0) {
+  if (param_fs != NULL && strcmpci(param_fs, "true") == 0) {
     conf->init_fullscreen = 1;
-  } else
+  } else {
     conf->init_fullscreen = 0;
+  }
 
   if (idle_ms != NULL)
     conf->idle_ms = SDL_atoi(idle_ms);
@@ -251,6 +254,12 @@ void read_graphics_config(const ini_t *ini, config_params_s *conf) {
   }
   if (wait_packets != NULL)
     conf->wait_packets = SDL_atoi(wait_packets);
+
+  if (integer_scaling != NULL && strcmpci(integer_scaling, "true") == 0) {
+    conf->integer_scaling = 1;
+  } else {
+    conf->integer_scaling = 0;
+  }
 }
 
 void read_key_config(const ini_t *ini, config_params_s *conf) {

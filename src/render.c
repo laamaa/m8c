@@ -7,6 +7,7 @@
 
 #include "SDL2_inprint.h"
 #include "command.h"
+#include "config.h"
 #include "fx_cube.h"
 
 #include "fonts/font1.h"
@@ -42,8 +43,17 @@ uint8_t fullscreen = 0;
 
 static uint8_t dirty = 0;
 
+static void use_integer_scaling(const unsigned int use_integer_scaling) {
+  if (use_integer_scaling) {
+    scaling_mode = SDL_LOGICAL_PRESENTATION_INTEGER_SCALE;
+  } else {
+    scaling_mode = SDL_LOGICAL_PRESENTATION_LETTERBOX;
+  }
+  fix_texture_scaling_after_window_resize();
+}
+
 // Initializes SDL and creates a renderer and required surfaces
-int renderer_initialize(const unsigned int init_fullscreen) {
+int renderer_initialize(config_params_s *conf) {
 
   // SDL documentation recommends this
   atexit(SDL_Quit);
@@ -55,7 +65,7 @@ int renderer_initialize(const unsigned int init_fullscreen) {
 
   if (!SDL_CreateWindowAndRenderer(
           "m8c", texture_width * 2, texture_height * 2,
-          SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | init_fullscreen, &win, &rend)) {
+          SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | conf->init_fullscreen, &win, &rend)) {
     SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create window and renderer: %s",
                     SDL_GetError());
     return false;
@@ -77,6 +87,7 @@ int renderer_initialize(const unsigned int init_fullscreen) {
   }
 
   SDL_SetTextureScaleMode(main_texture, SDL_SCALEMODE_NEAREST);
+  use_integer_scaling(conf->integer_scaling);
 
   SDL_SetRenderTarget(rend, main_texture);
 

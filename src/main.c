@@ -96,7 +96,7 @@ static void do_wait_for_device(const char *preferred_device, unsigned char *m8_c
           screensaver_destroy();
 #ifdef USE_RTMIDI
           show_error_message("Cannot initialize M8 remote display. Make sure you're running "
-                             "firmware 6.0.0 or newer.");
+                             "firmware 6.0.0 or newer. Please close and restart the application to try again.");
 #endif
         }
       }
@@ -258,7 +258,7 @@ int main(const int argc, char *argv[]) {
   initialize_signals();
 
   device_connected = handle_device_initialization(conf.wait_for_device, preferred_device);
-  if (!renderer_initialize(conf.init_fullscreen)) {
+  if (!renderer_initialize(&conf)) {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to initialize renderer.");
     cleanup_resources(device_connected, &conf);
     return EXIT_FAILURE;
