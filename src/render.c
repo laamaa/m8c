@@ -57,7 +57,7 @@ int renderer_initialize(const unsigned int init_fullscreen) {
           "m8c", texture_width * 2, texture_height * 2,
           SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | init_fullscreen, &win, &rend)) {
     SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create window and renderer: %s",
-                 SDL_GetError());
+                    SDL_GetError());
     return false;
   }
 
@@ -355,4 +355,8 @@ void screensaver_destroy() {
 void fix_texture_scaling_after_window_resize(void) {
   SDL_SetRenderTarget(rend, NULL);
   SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height, scaling_mode);
+}
+
+void show_error_message(const char *message) {
+  SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "m8c error", message, win);
 }

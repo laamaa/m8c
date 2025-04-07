@@ -212,7 +212,9 @@ int m8_enable_and_reset_display(void) {
   const Uint64 timer_wait_for_response = SDL_GetTicks();
   while (!midi_sysex_received) {
     if (SDL_GetTicks() - timer_wait_for_response > 1000) {
-      SDL_LogCritical(SDL_LOG_CATEGORY_SYSTEM,"No response from device. Please make sure you're using M8 firmware 6.0.0 or newer.");
+      SDL_LogCritical(
+          SDL_LOG_CATEGORY_SYSTEM,
+          "No response from device. Please make sure you're using M8 firmware 6.0.0 or newer.");
       close_and_free_midi_ports();
       return 0;
     }

@@ -94,6 +94,10 @@ static void do_wait_for_device(const char *preferred_device, unsigned char *m8_c
           SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected.");
           app_state = QUIT;
           screensaver_destroy();
+#ifdef USE_RTMIDI
+          show_error_message("Cannot initialize M8 remote display. Make sure you're running "
+                             "firmware 6.0.0 or newer.");
+#endif
         }
       }
     }
