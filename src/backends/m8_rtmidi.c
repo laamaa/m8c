@@ -126,12 +126,14 @@ static void midi_callback(double delta_time, const unsigned char *message, size_
 
 void close_and_free_midi_ports(void) {
   SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Freeing MIDI ports");
+  rtmidi_in_cancel_callback(midi_in);
   rtmidi_close_port(midi_in);
   rtmidi_close_port(midi_out);
   rtmidi_in_free(midi_in);
   rtmidi_out_free(midi_out);
   midi_in = NULL;
   midi_out = NULL;
+  midi_sysex_received = false;
 }
 
 int initialize_rtmidi() {
@@ -301,6 +303,8 @@ int m8_process_data(const config_params_s *conf) {
     if (empty_cycles >= conf->wait_packets) {
       SDL_Log("No messages received for %d cycles, assuming device disconnected", empty_cycles);
       close_and_free_midi_ports();
+      destroy_queue(&queue);
+      empty_cycles = 0;
       return 0;
     }
   }
