@@ -60,7 +60,7 @@ typedef struct config_params_s {
 } config_params_s;
 
 
-config_params_s init_config();
+config_params_s init_config(char *filename);
 void read_config(config_params_s *conf);
 void read_audio_config(const ini_t *ini, config_params_s *conf);
 void read_graphics_config(const ini_t *ini, config_params_s *conf);
