@@ -24,7 +24,7 @@ enum state run = WAIT_FOR_DEVICE;
 uint8_t need_display_reset = 0;
 
 // Handles CTRL+C / SIGINT
-void intHandler() { run = QUIT; }
+void intHandler(int unused) { (void)unused; run = QUIT; }
 
 void close_serial_port() { disconnect(); }
 
