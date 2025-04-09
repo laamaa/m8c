@@ -81,6 +81,33 @@ static int detect_m8_serial_device(const struct sp_port *m8_port) {
   return 0;
 }
 
+// Checks for connected devices and whether the specified device still exists
+static int serial_port_connected() {
+
+  int device_found = 0;
+
+  struct sp_port **port_list;
+
+  const enum sp_return result = sp_list_ports(&port_list);
+
+  if (result != SP_OK) {
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "sp_list_ports() failed!\n");
+    abort();
+  }
+
+  for (int i = 0; port_list[i] != NULL; i++) {
+    const struct sp_port *port = port_list[i];
+
+    if (detect_m8_serial_device(port)) {
+      if (strcmp(sp_get_port_name(port), sp_get_port_name(m8_port)) == 0)
+        device_found = 1;
+    }
+  }
+
+  sp_free_port_list(port_list);
+  return device_found;
+}
+
 static void process_received_bytes(const uint8_t *buffer, int bytes_read, slip_handler_s *slip) {
   const uint8_t *cur = buffer;
   const uint8_t *end = buffer + bytes_read;
@@ -350,6 +377,11 @@ int m8_process_data(const config_params_s *conf) {
   } else {
     empty_cycles++;
     if (empty_cycles >= conf->wait_packets) {
+      // try opening the serial port to check if it's alive
+      if (serial_port_connected()) {
+        // the device is still there, carry on
+        return DEVICE_PROCESSING;
+      }
       SDL_LogError(SDL_LOG_CATEGORY_SYSTEM,
                    "No messages received for %d cycles, assuming device disconnected",
                    empty_cycles);
