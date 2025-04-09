@@ -380,6 +380,7 @@ int m8_process_data(const config_params_s *conf) {
       // try opening the serial port to check if it's alive
       if (serial_port_connected()) {
         // the device is still there, carry on
+        empty_cycles = 0;
         return DEVICE_PROCESSING;
       }
       SDL_LogError(SDL_LOG_CATEGORY_SYSTEM,

@@ -26,14 +26,14 @@ const unsigned char sysex_message_end = 0xF7;
 bool midi_processing_suspended = false;
 bool midi_sysex_received = false;
 
-bool message_is_m8_sysex(const unsigned char *message) {
+static bool message_is_m8_sysex(const unsigned char *message) {
   if (memcmp(m8_sysex_header, message, m8_sysex_header_size) == 0) {
     return true;
   }
   return false;
 }
 
-void midi_decode(const uint8_t *encoded_data, size_t length, uint8_t **decoded_data,
+static void midi_decode(const uint8_t *encoded_data, size_t length, uint8_t **decoded_data,
                  size_t *decoded_length) {
   if (length < m8_sysex_header_size) {
     // Invalid data
@@ -124,7 +124,7 @@ static void midi_callback(double delta_time, const unsigned char *message, size_
   }
 }
 
-void close_and_free_midi_ports(void) {
+static void close_and_free_midi_ports(void) {
   SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Freeing MIDI ports");
   rtmidi_in_cancel_callback(midi_in);
   rtmidi_close_port(midi_in);
@@ -136,9 +136,9 @@ void close_and_free_midi_ports(void) {
   midi_sysex_received = false;
 }
 
-int initialize_rtmidi() {
+static int initialize_rtmidi() {
   SDL_Log("Initializing rtmidi");
-  midi_in = rtmidi_in_create(RTMIDI_API_UNSPECIFIED, "m8c_in", 1024);
+  midi_in = rtmidi_in_create(RTMIDI_API_UNSPECIFIED, "m8c_in", 2048);
   midi_out = rtmidi_out_create(RTMIDI_API_UNSPECIFIED, "m8c_out");
   if (midi_in == NULL || midi_out == NULL) {
     return 0;
@@ -146,11 +146,11 @@ int initialize_rtmidi() {
   return 1;
 }
 
-int detect_m8_midi_device(const int verbose, const char *preferred_device) {
+static int detect_m8_midi_device(const int verbose, const char *preferred_device) {
   int m8_midi_port_number = -1;
   const unsigned int ports_total_in = rtmidi_get_port_count(midi_in);
   if (verbose)
-    SDL_Log("Number of MIDI in ports: %d", ports_total_in);
+    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Number of MIDI in ports: %d", ports_total_in);
   for (unsigned int port_number = 0; port_number < ports_total_in; port_number++) {
     int port_name_length_in;
     rtmidi_get_port_name(midi_in, port_number, NULL, &port_name_length_in);
@@ -170,6 +170,35 @@ int detect_m8_midi_device(const int verbose, const char *preferred_device) {
   }
   return m8_midi_port_number;
 }
+
+static int device_still_exists() {
+  if (midi_in == NULL || midi_out == NULL) {
+    return 0;
+  };
+
+  int m8_midi_port_number = 0;
+
+  SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Checking if opened MIDI port still exists");
+
+  m8_midi_port_number = detect_m8_midi_device(0, NULL);
+  if (m8_midi_port_number >= 0) {
+    return 1;
+  }
+  return 0;
+}
+
+static int disconnect(void) {
+  SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Sending disconnect message to M8");
+  const unsigned char disconnect_sysex[8] = {0xF0, 0x00, 0x02, 0x61, 0x00, 0x00, 'D', 0xF7};
+  const int result =
+      rtmidi_out_send_message(midi_out, &disconnect_sysex[0], sizeof(disconnect_sysex));
+  if (result != 0) {
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to send disconnect");
+  }
+  close_and_free_midi_ports();
+  return !result;
+}
+
 
 int m8_initialize(const int verbose, const char *preferred_device) {
 
@@ -224,18 +253,6 @@ int m8_enable_and_reset_display(void) {
   }
   result = m8_reset_display();
   return result;
-}
-
-int disconnect(void) {
-  SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Sending disconnect message to M8");
-  const unsigned char disconnect_sysex[8] = {0xF0, 0x00, 0x02, 0x61, 0x00, 0x00, 'D', 0xF7};
-  const int result =
-      rtmidi_out_send_message(midi_out, &disconnect_sysex[0], sizeof(disconnect_sysex));
-  if (result != 0) {
-    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to send disconnect");
-  }
-  close_and_free_midi_ports();
-  return !result;
 }
 
 int m8_send_msg_controller(const unsigned char input) {
@@ -301,14 +318,18 @@ int m8_process_data(const config_params_s *conf) {
   } else {
     empty_cycles++;
     if (empty_cycles >= conf->wait_packets) {
+      if (device_still_exists()) {
+        empty_cycles = 0;
+        return DEVICE_PROCESSING;
+      }
       SDL_Log("No messages received for %d cycles, assuming device disconnected", empty_cycles);
       close_and_free_midi_ports();
       destroy_queue(&queue);
       empty_cycles = 0;
-      return 0;
+      return DEVICE_DISCONNECTED;
     }
   }
-  return 1;
+  return DEVICE_PROCESSING;
 }
 
 int m8_close() {
