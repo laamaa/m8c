@@ -166,7 +166,6 @@ static input_msg_s handle_normal_keys(const SDL_Event *event, const config_param
 static void handle_sdl_events(config_params_s *conf) {
 
   static int prev_key_analog = 0;
-  static unsigned int ticks_window_resized = 0;
 
   SDL_Event event;
 
