@@ -6,6 +6,7 @@
 // #define DEBUG_MSG
 
 #include <SDL3/SDL.h>
+#define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL_main.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -19,87 +20,62 @@
 #include "input.h"
 #include "render.h"
 
-enum app_state app_state = WAIT_FOR_DEVICE;
-unsigned char device_connected = 0;
-unsigned char app_suspended = 0;
-
-// Handle CTRL+C / SIGINT, SIGKILL etc.
-static void signal_handler(int unused) {
-  (void)unused;
-  app_state = QUIT;
-}
-
-static void initialize_signals(void) {
-  signal(SIGINT, signal_handler);
-  signal(SIGTERM, signal_handler);
-#ifdef SIGQUIT // Not available on Windows.
-  signal(SIGQUIT, signal_handler);
-#endif
-}
+struct app_context {
+  config_params_s conf;
+  enum app_state app_state;
+  char *preferred_device;
+  unsigned char device_connected;
+  unsigned char app_suspended;
+};
 
 static void do_wait_for_device(const char *preferred_device, unsigned char *m8_connected,
-                               config_params_s *conf) {
+                               config_params_s *conf, enum app_state *app_state) {
   static Uint64 ticks_poll_device = 0;
-  static Uint64 ticks_update_screen = 0;
 
   if (*m8_connected == 0) {
     screensaver_init();
   }
 
-  while (app_state == WAIT_FOR_DEVICE) {
-
-    // get current input
-    const input_msg_s input = input_get_msg(&*conf);
-    if (input.type == special && input.value == msg_quit) {
-      SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Input message QUIT.");
-      app_state = QUIT;
-    }
-
 #if TARGET_OS_IOS
-    // Handle app suspension
-    if (app_suspended) {
-      SDL_Delay(conf->idle_ms);
-      continue;
-    }
+  // Handle app suspension
+  if (app_suspended) {
+    SDL_Delay(conf->idle_ms);
+    continue;
+  }
 #endif // TARGET_OS_IOS
 
-    if (SDL_GetTicks() - ticks_update_screen > 16) {
-      ticks_update_screen = SDL_GetTicks();
-      screensaver_draw();
-      render_screen();
-    }
+  screensaver_draw();
+  render_screen();
 
-    // Poll for M8 device every second
-    if (*m8_connected == 0 && SDL_GetTicks() - ticks_poll_device > 1000) {
-      ticks_poll_device = SDL_GetTicks();
-      if (app_state == WAIT_FOR_DEVICE && m8_initialize(0, preferred_device) == 1) {
+  // Poll for M8 device every second
+  if (*m8_connected == 0 && SDL_GetTicks() - ticks_poll_device > 1000) {
+    ticks_poll_device = SDL_GetTicks();
+    if (m8_initialize(0, preferred_device) == 1) {
 
-        if (conf->audio_enabled == 1) {
-          if (audio_initialize(conf->audio_device_name, conf->audio_buffer_size) == 0) {
-            SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Cannot initialize audio");
-            conf->audio_enabled = 0;
-          }
-        }
-
-        const int m8_enabled = m8_enable_and_reset_display();
-        // Device was found; enable display and proceed to the main loop
-        if (m8_enabled == 1) {
-          app_state = RUN;
-          *m8_connected = 1;
-          screensaver_destroy();
-        } else {
-          SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected.");
-          app_state = QUIT;
-          screensaver_destroy();
-#ifdef USE_RTMIDI
-          show_error_message(
-              "Cannot initialize M8 remote display. Make sure you're running "
-              "firmware 6.0.0 or newer. Please close and restart the application to try again.");
-#endif
+      if (conf->audio_enabled == 1) {
+        if (audio_initialize(conf->audio_device_name, conf->audio_buffer_size) == 0) {
+          SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Cannot initialize audio");
+          conf->audio_enabled = 0;
         }
       }
+
+      const int m8_enabled = m8_enable_and_reset_display();
+      // Device was found; enable display and proceed to the main loop
+      if (m8_enabled == 1) {
+        *app_state = RUN;
+        *m8_connected = 1;
+        screensaver_destroy();
+      } else {
+        SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected.");
+        *app_state = QUIT;
+        screensaver_destroy();
+#ifdef USE_RTMIDI
+        show_error_message(
+            "Cannot initialize M8 remote display. Make sure you're running "
+            "firmware 6.0.0 or newer. Please close and restart the application to try again.");
+#endif
+      }
     }
-    SDL_Delay(conf->idle_ms);
   }
 }
 
@@ -111,11 +87,11 @@ static config_params_s initialize_config(int argc, char *argv[], char **preferre
     }
     if (SDL_strcmp(argv[i], "--dev") == 0 && i + 1 < argc) {
       *preferred_device = argv[i + 1];
-      SDL_Log("Using preferred device: %s.\n", *preferred_device);
+      SDL_Log("Using preferred device: %s", *preferred_device);
       i++;
     } else if (SDL_strcmp(argv[i], "--config") == 0 && i + 1 < argc) {
       *config_filename = argv[i + 1];
-      SDL_Log("Using config file: %s.\n", *config_filename);
+      SDL_Log("Using config file: %s", *config_filename);
       i++;
     }
   }
@@ -126,20 +102,6 @@ static config_params_s initialize_config(int argc, char *argv[], char **preferre
   config_read(&conf);
 #endif
   return conf;
-}
-
-static void cleanup_resources(const unsigned char device_connected, const config_params_s *conf) {
-  if (conf->audio_enabled) {
-    audio_close();
-  }
-  gamecontrollers_close();
-  renderer_close();
-  inline_font_close();
-  if (device_connected) {
-    m8_close();
-  }
-  SDL_Quit();
-  SDL_Log("Shutting down.");
 }
 
 static unsigned char handle_device_initialization(const unsigned char wait_for_device,
@@ -207,62 +169,23 @@ static bool SDLCALL handle_app_events(void *userdata, SDL_Event *event) {
 }
 #endif // TARGET_OS_IOS
 
-static void main_loop(config_params_s *conf, const char *preferred_device) {
-
-  do {
-    if (!device_connected) {
-      device_connected = handle_device_initialization(conf->wait_for_device, preferred_device);
-    }
-    if (device_connected && m8_enable_and_reset_display()) {
-      if (conf->audio_enabled) {
-        audio_initialize(conf->audio_device_name, conf->audio_buffer_size);
-        m8_reset_display(); // Avoid display glitches.
-      }
-      app_state = RUN;
-    } else {
-      SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected.");
-      device_connected = 0;
-      app_state = conf->wait_for_device ? WAIT_FOR_DEVICE : QUIT;
-    }
-
-    if (conf->wait_for_device && app_state == WAIT_FOR_DEVICE) {
-      do_wait_for_device(preferred_device, &device_connected, conf);
-    } else if (!device_connected && app_state != WAIT_FOR_DEVICE) {
-      cleanup_resources(0, conf);
-      exit(EXIT_FAILURE);
-    }
-
-    // Handle input, process data, and render screen while running.
-    while (app_state == RUN) {
-      input_process(conf, &app_state);
-      const int result = m8_process_data(conf);
-      if (result == DEVICE_DISCONNECTED) {
-        device_connected = 0;
-        app_state = WAIT_FOR_DEVICE;
-        audio_close();
-      } else if (result == DEVICE_FATAL_ERROR) {
-        app_state = QUIT;
-      }
-      render_screen();
-      SDL_Delay(conf->idle_ms);
-    }
-  } while (app_state > QUIT);
-
-  cleanup_resources(device_connected, conf);
-}
-
-int main(const int argc, char *argv[]) {
-  char *preferred_device = NULL;
+SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
   char *config_filename = NULL;
 
-  config_params_s conf = initialize_config(argc, argv, &preferred_device, &config_filename);
-  initialize_signals();
+  struct app_context *ctx = SDL_calloc(1, sizeof(struct app_context));
+  if (ctx == NULL) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_SYSTEM, "SDL_calloc failed: %s", SDL_GetError());
+    return SDL_APP_FAILURE;
+  }
 
-  device_connected = handle_device_initialization(conf.wait_for_device, preferred_device);
-  if (!renderer_initialize(&conf)) {
+  ctx->app_state = WAIT_FOR_DEVICE;
+
+  ctx->conf = initialize_config(argc, argv, &ctx->preferred_device, &config_filename);
+  ctx->device_connected =
+      handle_device_initialization(ctx->conf.wait_for_device, ctx->preferred_device);
+  if (!renderer_initialize(&ctx->conf)) {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to initialize renderer.");
-    cleanup_resources(device_connected, &conf);
-    return EXIT_FAILURE;
+    return SDL_APP_FAILURE;
   }
 
 #if TARGET_OS_IOS
@@ -270,13 +193,82 @@ int main(const int argc, char *argv[]) {
   SDL_SetEventFilter(handle_app_events, &conf);
 #endif
 
-  gamecontrollers_initialize();
-
 #ifndef NDEBUG
   SDL_SetLogPriorities(SDL_LOG_PRIORITY_DEBUG);
   SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "Running a Debug build");
 #endif
 
-  main_loop(&conf, preferred_device);
-  return EXIT_SUCCESS;
+  gamecontrollers_initialize();
+  *appstate = ctx;
+
+  return SDL_APP_CONTINUE;
+}
+
+SDL_AppResult SDL_AppIterate(void *appstate) {
+  struct app_context *ctx = appstate;
+  if (ctx->app_state == WAIT_FOR_DEVICE) {
+    if (!ctx->device_connected) {
+      ctx->device_connected =
+          handle_device_initialization(ctx->conf.wait_for_device, ctx->preferred_device);
+    }
+    if (ctx->device_connected && m8_enable_and_reset_display()) {
+      if (ctx->conf.audio_enabled) {
+        audio_initialize(ctx->conf.audio_device_name, ctx->conf.audio_buffer_size);
+        m8_reset_display(); // Avoid display glitches.
+      }
+      ctx->app_state = RUN;
+    } else {
+      SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected.");
+      ctx->device_connected = 0;
+      ctx->app_state = ctx->conf.wait_for_device ? WAIT_FOR_DEVICE : QUIT;
+    }
+  }
+
+  if (ctx->conf.wait_for_device && ctx->app_state == WAIT_FOR_DEVICE) {
+    do_wait_for_device(ctx->preferred_device, &ctx->device_connected, &ctx->conf, &ctx->app_state);
+  } else if (!ctx->device_connected && ctx->app_state != WAIT_FOR_DEVICE) {
+    return SDL_APP_FAILURE;
+  }
+
+  // Handle input, process data, and render screen while running.
+  if (ctx->app_state == RUN) {
+    const int result = m8_process_data(&ctx->conf);
+    if (result == DEVICE_DISCONNECTED) {
+      ctx->device_connected = 0;
+      ctx->app_state = WAIT_FOR_DEVICE;
+      audio_close();
+    } else if (result == DEVICE_FATAL_ERROR) {
+      return SDL_APP_FAILURE;
+    }
+    render_screen();
+  }
+  return SDL_APP_CONTINUE;
+}
+
+void SDL_AppQuit(void *appstate, SDL_AppResult result) {
+  struct app_context *app = appstate;
+  if (appstate) {
+    if (app->conf.audio_enabled) {
+      audio_close();
+    }
+    gamecontrollers_close();
+    renderer_close();
+    inline_font_close();
+    if (app->device_connected) {
+      m8_close();
+    }
+    SDL_Quit();
+    SDL_Log("Shutting down.");
+
+    SDL_free(app);
+  }
+}
+
+SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
+  struct app_context *app = appstate;
+  SDL_AppResult ret_val = SDL_APP_CONTINUE;
+  if (event->type == SDL_EVENT_QUIT) {
+    ret_val = SDL_APP_SUCCESS;
+  }
+  return ret_val;
 }
