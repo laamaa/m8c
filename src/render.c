@@ -98,7 +98,10 @@ int renderer_initialize(config_params_s *conf) {
   SDL_SetRenderDrawColor(rend, global_background_color.r, global_background_color.g,
                          global_background_color.b, global_background_color.a);
 
-  SDL_RenderClear(rend);
+  if (!SDL_RenderClear(rend)) {
+    SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Couldn't clear renderer: %s", SDL_GetError());
+    return 0;
+  }
 
   renderer_set_font_mode(0);
 
@@ -107,6 +110,9 @@ int renderer_initialize(config_params_s *conf) {
 #endif
 
   dirty = 1;
+
+  SDL_PumpEvents();
+  render_screen();
 
   return 1;
 }

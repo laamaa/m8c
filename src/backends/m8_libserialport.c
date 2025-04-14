@@ -114,7 +114,7 @@ static void process_received_bytes(const uint8_t *buffer, int bytes_read, slip_h
   while (cur < end) {
     const int slip_result = slip_read_byte(slip, *cur++);
     if (slip_result != SLIP_NO_ERROR) {
-      SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SLIP error %d\n", slip_result);
+      SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SLIP error %d", slip_result);
     }
   }
 }
@@ -187,7 +187,6 @@ static int check(const enum sp_return result) {
 static int initialize_serial_thread() {
 
   init_queue(&queue);
-  thread_params.should_stop = 0;
   serial_thread = SDL_CreateThread(thread_process_serial_data, "SerialThread", &thread_params);
 
   if (!serial_thread) {
@@ -195,6 +194,8 @@ static int initialize_serial_thread() {
     SDL_Quit();
     return 0;
   }
+
+  thread_params.should_stop = 0;
 
   return 1;
 }
@@ -244,7 +245,7 @@ int m8_initialize(const int verbose, const char *preferred_device) {
   slip_init(&slip, &slip_descriptor);
 
   if (verbose) {
-    SDL_Log("Looking for USB serial devices.\n");
+    SDL_Log("Looking for USB serial devices");
   }
 
   // Detect and select M8 device
@@ -330,7 +331,7 @@ int m8_list_devices() {
 }
 
 int m8_reset_display() {
-  SDL_Log("Reset display\n");
+  SDL_Log("Reset display");
 
   const unsigned char buf[1] = {'R'};
   const int result = sp_blocking_write(m8_port, buf, 1, 5);
@@ -342,7 +343,7 @@ int m8_reset_display() {
 }
 
 int m8_enable_and_reset_display() {
-  SDL_Log("Enabling and resetting M8 display\n");
+  SDL_Log("Enabling and resetting M8 display");
 
   const char buf[1] = {'E'};
   int result = sp_blocking_write(m8_port, buf, 1, 5);

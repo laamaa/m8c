@@ -6,6 +6,7 @@
 // #define DEBUG_MSG
 
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
 #include <signal.h>
 #include <stdlib.h>
 
@@ -18,13 +19,9 @@
 #include "input.h"
 #include "render.h"
 
-#if TARGET_OS_IOS
-#include <SDL3/SDL_main.h>
-unsigned char app_suspended = 0;
-#endif // TARGET_OS_IOS
-
 enum app_state app_state = WAIT_FOR_DEVICE;
 unsigned char device_connected = 0;
+unsigned char app_suspended = 0;
 
 // Handle CTRL+C / SIGINT, SIGKILL etc.
 static void signal_handler(int unused) {
@@ -214,7 +211,7 @@ static void main_loop(config_params_s *conf, const char *preferred_device) {
 
   do {
     if (!device_connected) {
-      device_connected = m8_initialize(1, preferred_device);
+      device_connected = handle_device_initialization(conf->wait_for_device, preferred_device);
     }
     if (device_connected && m8_enable_and_reset_display()) {
       if (conf->audio_enabled) {
