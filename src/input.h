@@ -4,6 +4,8 @@
 
 #ifndef INPUT_H
 #define INPUT_H
+#include "config.h"
+
 #include <SDL3/SDL_events.h>
 
 typedef enum input_buttons_t {
@@ -49,5 +51,4 @@ int input_process_and_send(struct app_context *ctx);
 void input_handle_key_down_event(struct app_context *ctx, SDL_Event *event);
 void input_handle_key_up_event(struct app_context *ctx, SDL_Event *event);
 
-
-#endif //INPUT_H
+#endif // INPUT_H

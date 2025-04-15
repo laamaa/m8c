@@ -1,13 +1,12 @@
 //
 // Created by Jonne Kokkonen on 15.4.2025.
 //
-#include <SDL3/SDL.h>
-#include "common.h"
 #include "input.h"
-#include "render.h"
 #include "backends/audio.h"
 #include "backends/m8.h"
-
+#include "common.h"
+#include "render.h"
+#include <SDL3/SDL.h>
 
 static unsigned char keyjazz_enabled = 0;
 static unsigned char keyjazz_base_octave = 2;
@@ -97,7 +96,7 @@ static input_msg_s handle_keyjazz(const SDL_Event *event, unsigned char keyvalue
   // Check if this is a note key
   const int note_value = get_note_for_scancode(event->key.scancode);
   if (note_value >= 0) {
-    SDL_Log("vel %d",keyjazz_velocity);
+    SDL_Log("vel %d", keyjazz_velocity);
     key.value = note_value;
     return key;
   }
