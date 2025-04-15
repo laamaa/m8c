@@ -31,6 +31,4 @@ int screensaver_init(void);
 void screensaver_draw(void);
 void screensaver_destroy(void);
 
-
-
 #endif

@@ -342,7 +342,7 @@ int m8_reset_display() {
   return 1;
 }
 
-int m8_enable_and_reset_display() {
+int m8_enable_display(const unsigned char reset_display) {
   SDL_Log("Enabling and resetting M8 display");
 
   const char buf[1] = {'E'};
@@ -352,7 +352,9 @@ int m8_enable_and_reset_display() {
     return 0;
   }
 
-  result = m8_reset_display();
+  if (reset_display) {
+    result = m8_reset_display();
+  }
 
   return result;
 }

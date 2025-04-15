@@ -34,7 +34,7 @@ static bool message_is_m8_sysex(const unsigned char *message) {
 }
 
 static void midi_decode(const uint8_t *encoded_data, size_t length, uint8_t **decoded_data,
-                 size_t *decoded_length) {
+                        size_t *decoded_length) {
   if (length < m8_sysex_header_size) {
     // Invalid data
     *decoded_data = NULL;
@@ -199,7 +199,6 @@ static int disconnect(void) {
   return !result;
 }
 
-
 int m8_initialize(const int verbose, const char *preferred_device) {
 
   int m8_midi_port_number = 0;
@@ -230,11 +229,11 @@ int m8_reset_display(void) {
   return 1;
 }
 
-int m8_enable_and_reset_display(void) {
+int m8_enable_display(const unsigned char reset_display) {
   SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Sending enable command sysex");
   rtmidi_in_set_callback(midi_in, midi_callback, NULL);
   const unsigned char enable_sysex[8] = {0xF0, 0x00, 0x02, 0x61, 0x00, 0x00, 'E', 0xF7};
-  int result = rtmidi_out_send_message(midi_out, &enable_sysex[0], sizeof(enable_sysex));
+  const int result = rtmidi_out_send_message(midi_out, &enable_sysex[0], sizeof(enable_sysex));
   if (result != 0) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to send remote display enable command");
     return 0;
@@ -251,8 +250,10 @@ int m8_enable_and_reset_display(void) {
     }
     SDL_Delay(5);
   }
-  result = m8_reset_display();
-  return result;
+  if (reset_display) {
+    return m8_reset_display();
+  }
+  return 1;
 }
 
 int m8_send_msg_controller(const unsigned char input) {
