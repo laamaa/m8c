@@ -1,5 +1,6 @@
 #include "SDL2_inprint.h"
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_timer.h>
 #include <time.h>
 
 #include <math.h>
@@ -60,8 +61,10 @@ void fx_cube_init(SDL_Renderer *target_renderer, const SDL_Color foreground_colo
 
   SDL_Texture *og_target = SDL_GetRenderTarget(fx_renderer);
 
-  texture_size.x = (int)SDL_GetNumberProperty(SDL_GetTextureProperties(og_target),SDL_PROP_TEXTURE_WIDTH_NUMBER, 0);
-  texture_size.y = (int)SDL_GetNumberProperty(SDL_GetTextureProperties(og_target),SDL_PROP_TEXTURE_HEIGHT_NUMBER, 0);
+  texture_size.x = (int)SDL_GetNumberProperty(SDL_GetTextureProperties(og_target),
+                                              SDL_PROP_TEXTURE_WIDTH_NUMBER, 0);
+  texture_size.y = (int)SDL_GetNumberProperty(SDL_GetTextureProperties(og_target),
+                                              SDL_PROP_TEXTURE_HEIGHT_NUMBER, 0);
 
   texture_cube = SDL_CreateTexture(fx_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
                                    texture_size.x, texture_size.y);
@@ -92,36 +95,50 @@ void fx_cube_init(SDL_Renderer *target_renderer, const SDL_Color foreground_colo
 }
 
 void fx_cube_destroy() {
+  // Free resources
   SDL_DestroyTexture(texture_cube);
   SDL_DestroyTexture(texture_text);
-}
 
-void fx_cube_update() {
-  SDL_FPoint points[24];
-  int points_counter = 0;
-  SDL_Texture *og_texture = SDL_GetRenderTarget(fx_renderer);
-
-  SDL_SetRenderTarget(fx_renderer, texture_cube);
+  // Force clear renderer
+  SDL_SetRenderTarget(fx_renderer, NULL);
   SDL_SetRenderDrawColor(fx_renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
   SDL_RenderClear(fx_renderer);
+}
 
-  const unsigned int seconds = SDL_GetTicks() / 1000;
-  const float scale_factor = 1 + SDL_sinf((float)seconds) * (float)0.005;
+// Update the cube texture every 16ms>. Returns 1 if cube was updated, 0 if no changes were made.
+int fx_cube_update() {
+  static Uint64 ticks_last_update = 0;
 
-  scale(scale_factor, scale_factor, scale_factor);
-  rotate_cube(M_PI / 180, M_PI / 270);
+  if (SDL_GetTicks() - ticks_last_update >= 16) {
+    ticks_last_update = SDL_GetTicks();
+    SDL_FPoint points[24];
+    int points_counter = 0;
+    SDL_Texture *og_texture = SDL_GetRenderTarget(fx_renderer);
 
-  for (int i = 0; i < 12; i++) {
-    const float *p1 = nodes[edges[i][0]];
-    const float *p2 = nodes[edges[i][1]];
-    points[points_counter++] = (SDL_FPoint){p1[0] + center_x, nodes[edges[i][0]][1] + center_y};
-    points[points_counter++] = (SDL_FPoint){p2[0] + center_x, p2[1] + center_y};
+    SDL_SetRenderTarget(fx_renderer, texture_cube);
+    SDL_SetRenderDrawColor(fx_renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+    SDL_RenderClear(fx_renderer);
+
+    const unsigned int seconds = SDL_GetTicks() / 1000;
+    const float scale_factor = 1 + SDL_sinf((float)seconds) * (float)0.005;
+
+    scale(scale_factor, scale_factor, scale_factor);
+    rotate_cube(M_PI / 180, M_PI / 270);
+
+    for (int i = 0; i < 12; i++) {
+      const float *p1 = nodes[edges[i][0]];
+      const float *p2 = nodes[edges[i][1]];
+      points[points_counter++] = (SDL_FPoint){p1[0] + center_x, nodes[edges[i][0]][1] + center_y};
+      points[points_counter++] = (SDL_FPoint){p2[0] + center_x, p2[1] + center_y};
+    }
+
+    SDL_RenderTexture(fx_renderer, texture_text, NULL, NULL);
+    SDL_SetRenderDrawColor(fx_renderer, line_color.r, line_color.g, line_color.b, line_color.a);
+    SDL_RenderLines(fx_renderer, points, 24);
+
+    SDL_SetRenderTarget(fx_renderer, og_texture);
+    SDL_RenderTexture(fx_renderer, texture_cube, NULL, NULL);
+    return 1;
   }
-
-  SDL_RenderTexture(fx_renderer, texture_text, NULL, NULL);
-  SDL_SetRenderDrawColor(fx_renderer, line_color.r, line_color.g, line_color.b, line_color.a);
-  SDL_RenderLines(fx_renderer, points, 24);
-
-  SDL_SetRenderTarget(fx_renderer, og_texture);
-  SDL_RenderTexture(fx_renderer, texture_cube, NULL, NULL);
+  return 0;
 }
