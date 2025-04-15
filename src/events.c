@@ -1,10 +1,12 @@
-#include "input.h"
+#include "events.h"
 #include "backends/audio.h"
 #include "backends/m8.h"
+#include "common.h"
 #include "config.h"
 #include "gamecontrollers.h"
 #include "render.h"
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_events.h>
 
 uint8_t keyjazz_enabled = 0;
 uint8_t keyjazz_base_octave = 2;
@@ -105,7 +107,7 @@ static input_msg_s handle_keyjazz(SDL_Event *event, uint8_t keyvalue, config_par
   return key;
 }
 
-static input_msg_s handle_normal_keys(const SDL_Event *event, const config_params_s *conf) {
+static input_msg_s handle_m8_buttons(const SDL_Event *event, const config_params_s *conf) {
   // Default message with normal type and no value
   input_msg_s key = {normal, 0, 0, 0};
 
@@ -162,6 +164,107 @@ static input_msg_s handle_normal_keys(const SDL_Event *event, const config_param
   return key;
 }
 
+SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
+  struct app_context *ctx = appstate;
+  SDL_AppResult ret_val = SDL_APP_CONTINUE;
+  static int prev_key_analog = 0;
+
+  switch (event->type) {
+
+  // --- System events ---
+  case SDL_EVENT_QUIT:
+  case SDL_EVENT_TERMINATING:
+    ret_val = SDL_APP_SUCCESS;
+    break;
+  case SDL_EVENT_DID_ENTER_BACKGROUND:
+    // iOS: Application entered into background on iOS. About 5 seconds to stop things.
+    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Received SDL_EVENT_DID_ENTER_BACKGROUND");
+    ctx->app_suspended = 1;
+    if (ctx->device_connected)
+      m8_pause_processing();
+    break;
+  case SDL_EVENT_WILL_ENTER_BACKGROUND:
+    // iOS: App about to enter into background
+    break;
+  case SDL_EVENT_WILL_ENTER_FOREGROUND:
+    // iOS: App returning to foreground
+    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Received SDL_EVENT_WILL_ENTER_FOREGROUND");
+    break;
+  case SDL_EVENT_DID_ENTER_FOREGROUND:
+    // iOS: App becomes interactive again
+    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Received SDL_EVENT_DID_ENTER_FOREGROUND");
+    ctx->app_suspended = 0;
+    if (ctx->device_connected) {
+      m8_resume_processing();
+    }
+  case SDL_EVENT_WINDOW_RESIZED:
+  case SDL_EVENT_WINDOW_MOVED:
+    // If window size is changed, some operating systems might need a little nudge to fix scaling
+    renderer_fix_texture_scaling_after_window_resize();
+    break;
+
+  // --- Input events ---
+  case SDL_EVENT_GAMEPAD_ADDED:
+  case SDL_EVENT_GAMEPAD_REMOVED:
+    // Reinitialize game controllers on controller add/remove/remap
+    gamecontrollers_initialize();
+    break;
+
+  case SDL_EVENT_KEY_DOWN:
+    if (event->key.repeat > 0) {
+      break;
+    }
+
+    // ALT+ENTER toggles fullscreen
+    if (event->key.key == SDLK_RETURN && (event->key.mod & SDL_KMOD_ALT) > 0) {
+      toggle_fullscreen();
+      break;
+    }
+
+    // ALT+F4 quits program
+    if (event->key.key == SDLK_F4 && (event->key.mod & SDL_KMOD_ALT) > 0) {
+      key = (input_msg_s){special, msg_quit, 0, 0};
+      break;
+    }
+
+    // ESC = toggle keyjazz
+    if (event->key.key == SDLK_ESCAPE) {
+      display_keyjazz_overlay(toggle_input_keyjazz(), keyjazz_base_octave, keyjazz_velocity);
+      break;
+    }
+
+    key = handle_m8_buttons(event, &ctx->conf);
+    SDL_Log("key %d",key.value);
+    if (keyjazz_enabled) {
+      key = handle_keyjazz(event, key.value, &ctx->conf);
+    }
+    if (key.type == normal) {
+      keycode |= key.value;
+    } else {
+      keycode = key.value;
+    }
+    break;
+
+  case SDL_EVENT_KEY_UP:
+
+    key = handle_m8_buttons(event, &ctx->conf);
+    if (keyjazz_enabled) {
+      key = handle_keyjazz(event, key.value, &ctx->conf);
+    }
+
+    if (key.type == normal)
+      keycode &= ~key.value;
+    else
+      keycode = 0;
+
+    break;
+
+  default:
+    break;
+  }
+  return ret_val;
+}
+
 // Handles SDL input events
 static void handle_sdl_events(config_params_s *conf) {
 
@@ -179,87 +282,6 @@ static void handle_sdl_events(config_params_s *conf) {
   const input_msg_s gamepad_msg = gamecontrollers_handle_special_messages(conf);
   if (gamepad_msg.type == special) {
     key = gamepad_msg;
-  }
-
-  while (SDL_PollEvent(&event)) {
-
-    switch (event.type) {
-
-    // Reinitialize game controllers on controller add/remove/remap
-    case SDL_EVENT_GAMEPAD_ADDED:
-    case SDL_EVENT_GAMEPAD_REMOVED:
-      gamecontrollers_initialize();
-      break;
-
-    // Handle SDL quit events (for example, window close)
-    case SDL_EVENT_QUIT:
-      key = (input_msg_s){special, msg_quit, 0, 0};
-      break;
-
-    case SDL_EVENT_WINDOW_RESIZED:
-    case SDL_EVENT_WINDOW_MOVED:
-      renderer_fix_texture_scaling_after_window_resize();
-      break;
-
-    case SDL_EVENT_KEY_DOWN:
-
-      if (event.key.repeat > 0) {
-        break;
-      }
-
-      // ALT+ENTER toggles fullscreen
-      if (event.key.key == SDLK_RETURN && (event.key.mod & SDL_KMOD_ALT) > 0) {
-        toggle_fullscreen();
-        break;
-      }
-
-      // ALT+F4 quits program
-      if (event.key.key == SDLK_F4 && (event.key.mod & SDL_KMOD_ALT) > 0) {
-        key = (input_msg_s){special, msg_quit, 0, 0};
-        break;
-      }
-
-      // ESC = toggle keyjazz
-      if (event.key.key == SDLK_ESCAPE) {
-        display_keyjazz_overlay(toggle_input_keyjazz(), keyjazz_base_octave, keyjazz_velocity);
-        break;
-      }
-
-    // Intentional fallthrough
-    case SDL_EVENT_KEY_UP:
-
-      // Normal keyboard inputs
-      key = handle_normal_keys(&event, conf);
-
-      if (keyjazz_enabled) {
-        key = handle_keyjazz(&event, key.value, conf);
-      }
-      break;
-
-    default:
-      break;
-    }
-
-    switch (key.type) {
-    case normal:
-      if (event.type == SDL_EVENT_KEY_DOWN) {
-        keycode |= key.value;
-      } else if (event.type == SDL_EVENT_KEY_UP) {
-        keycode &= ~key.value;
-      }
-      break;
-    case keyjazz:
-      // Do not allow pressing multiple keys with keyjazz
-    case special:
-      if (event.type == SDL_EVENT_KEY_DOWN) {
-        keycode = key.value;
-      } else if (event.type == SDL_EVENT_KEY_UP) {
-        keycode = 0;
-      }
-      break;
-    default:
-      break;
-    }
   }
 }
 

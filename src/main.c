@@ -14,18 +14,11 @@
 #include "SDL2_inprint.h"
 #include "backends/audio.h"
 #include "backends/m8.h"
+#include "common.h"
 #include "config.h"
 #include "gamecontrollers.h"
-#include "input.h"
+#include "events.h"
 #include "render.h"
-
-struct app_context {
-  config_params_s conf;
-  enum app_state app_state;
-  char *preferred_device;
-  unsigned char device_connected;
-  unsigned char app_suspended;
-};
 
 static void do_wait_for_device(struct app_context *ctx) {
   static Uint64 ticks_poll_device = 0;
@@ -112,6 +105,43 @@ static unsigned char handle_device_initialization(const unsigned char wait_for_d
   return device_connected;
 }
 
+// Main callback loop - read inputs, process data from device, render screen
+SDL_AppResult SDL_AppIterate(void *appstate) {
+  struct app_context *ctx = appstate;
+  SDL_AppResult app_result = SDL_APP_CONTINUE;
+
+  switch (ctx->app_state) {
+
+  case WAIT_FOR_DEVICE: {
+    if (ctx->conf.wait_for_device) {
+      do_wait_for_device(ctx);
+    }
+    break;
+  }
+
+  case RUN: {
+    const int result = m8_process_data(&ctx->conf);
+    if (result == DEVICE_DISCONNECTED) {
+      ctx->device_connected = 0;
+      ctx->app_state = WAIT_FOR_DEVICE;
+      audio_close();
+    } else if (result == DEVICE_FATAL_ERROR) {
+      return SDL_APP_FAILURE;
+    }
+    render_screen();
+    break;
+  }
+
+  case QUIT: {
+    app_result = SDL_APP_SUCCESS;
+    break;
+  }
+  }
+
+  return app_result;
+}
+
+// Initialize the app: initialize context, configs, renderer controllers and attempt to find M8
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
   char *config_filename = NULL;
 
@@ -132,11 +162,16 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
   }
 
 #ifndef NDEBUG
+  // Show debug messages in the application log
   SDL_SetLogPriorities(SDL_LOG_PRIORITY_DEBUG);
   SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "Running a Debug build");
 #endif
 
   gamecontrollers_initialize();
+
+  // Process the application's main callback roughly at 120hz
+  SDL_SetHint(SDL_HINT_MAIN_CALLBACK_RATE, "120");
+
   *appstate = ctx;
 
   if (ctx->app_state == WAIT_FOR_DEVICE) {
@@ -155,54 +190,14 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
       ctx->device_connected = 0;
       ctx->app_state = ctx->conf.wait_for_device ? WAIT_FOR_DEVICE : QUIT;
     }
-  }  
-
-  return SDL_APP_CONTINUE;
-}
-
-SDL_AppResult SDL_AppIterate(void *appstate) {
-  struct app_context *ctx = appstate;
-  SDL_AppResult app_result = SDL_APP_CONTINUE;
-
-  switch (ctx->app_state) {
-    case WAIT_FOR_DEVICE: {
-      if (ctx->conf.wait_for_device) {
-        do_wait_for_device(ctx);
-      }
-      break;
-    }
-    
-    case RUN:
-    break;
-    case QUIT:
-    break;
   }
 
-  return app_result;
-
-  if (ctx->conf.wait_for_device && ctx->app_state == WAIT_FOR_DEVICE) {
-    do_wait_for_device(ctx);
-  } else if (!ctx->device_connected && ctx->app_state != WAIT_FOR_DEVICE) {
-    return SDL_APP_FAILURE;
-  }
-
-  // Handle input, process data, and render screen while running.
-  if (ctx->app_state == RUN) {
-    const int result = m8_process_data(&ctx->conf);
-    if (result == DEVICE_DISCONNECTED) {
-      ctx->device_connected = 0;
-      ctx->app_state = WAIT_FOR_DEVICE;
-      audio_close();
-    } else if (result == DEVICE_FATAL_ERROR) {
-      return SDL_APP_FAILURE;
-    }
-    render_screen();
-  }
   return SDL_APP_CONTINUE;
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
   struct app_context *app = appstate;
+
   if (app) {
     if (app->app_state == WAIT_FOR_DEVICE) {
       screensaver_destroy();
@@ -216,61 +211,9 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     if (app->device_connected) {
       m8_close();
     }
-    SDL_Quit();
-    SDL_Log("Shutting down.");
-
     SDL_free(app);
+
+    SDL_Log("Shutting down.");
+    SDL_Quit();
   }
-}
-
-SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
-  struct app_context *ctx = appstate;
-  SDL_AppResult ret_val = SDL_APP_CONTINUE;
-
-  switch (event->type) {
-    case SDL_EVENT_QUIT:
-    case SDL_EVENT_TERMINATING:
-      ret_val = SDL_APP_SUCCESS;
-      break;
-    case SDL_EVENT_DID_ENTER_BACKGROUND:
-      /* This will get called if the user accepted whatever sent your app to the background.
-         If the user got a phone call and canceled it, you'll instead get an
-         SDL_EVENT_DID_ENTER_FOREGROUND event and restart your loops. When you get this, you have 5
-         seconds to save all your state or the app will be terminated. Your app is NOT active at this
-         point.
-      */
-      SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Received SDL_EVENT_DID_ENTER_BACKGROUND");
-      ctx->app_suspended = 1;
-      if (ctx->device_connected)
-        m8_pause_processing();
-      break;
-    case SDL_EVENT_LOW_MEMORY:
-      /* You will get this when your app is paused and iOS wants more memory.
-         Release as much memory as possible.
-      */
-      break;
-    case SDL_EVENT_WILL_ENTER_BACKGROUND:
-      /* Prepare your app to go into the background.  Stop loops, etc.
-         This gets called when the user hits the home button, or gets a call.
-      */
-      break;
-    case SDL_EVENT_WILL_ENTER_FOREGROUND:
-      /* This call happens when your app is coming back to the foreground.
-         Restore all your state here.
-      */
-      SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Received SDL_EVENT_WILL_ENTER_FOREGROUND");
-      break;
-    case SDL_EVENT_DID_ENTER_FOREGROUND:
-      /* Restart your loops here.
-         Your app is interactive and getting CPU again.
-      */
-      SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Received SDL_EVENT_DID_ENTER_FOREGROUND");
-      ctx->app_suspended = 0;
-      if (ctx->device_connected) {
-        m8_resume_processing();
-      }
-    default:
-      break;
-    }
-  return ret_val;
 }

@@ -77,6 +77,8 @@ int renderer_initialize(config_params_s *conf) {
     return false;
   }
 
+  SDL_SetRenderVSync(rend, 1);
+
   if (!SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height, window_scaling_mode)) {
     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't set renderer logical presentation: %s",
                  SDL_GetError());

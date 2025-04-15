@@ -5,9 +5,8 @@
 #define INPUT_H_
 
 #include "config.h"
+#include "common.h"
 #include <stdint.h>
-
-enum app_state { QUIT, WAIT_FOR_DEVICE, RUN };
 
 typedef enum input_buttons_t {
   INPUT_UP,

@@ -4,7 +4,7 @@
 
 #include "gamecontrollers.h"
 #include "config.h"
-#include "input.h"
+#include "events.h"
 
 #include <SDL3/SDL.h>
 #include <stdio.h>

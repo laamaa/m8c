@@ -6,7 +6,7 @@
 #define GAMECONTROLLERS_H_
 
 #include "config.h"
-#include "input.h"
+#include "events.h"
 
 #define MAX_CONTROLLERS 4
 
