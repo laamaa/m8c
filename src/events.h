@@ -48,6 +48,6 @@ typedef struct input_msg_s {
 } input_msg_s;
 
 input_msg_s input_get_msg(config_params_s *conf);
-int input_process(config_params_s *conf, enum app_state *app_state);
+int input_process(struct app_context *ctx);
 
 #endif
