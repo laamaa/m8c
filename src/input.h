@@ -4,8 +4,8 @@
 
 #ifndef INPUT_H
 #define INPUT_H
-#include "config.h"
 #include "common.h"
+#include "config.h"
 
 #include <SDL3/SDL_events.h>
 

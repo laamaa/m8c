@@ -184,14 +184,15 @@ void renderer_set_font_mode(int mode) {
   SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "Font mode %i, Screen offset %i", mode, screen_offset_y);
 }
 
-void renderer_close() {
+void renderer_close(void) {
+  SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "Closing renderer");
   inline_font_close();
   SDL_DestroyTexture(main_texture);
   SDL_DestroyRenderer(rend);
   SDL_DestroyWindow(win);
 }
 
-void toggle_fullscreen() {
+void toggle_fullscreen(void) {
 
   const unsigned long fullscreen_state = SDL_GetWindowFlags(win) & SDL_WINDOW_FULLSCREEN;
 
@@ -335,7 +336,7 @@ void display_keyjazz_overlay(const uint8_t show, const uint8_t base_octave,
   dirty = 1;
 }
 
-void render_screen() {
+void render_screen(void) {
   if (dirty) {
     dirty = 0;
     SDL_SetRenderTarget(rend, NULL);
@@ -358,7 +359,7 @@ void render_screen() {
   }
 }
 
-int screensaver_init() {
+int screensaver_init(void) {
   if (screensaver_initialized) {
     return 1;
   }
@@ -371,11 +372,9 @@ int screensaver_init() {
   return 1;
 }
 
-void screensaver_draw() {
-  dirty = fx_cube_update();
-}
+void screensaver_draw(void) { dirty = fx_cube_update(); }
 
-void screensaver_destroy() {
+void screensaver_destroy(void) {
   fx_cube_destroy();
   renderer_set_font_mode(0);
   SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Screensaver destroyed");
@@ -390,4 +389,14 @@ void renderer_fix_texture_scaling_after_window_resize(void) {
 
 void show_error_message(const char *message) {
   SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "m8c error", message, win);
+}
+
+void renderer_clear_screen(void) {
+  SDL_SetRenderDrawColor(rend, global_background_color.r, global_background_color.g,
+                         global_background_color.b, global_background_color.a);
+  SDL_SetRenderTarget(rend, main_texture);
+  SDL_RenderClear(rend);
+  SDL_SetRenderTarget(rend, NULL);
+
+  SDL_RenderClear(rend);
 }

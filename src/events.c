@@ -37,6 +37,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Received SDL_EVENT_DID_ENTER_FOREGROUND");
     ctx->app_suspended = 0;
     if (ctx->device_connected) {
+      renderer_clear_screen();
       m8_resume_processing();
     }
   case SDL_EVENT_WINDOW_RESIZED:

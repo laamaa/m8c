@@ -1,8 +1,6 @@
 #include "SDL2_inprint.h"
-#include <SDL3/SDL.h>
-#include <SDL3/SDL_timer.h>
-#include <time.h>
 
+#include <SDL3/SDL.h>
 #include <math.h>
 
 // Handle screensaver cube effect
@@ -94,7 +92,7 @@ void fx_cube_init(SDL_Renderer *target_renderer, const SDL_Color foreground_colo
   center_y = (int)(texture_size.y / 2.0);
 }
 
-void fx_cube_destroy() {
+void fx_cube_destroy(void) {
   // Free resources
   SDL_DestroyTexture(texture_cube);
   SDL_DestroyTexture(texture_text);
@@ -106,7 +104,7 @@ void fx_cube_destroy() {
 }
 
 // Update the cube texture every 16ms>. Returns 1 if cube was updated, 0 if no changes were made.
-int fx_cube_update() {
+int fx_cube_update(void) {
   static Uint64 ticks_last_update = 0;
 
   if (SDL_GetTicks() - ticks_last_update >= 16) {
@@ -119,7 +117,7 @@ int fx_cube_update() {
     SDL_SetRenderDrawColor(fx_renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
     SDL_RenderClear(fx_renderer);
 
-    const unsigned int seconds = SDL_GetTicks() / 1000;
+    const Uint64 seconds = SDL_GetTicks() / 1000;
     const float scale_factor = 1 + SDL_sinf((float)seconds) * (float)0.005;
 
     scale(scale_factor, scale_factor, scale_factor);

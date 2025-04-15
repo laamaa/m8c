@@ -156,7 +156,7 @@ int audio_initialize(const char *output_device_name, const unsigned int audio_bu
   return 1;
 }
 
-void audio_close() {
+void audio_close(void) {
   if (!audio_initialized)
     return;
   SDL_Log("Closing audio devices");

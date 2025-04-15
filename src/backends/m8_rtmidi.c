@@ -136,7 +136,7 @@ static void close_and_free_midi_ports(void) {
   midi_sysex_received = false;
 }
 
-static int initialize_rtmidi() {
+static int initialize_rtmidi(void) {
   SDL_Log("Initializing rtmidi");
   midi_in = rtmidi_in_create(RTMIDI_API_UNSPECIFIED, "m8c_in", 2048);
   midi_out = rtmidi_out_create(RTMIDI_API_UNSPECIFIED, "m8c_out");
@@ -171,7 +171,7 @@ static int detect_m8_midi_device(const int verbose, const char *preferred_device
   return m8_midi_port_number;
 }
 
-static int device_still_exists() {
+static int device_still_exists(void) {
   if (midi_in == NULL || midi_out == NULL) {
     return 0;
   };
@@ -332,13 +332,13 @@ int m8_process_data(const config_params_s *conf) {
   return DEVICE_PROCESSING;
 }
 
-int m8_close() {
+int m8_close(void) {
   const int result = disconnect();
   destroy_queue(&queue);
   return result;
 }
 
-int m8_list_devices() {
+int m8_list_devices(void) {
   if (midi_in == NULL || midi_out == NULL) {
     initialize_rtmidi();
   };
