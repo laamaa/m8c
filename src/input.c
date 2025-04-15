@@ -174,7 +174,7 @@ static input_msg_s handle_m8_keys(const SDL_Event *event, const config_params_s 
   return key;
 }
 
-void input_handle_key_down_event(struct app_context *ctx, SDL_Event *event) {
+void input_handle_key_down_event(struct app_context *ctx, const SDL_Event *event) {
   if (event->key.repeat > 0) {
     return;
   }
@@ -205,7 +205,7 @@ void input_handle_key_down_event(struct app_context *ctx, SDL_Event *event) {
   input_process_and_send(ctx);
 }
 
-void input_handle_key_up_event(struct app_context *ctx, SDL_Event *event) {
+void input_handle_key_up_event(struct app_context *ctx, const SDL_Event *event) {
   key = handle_m8_keys(event, &ctx->conf);
   if (keyjazz_enabled) {
     key = handle_keyjazz(event, key.value, &ctx->conf);

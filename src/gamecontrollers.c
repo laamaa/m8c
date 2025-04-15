@@ -141,11 +141,11 @@ input_msg_s gamecontrollers_handle_special_messages(const config_params_s *conf)
     if (SDL_GetGamepadButton(game_controllers[gc], conf->gamepad_quit) &&
         (SDL_GetGamepadButton(game_controllers[gc], conf->gamepad_select) ||
          SDL_GetGamepadAxis(game_controllers[gc], conf->gamepad_analog_axis_select)))
-      msg = (input_msg_s){special, msg_quit, 0, 0};
+      msg = (input_msg_s){special, msg_quit, 0};
     else if (SDL_GetGamepadButton(game_controllers[gc], conf->gamepad_reset) &&
              (SDL_GetGamepadButton(game_controllers[gc], conf->gamepad_select) ||
               SDL_GetGamepadAxis(game_controllers[gc], conf->gamepad_analog_axis_select)))
-      msg = (input_msg_s){special, msg_reset_display, 0, 0};
+      msg = (input_msg_s){special, msg_reset_display, 0};
   }
   return msg;
 }

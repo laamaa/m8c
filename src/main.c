@@ -26,7 +26,6 @@ static void do_wait_for_device(struct app_context *ctx) {
 
   // Handle app suspension
   if (ctx->app_suspended) {
-    SDL_Delay(ctx->conf.idle_ms);
     return;
   }
 

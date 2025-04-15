@@ -5,6 +5,7 @@
 #ifndef INPUT_H
 #define INPUT_H
 #include "config.h"
+#include "common.h"
 
 #include <SDL3/SDL_events.h>
 
@@ -48,7 +49,7 @@ typedef struct input_msg_s {
 
 input_msg_s input_get_msg(config_params_s *conf);
 int input_process_and_send(struct app_context *ctx);
-void input_handle_key_down_event(struct app_context *ctx, SDL_Event *event);
-void input_handle_key_up_event(struct app_context *ctx, SDL_Event *event);
+void input_handle_key_down_event(struct app_context *ctx, const SDL_Event *event);
+void input_handle_key_up_event(struct app_context *ctx, const SDL_Event *event);
 
 #endif // INPUT_H
