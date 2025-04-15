@@ -37,6 +37,8 @@ static int waveform_max_height = 24;
 static int texture_width = 320;
 static int texture_height = 240;
 
+static int screensaver_initialized = 0;
+
 struct inline_font *fonts[5] = {&font_v1_small, &font_v1_large, &font_v2_small, &font_v2_large,
                                 &font_v2_huge};
 
@@ -354,23 +356,28 @@ void render_screen() {
   }
 }
 
-void screensaver_init() {
+int screensaver_init() {
+  if (screensaver_initialized) {
+    return 1;
+  }
   renderer_set_font_mode(1);
   global_background_color.r = 0, global_background_color.g = 0, global_background_color.b = 0;
   fx_cube_init(rend, (SDL_Color){255, 255, 255, 255}, texture_width, texture_height,
                fonts[font_mode]->glyph_x);
   SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Screensaver initialized");
+  screensaver_initialized = 1;
+  return 1;
 }
 
 void screensaver_draw() {
-  fx_cube_update();
-  dirty = 1;
+  dirty = fx_cube_update();
 }
 
 void screensaver_destroy() {
   fx_cube_destroy();
   renderer_set_font_mode(0);
   SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Screensaver destroyed");
+  screensaver_initialized = 0;
 }
 
 void renderer_fix_texture_scaling_after_window_resize(void) {
