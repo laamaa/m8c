@@ -2,7 +2,7 @@
 #define COMMON_H_
 #include "config.h"
 
-enum app_state { QUIT, WAIT_FOR_DEVICE, RUN };
+enum app_state { QUIT, INITIALIZE, WAIT_FOR_DEVICE, RUN };
 
 struct app_context {
     config_params_s conf;

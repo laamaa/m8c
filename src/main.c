@@ -16,8 +16,8 @@
 #include "backends/m8.h"
 #include "common.h"
 #include "config.h"
-#include "gamecontrollers.h"
 #include "events.h"
+#include "gamecontrollers.h"
 #include "render.h"
 
 static void do_wait_for_device(struct app_context *ctx) {
@@ -54,9 +54,9 @@ static void do_wait_for_device(struct app_context *ctx) {
         ctx->device_connected = 1;
         screensaver_destroy();
         screensaver_initialized = 0;
-        //renderer_clear_screen();
+        // renderer_clear_screen();
         SDL_Log("Device connected.");
-        SDL_Delay(100); // Give the device time to initialize
+        SDL_Delay(100);     // Give the device time to initialize
         m8_reset_display(); // Avoid display glitches.
       } else {
         SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected.");
@@ -98,7 +98,16 @@ static config_params_s initialize_config(int argc, char *argv[], char **preferre
   return conf;
 }
 
-static unsigned char handle_device_initialization(const unsigned char wait_for_device,
+/**
+ * Handles the initialization of a device and verifies its connection state.
+ *
+ * @param wait_for_device A flag indicating whether the system should wait for the device to
+ * connect. If set to 0 and the device is not detected, the application exits.
+ * @param preferred_device A string representing the preferred device to initialize.
+ * @return An unsigned char indicating the connection state of the device.
+ *         Returns 1 if the device is connected successfully, or 0 if not connected.
+ */
+static unsigned char handle_m8_connection_init(const unsigned char wait_for_device,
                                                   const char *preferred_device) {
   const unsigned char device_connected = m8_initialize(1, preferred_device);
   if (!wait_for_device && device_connected == 0) {
@@ -108,21 +117,26 @@ static unsigned char handle_device_initialization(const unsigned char wait_for_d
   return device_connected;
 }
 
-// Main callback loop - read inputs, process data from device, render screen
+// Main callback loop - read inputs, process data from the device, render screen
 SDL_AppResult SDL_AppIterate(void *appstate) {
+  if (appstate == NULL) {
+    return SDL_APP_FAILURE;
+  }
+
   struct app_context *ctx = appstate;
   SDL_AppResult app_result = SDL_APP_CONTINUE;
 
   switch (ctx->app_state) {
+  case INITIALIZE:
+    break;
 
-  case WAIT_FOR_DEVICE: {
+  case WAIT_FOR_DEVICE:
     if (ctx->conf.wait_for_device) {
       do_wait_for_device(ctx);
     }
     break;
-  }
 
-  case RUN: {
+  case RUN:
     const int result = m8_process_data(&ctx->conf);
     if (result == DEVICE_DISCONNECTED) {
       ctx->device_connected = 0;
@@ -133,12 +147,10 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     }
     render_screen();
     break;
-  }
 
-  case QUIT: {
+  case QUIT:
     app_result = SDL_APP_SUCCESS;
     break;
-  }
   }
 
   return app_result;
@@ -154,11 +166,13 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
     return SDL_APP_FAILURE;
   }
 
-  ctx->app_state = WAIT_FOR_DEVICE;
+  *appstate = ctx;
+  ctx->app_state = INITIALIZE;
 
   ctx->conf = initialize_config(argc, argv, &ctx->preferred_device, &config_filename);
   ctx->device_connected =
-      handle_device_initialization(ctx->conf.wait_for_device, ctx->preferred_device);
+      handle_m8_connection_init(ctx->conf.wait_for_device, ctx->preferred_device);
+
   if (!renderer_initialize(&ctx->conf)) {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to initialize renderer.");
     return SDL_APP_FAILURE;
@@ -170,29 +184,24 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
   SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "Running a Debug build");
 #endif
 
-  gamecontrollers_initialize();
+  if (gamecontrollers_initialize() < 0) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to initialize game controllers.");
+    return SDL_APP_FAILURE;
+  }
 
-  // Process the application's main callback roughly at 120hz
+  // Process the application's main callback roughly at 120 Hz
   SDL_SetHint(SDL_HINT_MAIN_CALLBACK_RATE, "120");
 
-  *appstate = ctx;
-
-  if (ctx->app_state == WAIT_FOR_DEVICE) {
-    if (!ctx->device_connected) {
-      ctx->device_connected =
-          handle_device_initialization(ctx->conf.wait_for_device, ctx->preferred_device);
+  if (ctx->device_connected && m8_enable_display(0)) {
+    if (ctx->conf.audio_enabled) {
+      audio_initialize(ctx->conf.audio_device_name, ctx->conf.audio_buffer_size);
     }
-    if (ctx->device_connected && m8_enable_display(0)) {
-      if (ctx->conf.audio_enabled) {
-        audio_initialize(ctx->conf.audio_device_name, ctx->conf.audio_buffer_size);
-      }
-      ctx->app_state = RUN;
-      m8_reset_display(); // Avoid display glitches.
-    } else {
-      SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected.");
-      ctx->device_connected = 0;
-      ctx->app_state = ctx->conf.wait_for_device ? WAIT_FOR_DEVICE : QUIT;
-    }
+    ctx->app_state = RUN;
+    m8_reset_display(); // Avoid display glitches.
+  } else {
+    SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected.");
+    ctx->device_connected = 0;
+    ctx->app_state = ctx->conf.wait_for_device ? WAIT_FOR_DEVICE : QUIT;
   }
 
   return SDL_APP_CONTINUE;

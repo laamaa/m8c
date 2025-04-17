@@ -52,7 +52,7 @@ static void use_integer_scaling(const unsigned int use_integer_scaling) {
     texture_scaling_mode = SDL_SCALEMODE_NEAREST;
   } else {
     window_scaling_mode = SDL_LOGICAL_PRESENTATION_LETTERBOX;
-    texture_scaling_mode = SDL_SCALEMODE_LINEAR;
+    texture_scaling_mode = SDL_SCALEMODE_NEAREST;
   }
   renderer_fix_texture_scaling_after_window_resize();
 }
@@ -109,9 +109,7 @@ int renderer_initialize(config_params_s *conf) {
 
   renderer_set_font_mode(0);
 
-#ifdef TARGET_OS_IOS
   SDL_SetHint(SDL_HINT_IOS_HIDE_HOME_INDICATOR, "1");
-#endif
 
   dirty = 1;
 
@@ -152,7 +150,7 @@ static void check_and_adjust_window_and_texture_size(const int new_width, const 
   SDL_SetRenderTarget(rend, main_texture);
 }
 
-// Set M8 hardware model in use. 0 = MK1, 1 = MK2
+// Set the M8 hardware model in use. 0 = MK1, 1 = MK2
 void set_m8_model(const unsigned int model) {
 
   if (model == 1) {
@@ -199,7 +197,7 @@ void toggle_fullscreen(void) {
   SDL_SetWindowFullscreen(win, fullscreen_state ? false : true);
   SDL_SyncWindow(win);
   if (fullscreen_state) {
-    // Show cursor when in windowed state
+    // Show cursor when in a windowed state
     SDL_ShowCursor();
   } else {
     SDL_HideCursor();
@@ -216,8 +214,8 @@ int draw_character(struct draw_character_command *command) {
       command->background.r << 16 | command->background.g << 8 | command->background.b;
 
   /* Notes:
-     If large font is enabled, offset the screen elements by a fixed amount.
-     If background and foreground colors are the same, draw transparent
+     If a large font is enabled, offset the screen elements by a fixed amount.
+     If background and foreground colors are the same, draw a transparent
      background. Due to the font bitmaps, a different pixel offset is needed for
      both*/
 
@@ -290,7 +288,7 @@ void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
 
     SDL_SetRenderDrawColor(rend, command->color.r, command->color.g, command->color.b, 255);
 
-    // Create a SDL_Point array of the waveform pixels for batch drawing
+    // Create an SDL_Point array of the waveform pixels for batch drawing
     SDL_FPoint waveform_points[command->waveform_size];
 
     for (int i = 0; i < command->waveform_size; i++) {
@@ -339,15 +337,31 @@ void display_keyjazz_overlay(const uint8_t show, const uint8_t base_octave,
 void render_screen(void) {
   if (dirty) {
     dirty = 0;
-    SDL_SetRenderTarget(rend, NULL);
 
-    SDL_SetRenderDrawColor(rend, global_background_color.r, global_background_color.g,
-                           global_background_color.b, global_background_color.a);
+    if (!SDL_SetRenderTarget(rend, NULL)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't set renderer target to window: %s", SDL_GetError());
+    }
 
-    SDL_RenderClear(rend);
-    SDL_RenderTexture(rend, main_texture, NULL, NULL);
-    SDL_RenderPresent(rend);
-    SDL_SetRenderTarget(rend, main_texture);
+    if (!SDL_SetRenderDrawColor(rend, global_background_color.r, global_background_color.g,
+                           global_background_color.b, global_background_color.a)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't set render draw color: %s", SDL_GetError());
+    }
+
+    if (!SDL_RenderClear(rend)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't clear renderer: %s", SDL_GetError());
+    }
+
+    if (!SDL_RenderTexture(rend, main_texture, NULL, NULL)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't render texture: %s", SDL_GetError());
+    }
+
+    if (!SDL_RenderPresent(rend)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't present renderer: %s", SDL_GetError());
+    }
+
+    if (!SDL_SetRenderTarget(rend, main_texture)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't set renderer target to texture: %s", SDL_GetError());
+    }
 
     fps++;
 
