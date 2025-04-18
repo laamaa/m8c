@@ -46,7 +46,7 @@ static int send_message_to_queue(uint8_t *data, const uint32_t size) {
 static int disconnect() {
   SDL_Log("Disconnecting M8");
 
-  // wait for serial processing thread to finish
+  // wait for the serial processing thread to finish
   thread_params.should_stop = 1;
   SDL_WaitThread(serial_thread, NULL);
   destroy_queue(&queue);

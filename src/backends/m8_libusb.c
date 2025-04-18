@@ -297,7 +297,7 @@ int m8_enable_display(const unsigned char reset_display) {
 
   SDL_Delay(5);
   if ()
-  result = m8_reset_display();
+    result = m8_reset_display();
   return result;
 }
 

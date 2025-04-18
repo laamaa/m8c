@@ -63,9 +63,9 @@ int renderer_initialize(config_params_s *conf) {
   // SDL documentation recommends this
   atexit(SDL_Quit);
 
-  if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMEPAD) == false) {
+  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) == false) {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "SDL_Init: %s", SDL_GetError());
-    return false;
+    return 0;
   }
 
   if (!SDL_CreateWindowAndRenderer("m8c", texture_width * 2, texture_height * 2,

@@ -1,7 +1,7 @@
 #include "events.h"
 #include "backends/m8.h"
 #include "common.h"
-#include "gamecontrollers.h"
+#include "gamepads.h"
 #include "input.h"
 #include "render.h"
 #include <SDL3/SDL.h>
@@ -50,7 +50,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
   case SDL_EVENT_GAMEPAD_ADDED:
   case SDL_EVENT_GAMEPAD_REMOVED:
     // Reinitialize game controllers on controller add/remove/remap
-    gamecontrollers_initialize();
+    gamepads_initialize();
     break;
 
   case SDL_EVENT_KEY_DOWN:

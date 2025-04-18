@@ -2,7 +2,7 @@
 // Created by jonne on 8/19/24.
 //
 
-#include "gamecontrollers.h"
+#include "gamepads.h"
 #include "backends/m8.h"
 #include "config.h"
 #include "events.h"
@@ -14,7 +14,6 @@
 // Maximum number of game controllers to support
 #define MAX_CONTROLLERS 4
 
-static int num_joysticks = 0;
 SDL_Gamepad *game_controllers[MAX_CONTROLLERS];
 
 /**
@@ -27,9 +26,16 @@ SDL_Gamepad *game_controllers[MAX_CONTROLLERS];
  * @return The number of successfully initialized game controllers. Returns -1 if an error occurs
  *         during the initialization process.
  */
-int gamecontrollers_initialize() {
+int gamepads_initialize() {
 
-  SDL_GetJoysticks(&num_joysticks);
+  int num_joysticks = 0;
+  SDL_JoystickID *joystick_ids = NULL;
+
+  if (SDL_Init(SDL_INIT_GAMEPAD) == false) {
+    SDL_LogError(SDL_LOG_CATEGORY_INPUT, "Failed to initialize SDL_GAMEPAD: %s", SDL_GetError());
+    return -1;
+  }
+
   int controller_index = 0;
 
   SDL_Log("Looking for game controllers");
@@ -37,10 +43,11 @@ int gamecontrollers_initialize() {
 
   // Try to load the game controller database file
   char db_filename[2048] = {0};
-  if (snprintf(db_filename, sizeof(db_filename), "%sgamecontrollerdb.txt", SDL_GetPrefPath("", "m8c")) >= sizeof(db_filename)) {
+  if (snprintf(db_filename, sizeof(db_filename), "%sgamecontrollerdb.txt",
+               SDL_GetPrefPath("", "m8c")) >= sizeof(db_filename)) {
     SDL_LogError(SDL_LOG_CATEGORY_INPUT, "Path too long for buffer");
     return -1;
-}
+  }
   SDL_Log("Trying to open game controller database from %s", db_filename);
   SDL_IOStream *db_rw = SDL_IOFromFile(db_filename, "rb");
   if (db_rw == NULL) {
@@ -61,13 +68,20 @@ int gamecontrollers_initialize() {
     SDL_LogError(SDL_LOG_CATEGORY_INPUT, "Unable to open game controller database file.");
   }
 
+  joystick_ids = SDL_GetGamepads(&num_joysticks);
+  if (joystick_ids == NULL) {
+    SDL_LogError(SDL_LOG_CATEGORY_INPUT, "Failed to get gamepad IDs: %s", SDL_GetError());
+    return -1;
+  }
+
   // Open all available game controllers
+  SDL_Log("Found %d gamepads", num_joysticks);
   for (int i = 0; i < num_joysticks; i++) {
-    if (!SDL_IsGamepad(i))
+    if (!SDL_IsGamepad(joystick_ids[i]))
       continue;
     if (controller_index >= MAX_CONTROLLERS)
       break;
-    game_controllers[controller_index] = SDL_OpenGamepad(i);
+    game_controllers[controller_index] = SDL_OpenGamepad(joystick_ids[i]);
     if (game_controllers[controller_index] == NULL) {
       SDL_LogError(SDL_LOG_CATEGORY_INPUT, "Failed to open gamepad %d: %s", i, SDL_GetError());
       continue;
@@ -77,14 +91,18 @@ int gamecontrollers_initialize() {
     controller_index++;
   }
 
+  SDL_free(joystick_ids);
+
   return controller_index;
 }
 
 // Closes all open game controllers
-void gamecontrollers_close() {
+void gamepads_close() {
 
   for (int i = 0; i < MAX_CONTROLLERS; i++) {
     if (game_controllers[i])
       SDL_CloseGamepad(game_controllers[i]);
   }
+
+  SDL_QuitSubSystem(SDL_INIT_GAMEPAD);
 }

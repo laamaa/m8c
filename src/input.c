@@ -220,7 +220,7 @@ void input_handle_key_down_event(struct app_context *ctx, const SDL_Event *event
  * @param ctx Pointer to the app_context structure containing application state and configurations.
  * @param event Pointer to the SDL_Event structure representing the "key up" event.
  */
-void input_handle_key_up_event(struct app_context *ctx, const SDL_Event *event) {
+void input_handle_key_up_event(const struct app_context *ctx, const SDL_Event *event) {
   key = handle_m8_keys(event, &ctx->conf);
   if (keyjazz_enabled) {
     key = handle_keyjazz(event, key.value, &ctx->conf);
@@ -230,12 +230,10 @@ void input_handle_key_up_event(struct app_context *ctx, const SDL_Event *event) 
   input_process_and_send(ctx);
 }
 
-// Function to get the current gamepad state
-int get_gamepad_input_state(void) { return gamepad_state.current_buttons; }
-
 void input_handle_gamepad_button(struct app_context *ctx, const SDL_GamepadButton button,
                                  const bool pressed) {
   const config_params_s *conf = &ctx->conf;
+  static int prev_key_value = 0;
   int key_value = 0;
 
   // Handle standard buttons
@@ -256,7 +254,7 @@ void input_handle_gamepad_button(struct app_context *ctx, const SDL_GamepadButto
     }
   }
 
-  if (pressed) {
+  if (pressed && key_value != prev_key_value) {
     gamepad_state.current_buttons |= key_value;
   } else {
     gamepad_state.current_buttons &= ~key_value;
@@ -273,6 +271,8 @@ void input_handle_gamepad_button(struct app_context *ctx, const SDL_GamepadButto
     return;
   }
 
+  keycode = gamepad_state.current_buttons;
+
   input_process_and_send(ctx);
 }
 
@@ -281,8 +281,8 @@ void input_handle_gamepad_button(struct app_context *ctx, const SDL_GamepadButto
  *
  * @param axis_value     The current value of the axis
  * @param threshold      The threshold that determines when a direction is activated
- * @param negative_key   The key to activate when axis value is below negative threshold
- * @param positive_key   The key to activate when axis value is above positive threshold
+ * @param negative_key   The key to activate when the axis value is below a negative threshold
+ * @param positive_key   The key to activate when the axis value is above a positive threshold
  */
 static void update_button_state_from_axis(Sint16 axis_value, int threshold,
                                          int negative_key, int positive_key) {
@@ -295,7 +295,15 @@ static void update_button_state_from_axis(Sint16 axis_value, int threshold,
   }
 }
 
-
+/**
+ * Processes gamepad axis movements and updates internal state accordingly.
+ * Maps gamepad analog axis input to directional or functional button states
+ * based on the configuration and analog value threshold.
+ *
+ * @param ctx Pointer to the app_context structure containing application configuration and state.
+ * @param axis The gamepad axis being processed, specified as an SDL_GamepadAxis.
+ * @param value The analog value of the axis, typically ranging from -32768 to 32767.
+ */
 void input_handle_gamepad_axis(const struct app_context *ctx, const SDL_GamepadAxis axis,
                              const Sint16 value) {
   const config_params_s *conf = &ctx->conf;
@@ -315,16 +323,24 @@ void input_handle_gamepad_axis(const struct app_context *ctx, const SDL_GamepadA
   } else if (axis == conf->gamepad_analog_axis_edit) {
     update_button_state_from_axis(value, conf->gamepad_analog_threshold, key_edit, key_edit);
   }
+
+  keycode = gamepad_state.current_buttons;
+
+  input_process_and_send(ctx);
 }
 
-
+/**
+ * Processes the current input message and sends the appropriate data based on its type.
+ *
+ * @param ctx Pointer to the app_context structure containing application configuration and state.
+ * @return An integer indicating the success status of the operation.
+ * Returns 1 for successful processing and sending of messages, or 0 if the device is not connected.
+ */
 int input_process_and_send(const struct app_context *ctx) {
   if (!ctx->device_connected) {
     return 0;
   }
   static unsigned char prev_input = 0;
-
-  keycode |= gamepad_state.current_buttons;
 
   // get current inputs
   const input_msg_s input = (input_msg_s){key.type, keycode, 0};

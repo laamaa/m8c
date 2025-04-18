@@ -17,7 +17,7 @@
 #include "common.h"
 #include "config.h"
 #include "events.h"
-#include "gamecontrollers.h"
+#include "gamepads.h"
 #include "render.h"
 
 static void do_wait_for_device(struct app_context *ctx) {
@@ -108,7 +108,7 @@ static config_params_s initialize_config(int argc, char *argv[], char **preferre
  *         Returns 1 if the device is connected successfully, or 0 if not connected.
  */
 static unsigned char handle_m8_connection_init(const unsigned char wait_for_device,
-                                                  const char *preferred_device) {
+                                               const char *preferred_device) {
   const unsigned char device_connected = m8_initialize(1, preferred_device);
   if (!wait_for_device && device_connected == 0) {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected!");
@@ -136,7 +136,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     }
     break;
 
-  case RUN:
+  case RUN: {
     const int result = m8_process_data(&ctx->conf);
     if (result == DEVICE_DISCONNECTED) {
       ctx->device_connected = 0;
@@ -147,6 +147,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     }
     render_screen();
     break;
+  }
 
   case QUIT:
     app_result = SDL_APP_SUCCESS;
@@ -159,6 +160,9 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 // Initialize the app: initialize context, configs, renderer controllers and attempt to find M8
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
   char *config_filename = NULL;
+
+  // Process the application's main callback roughly at 120 Hz
+  SDL_SetHint(SDL_HINT_MAIN_CALLBACK_RATE, "120");
 
   struct app_context *ctx = SDL_calloc(1, sizeof(struct app_context));
   if (ctx == NULL) {
@@ -182,21 +186,22 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
   // Show debug messages in the application log
   SDL_SetLogPriorities(SDL_LOG_PRIORITY_DEBUG);
   SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "Running a Debug build");
+#else
+  // Show debug messages in the application log
+  SDL_SetLogPriorities(SDL_LOG_PRIORITY_INFO);
 #endif
 
-  if (gamecontrollers_initialize() < 0) {
+  if (gamepads_initialize() < 0) {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to initialize game controllers.");
     return SDL_APP_FAILURE;
   }
-
-  // Process the application's main callback roughly at 120 Hz
-  SDL_SetHint(SDL_HINT_MAIN_CALLBACK_RATE, "120");
 
   if (ctx->device_connected && m8_enable_display(0)) {
     if (ctx->conf.audio_enabled) {
       audio_initialize(ctx->conf.audio_device_name, ctx->conf.audio_buffer_size);
     }
     ctx->app_state = RUN;
+    SDL_Delay(100);     // Give the device time to initialize
     m8_reset_display(); // Avoid display glitches.
   } else {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected.");
@@ -217,7 +222,7 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     if (app->conf.audio_enabled) {
       audio_close();
     }
-    gamecontrollers_close();
+    gamepads_close();
     renderer_close();
     inline_font_close();
     if (app->device_connected) {
