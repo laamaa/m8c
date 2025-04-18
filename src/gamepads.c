@@ -44,7 +44,7 @@ int gamepads_initialize() {
   // Try to load the game controller database file
   char db_filename[2048] = {0};
   if (snprintf(db_filename, sizeof(db_filename), "%sgamecontrollerdb.txt",
-               SDL_GetPrefPath("", "m8c")) >= sizeof(db_filename)) {
+               SDL_GetPrefPath("", "m8c")) >= (int)sizeof(db_filename)) {
     SDL_LogError(SDL_LOG_CATEGORY_INPUT, "Path too long for buffer");
     return -1;
   }

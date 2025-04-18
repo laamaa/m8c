@@ -25,7 +25,9 @@ static void SDLCALL audio_cb_out(void *userdata, SDL_AudioStream *stream, int le
     audio_close();
     return;
   }
-  if (bytes_available == 0) { return; }
+  if (bytes_available == 0) {
+    return;
+  }
 
   Uint8 *src_audio_data = SDL_malloc(bytes_available);
   if (!src_audio_data) { // check allocation

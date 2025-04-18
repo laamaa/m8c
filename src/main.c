@@ -54,8 +54,6 @@ static void do_wait_for_device(struct app_context *ctx) {
         ctx->device_connected = 1;
         screensaver_destroy();
         screensaver_initialized = 0;
-        // renderer_clear_screen();
-        SDL_Log("Device connected.");
         SDL_Delay(100);     // Give the device time to initialize
         m8_reset_display(); // Avoid display glitches.
       } else {
@@ -92,7 +90,7 @@ static config_params_s initialize_config(int argc, char *argv[], char **preferre
 
   config_params_s conf = config_initialize(*config_filename);
 #ifndef TARGET_OS_IOS
-  // It's not possible to edit the config on iOS so let's just go with the defaults
+  // It's not possible to edit the config on iOS, so let's go with the defaults
   config_read(&conf);
 #endif
   return conf;
@@ -201,7 +199,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
       audio_initialize(ctx->conf.audio_device_name, ctx->conf.audio_buffer_size);
     }
     ctx->app_state = RUN;
-    SDL_Delay(100);     // Give the device time to initialize
+    SDL_Delay(100); // Give the device time to initialize
     m8_reset_display(); // Avoid display glitches.
   } else {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected.");
@@ -213,6 +211,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
+  (void)result; // Suppress compiler warning
+
   struct app_context *app = appstate;
 
   if (app) {
