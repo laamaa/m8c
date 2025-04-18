@@ -8,10 +8,8 @@
 #include "config.h"
 #include "input.h"
 
-#define MAX_CONTROLLERS 4
-
-int gamecontrollers_initialize();
-void gamecontrollers_close();
+int gamepads_initialize();
+void gamepads_close();
 int gamecontrollers_handle_buttons(const config_params_s *conf);
 input_msg_s gamecontrollers_handle_special_messages(const config_params_s *conf);
 

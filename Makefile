@@ -1,51 +1,27 @@
-#Set all your object files (the object files of all the .c files in your project, e.g. main.o my_sub_functions.o )
-OBJ = src/main.o \
-src/command.o \
-src/config.o \
-src/fx_cube.o \
-src/gamecontrollers.o \
-src/ini.o \
-src/inprint2.o \
-src/input.o \
-src/backends/queue.o \
-src/render.o \
-src/backends/audio_sdl.o \
-src/backends/audio_libusb.o \
-src/backends/m8_libserialport.o \
-src/backends/m8_libusb.o \
-src/backends/m8_rtmidi.o \
-src/backends/ringbuffer.o \
-src/backends/slip.o \
+#Set the compiler you are using
+CC = gcc
 
-#Set any dependant header files so that if they are edited they cause a complete re-compile (e.g. main.h some_subfunctions.h some_definitions_file.h ), or leave blank
-DEPS = \
-src/command.h \
-src/config.h \
-src/fx_cube.h \
-src/gamecontrollers.h \
-src/ini.h \
-src/input.h \
-src/render.h \
-src/backends/audio.h \
-src/backends/m8.h \
-src/backends/ringbuffer.h \
-src/backends/queue.h \
-src/backends/slip.h \
-src/fonts/inline_font.h
+#Set the filename extension of your C files
+EXTENSION = .c
+
+# Location of the source files
+SOURCE_DIR = src/
+
+# Find all source files in the src directory and subdirectories
+SRC_FILES := $(shell find $(SOURCE_DIR) -type f -name "*$(EXTENSION)")
+
+# Convert to object files
+OBJ := $(SRC_FILES:.c=.o)
+
+# Find all header files for dependencies
+DEPS := $(shell find src -type f -name "*.h")
+
 
 #Any special libraries you are using in your project (e.g. -lbcm2835 -lrt `pkg-config --libs gtk+-3.0` ), or leave blank
 INCLUDES = $(shell pkg-config --libs sdl3 libserialport | sed 's/-mwindows//')
 
 #Set any compiler flags you want to use (e.g. -I/usr/include/somefolder `pkg-config --cflags gtk+-3.0` ), or leave blank
 local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl3 libserialport) -DUSE_LIBSERIALPORT -Wall -Wextra -O2 -pipe -I. -DNDEBUG
-
-#Set the compiler you are using ( gcc for C or g++ for C++ )
-CC = gcc
-
-#Set the filename extensiton of your C files (e.g. .c or .cpp )
-EXTENSION = .c
-
-SOURCE_DIR = src/
 
 #define a rule that applies to all files ending in the .o suffix, which says that the .o file depends upon the .c version of the file and all the .h files included in the DEPS macro.  Compile each object file
 %.o: %$(EXTENSION) $(DEPS)

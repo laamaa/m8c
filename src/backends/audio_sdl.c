@@ -25,8 +25,17 @@ static void SDLCALL audio_cb_out(void *userdata, SDL_AudioStream *stream, int le
     audio_close();
     return;
   }
+  if (bytes_available == 0) {
+    return;
+  }
 
   Uint8 *src_audio_data = SDL_malloc(bytes_available);
+  if (!src_audio_data) { // check allocation
+    SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Failed to allocate audio buffer");
+    audio_close();
+    return;
+  }
+
   const int bytes_read = SDL_GetAudioStreamData(audio_stream_in, src_audio_data, bytes_available);
   if (bytes_read == bytes_available) {
     SDL_PutAudioStreamData(stream, src_audio_data, bytes_read);
@@ -57,12 +66,14 @@ void audio_toggle(const char *output_device_name, unsigned int audio_buffer_size
 
 int audio_initialize(const char *output_device_name, const unsigned int audio_buffer_size) {
 
-  // wait for system to initialize possible new audio devices
-  SDL_Delay(500);
-
   int num_devices_in, num_devices_out;
   SDL_AudioDeviceID m8_device_id = 0;
   SDL_AudioDeviceID output_device_id = 0;
+
+  if (SDL_Init(SDL_INIT_AUDIO) == false) {
+    SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "SDL Audio init failed, SDL Error: %s", SDL_GetError());
+    return 0;
+  }
 
   SDL_AudioDeviceID *devices_in = SDL_GetAudioRecordingDevices(&num_devices_in);
   if (!devices_in) {
@@ -83,7 +94,7 @@ int audio_initialize(const char *output_device_name, const unsigned int audio_bu
     const char *device_name = SDL_GetAudioDeviceName(instance_id);
     SDL_LogDebug(SDL_LOG_CATEGORY_AUDIO, "%s", device_name);
     if (SDL_strstr(device_name, "M8") != NULL) {
-      SDL_Log("M8 Audio Input device found: %s", device_name);
+      SDL_LogInfo(SDL_LOG_CATEGORY_AUDIO, "M8 Audio Input device found: %s", device_name);
       m8_device_id = instance_id;
     }
   }
@@ -116,7 +127,8 @@ int audio_initialize(const char *output_device_name, const unsigned int audio_bu
   char audio_buffer_size_str[256];
   SDL_snprintf(audio_buffer_size_str, sizeof(audio_buffer_size_str), "%d", audio_buffer_size);
   if (audio_buffer_size > 0) {
-    SDL_Log("Setting requested audio device sample frames to %d", audio_buffer_size);
+    SDL_LogInfo(SDL_LOG_CATEGORY_AUDIO, "Setting requested audio device sample frames to %d",
+                audio_buffer_size);
     SDL_SetHint(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, audio_buffer_size_str);
   }
 
@@ -131,9 +143,9 @@ int audio_initialize(const char *output_device_name, const unsigned int audio_bu
     SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Error opening audio output device: %s", SDL_GetError());
     return 0;
   }
-  SDL_LogDebug(
-      SDL_LOG_CATEGORY_AUDIO, "Audiospec Out: format %d, channels %d, rate %d, buffer size %d",
-      audio_spec_out.format, audio_spec_out.channels, audio_spec_out.freq, audio_buffer_size_real);
+  SDL_LogInfo(SDL_LOG_CATEGORY_AUDIO,
+              "Opening audio output: rate %dhz, buffer size: %d sample frames", audio_spec_out.freq,
+              audio_buffer_size_real);
 
   audio_stream_in = SDL_OpenAudioDeviceStream(m8_device_id, &audio_spec_in, NULL, NULL);
   if (!audio_stream_in) {
@@ -155,12 +167,13 @@ int audio_initialize(const char *output_device_name, const unsigned int audio_bu
   return 1;
 }
 
-void audio_close() {
+void audio_close(void) {
   if (!audio_initialized)
     return;
   SDL_Log("Closing audio devices");
   SDL_DestroyAudioStream(audio_stream_in);
   SDL_DestroyAudioStream(audio_stream_out);
+  SDL_QuitSubSystem(SDL_INIT_AUDIO);
   audio_initialized = 0;
 }
 

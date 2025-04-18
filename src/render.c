@@ -37,6 +37,8 @@ static int waveform_max_height = 24;
 static int texture_width = 320;
 static int texture_height = 240;
 
+static int screensaver_initialized = 0;
+
 struct inline_font *fonts[5] = {&font_v1_small, &font_v1_large, &font_v2_small, &font_v2_large,
                                 &font_v2_huge};
 
@@ -50,7 +52,7 @@ static void use_integer_scaling(const unsigned int use_integer_scaling) {
     texture_scaling_mode = SDL_SCALEMODE_NEAREST;
   } else {
     window_scaling_mode = SDL_LOGICAL_PRESENTATION_LETTERBOX;
-    texture_scaling_mode = SDL_SCALEMODE_LINEAR;
+    texture_scaling_mode = SDL_SCALEMODE_NEAREST;
   }
   renderer_fix_texture_scaling_after_window_resize();
 }
@@ -61,9 +63,9 @@ int renderer_initialize(config_params_s *conf) {
   // SDL documentation recommends this
   atexit(SDL_Quit);
 
-  if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMEPAD) == false) {
+  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) == false) {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "SDL_Init: %s", SDL_GetError());
-    return false;
+    return 0;
   }
 
   if (!SDL_CreateWindowAndRenderer("m8c", texture_width * 2, texture_height * 2,
@@ -74,6 +76,8 @@ int renderer_initialize(config_params_s *conf) {
                     SDL_GetError());
     return false;
   }
+
+  SDL_SetRenderVSync(rend, 1);
 
   if (!SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height, window_scaling_mode)) {
     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't set renderer logical presentation: %s",
@@ -105,9 +109,7 @@ int renderer_initialize(config_params_s *conf) {
 
   renderer_set_font_mode(0);
 
-#ifdef TARGET_OS_IOS
   SDL_SetHint(SDL_HINT_IOS_HIDE_HOME_INDICATOR, "1");
-#endif
 
   dirty = 1;
 
@@ -148,7 +150,7 @@ static void check_and_adjust_window_and_texture_size(const int new_width, const 
   SDL_SetRenderTarget(rend, main_texture);
 }
 
-// Set M8 hardware model in use. 0 = MK1, 1 = MK2
+// Set the M8 hardware model in use. 0 = MK1, 1 = MK2
 void set_m8_model(const unsigned int model) {
 
   if (model == 1) {
@@ -180,21 +182,22 @@ void renderer_set_font_mode(int mode) {
   SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "Font mode %i, Screen offset %i", mode, screen_offset_y);
 }
 
-void renderer_close() {
+void renderer_close(void) {
+  SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "Closing renderer");
   inline_font_close();
   SDL_DestroyTexture(main_texture);
   SDL_DestroyRenderer(rend);
   SDL_DestroyWindow(win);
 }
 
-void toggle_fullscreen() {
+void toggle_fullscreen(void) {
 
   const unsigned long fullscreen_state = SDL_GetWindowFlags(win) & SDL_WINDOW_FULLSCREEN;
 
   SDL_SetWindowFullscreen(win, fullscreen_state ? false : true);
   SDL_SyncWindow(win);
   if (fullscreen_state) {
-    // Show cursor when in windowed state
+    // Show cursor when in a windowed state
     SDL_ShowCursor();
   } else {
     SDL_HideCursor();
@@ -211,8 +214,8 @@ int draw_character(struct draw_character_command *command) {
       command->background.r << 16 | command->background.g << 8 | command->background.b;
 
   /* Notes:
-     If large font is enabled, offset the screen elements by a fixed amount.
-     If background and foreground colors are the same, draw transparent
+     If a large font is enabled, offset the screen elements by a fixed amount.
+     If background and foreground colors are the same, draw a transparent
      background. Due to the font bitmaps, a different pixel offset is needed for
      both*/
 
@@ -285,7 +288,7 @@ void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
 
     SDL_SetRenderDrawColor(rend, command->color.r, command->color.g, command->color.b, 255);
 
-    // Create a SDL_Point array of the waveform pixels for batch drawing
+    // Create an SDL_Point array of the waveform pixels for batch drawing
     SDL_FPoint waveform_points[command->waveform_size];
 
     for (int i = 0; i < command->waveform_size; i++) {
@@ -331,18 +334,34 @@ void display_keyjazz_overlay(const uint8_t show, const uint8_t base_octave,
   dirty = 1;
 }
 
-void render_screen() {
+void render_screen(void) {
   if (dirty) {
     dirty = 0;
-    SDL_SetRenderTarget(rend, NULL);
 
-    SDL_SetRenderDrawColor(rend, global_background_color.r, global_background_color.g,
-                           global_background_color.b, global_background_color.a);
+    if (!SDL_SetRenderTarget(rend, NULL)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't set renderer target to window: %s", SDL_GetError());
+    }
 
-    SDL_RenderClear(rend);
-    SDL_RenderTexture(rend, main_texture, NULL, NULL);
-    SDL_RenderPresent(rend);
-    SDL_SetRenderTarget(rend, main_texture);
+    if (!SDL_SetRenderDrawColor(rend, global_background_color.r, global_background_color.g,
+                           global_background_color.b, global_background_color.a)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't set render draw color: %s", SDL_GetError());
+    }
+
+    if (!SDL_RenderClear(rend)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't clear renderer: %s", SDL_GetError());
+    }
+
+    if (!SDL_RenderTexture(rend, main_texture, NULL, NULL)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't render texture: %s", SDL_GetError());
+    }
+
+    if (!SDL_RenderPresent(rend)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't present renderer: %s", SDL_GetError());
+    }
+
+    if (!SDL_SetRenderTarget(rend, main_texture)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't set renderer target to texture: %s", SDL_GetError());
+    }
 
     fps++;
 
@@ -354,23 +373,26 @@ void render_screen() {
   }
 }
 
-void screensaver_init() {
+int screensaver_init(void) {
+  if (screensaver_initialized) {
+    return 1;
+  }
   renderer_set_font_mode(1);
   global_background_color.r = 0, global_background_color.g = 0, global_background_color.b = 0;
   fx_cube_init(rend, (SDL_Color){255, 255, 255, 255}, texture_width, texture_height,
                fonts[font_mode]->glyph_x);
   SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Screensaver initialized");
+  screensaver_initialized = 1;
+  return 1;
 }
 
-void screensaver_draw() {
-  fx_cube_update();
-  dirty = 1;
-}
+void screensaver_draw(void) { dirty = fx_cube_update(); }
 
-void screensaver_destroy() {
+void screensaver_destroy(void) {
   fx_cube_destroy();
   renderer_set_font_mode(0);
   SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Screensaver destroyed");
+  screensaver_initialized = 0;
 }
 
 void renderer_fix_texture_scaling_after_window_resize(void) {
@@ -381,4 +403,14 @@ void renderer_fix_texture_scaling_after_window_resize(void) {
 
 void show_error_message(const char *message) {
   SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "m8c error", message, win);
+}
+
+void renderer_clear_screen(void) {
+  SDL_SetRenderDrawColor(rend, global_background_color.r, global_background_color.g,
+                         global_background_color.b, global_background_color.a);
+  SDL_SetRenderTarget(rend, main_texture);
+  SDL_RenderClear(rend);
+  SDL_SetRenderTarget(rend, NULL);
+
+  SDL_RenderClear(rend);
 }

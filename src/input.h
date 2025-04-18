@@ -1,13 +1,13 @@
-// Copyright 2021 Jonne Kokkonen
-// Released under the MIT licence, https://opensource.org/licenses/MIT
+//
+// Created by Jonne Kokkonen on 15.4.2025.
+//
 
-#ifndef INPUT_H_
-#define INPUT_H_
-
+#ifndef INPUT_H
+#define INPUT_H
+#include "common.h"
 #include "config.h"
-#include <stdint.h>
 
-enum app_state { QUIT, WAIT_FOR_DEVICE, RUN };
+#include <SDL3/SDL_events.h>
 
 typedef enum input_buttons_t {
   INPUT_UP,
@@ -36,19 +36,20 @@ typedef enum keycodes_t {
 typedef enum input_type_t { normal, keyjazz, special } input_type_t;
 
 typedef enum special_messages_t {
-  msg_quit = 1,
-  msg_reset_display = 2,
-  msg_toggle_audio = 3
+  msg_reset_display = 2
 } special_messages_t;
 
 typedef struct input_msg_s {
   input_type_t type;
-  uint8_t value;
-  uint8_t value2;
-  uint32_t eventType;
+  unsigned char value;
+  unsigned char value2;
 } input_msg_s;
 
 input_msg_s input_get_msg(config_params_s *conf);
-int input_process(config_params_s *conf, enum app_state *app_state);
+int input_process_and_send(const struct app_context *ctx);
+void input_handle_key_down_event(struct app_context *ctx, const SDL_Event *event);
+void input_handle_key_up_event(const struct app_context *ctx, const SDL_Event *event);
+void input_handle_gamepad_button(struct app_context *ctx, SDL_GamepadButton button, bool pressed);
+void input_handle_gamepad_axis(const struct app_context *ctx, SDL_GamepadAxis axis, Sint16 value);
 
-#endif
+#endif // INPUT_H

@@ -14,7 +14,7 @@ enum return_codes {
 int m8_initialize(int verbose, const char *preferred_device);
 int m8_list_devices(void);
 int m8_reset_display(void);
-int m8_enable_and_reset_display(void);
+int m8_enable_display(unsigned char reset_display);
 int m8_send_msg_controller(unsigned char input);
 int m8_send_msg_keyjazz(unsigned char note, unsigned char velocity);
 int m8_process_data(const config_params_s *conf);

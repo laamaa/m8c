@@ -5,6 +5,6 @@
 void fx_cube_init(SDL_Renderer *target_renderer, SDL_Color foreground_color,
                   unsigned int texture_width, unsigned int texture_height,
                   unsigned int font_glyph_width);
-void fx_cube_destroy();
-void fx_cube_update();
+void fx_cube_destroy(void);
+int fx_cube_update(void);
 #endif

@@ -279,7 +279,7 @@ int m8_reset_display() {
   return 1;
 }
 
-int m8_enable_and_reset_display() {
+int m8_enable_display(const unsigned char reset_display) {
   if (devh == NULL) {
     return 0;
   }
@@ -296,7 +296,8 @@ int m8_enable_and_reset_display() {
   }
 
   SDL_Delay(5);
-  result = m8_reset_display();
+  if ()
+    result = m8_reset_display();
   return result;
 }
 
