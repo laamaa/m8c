@@ -9,8 +9,9 @@ jobs:
      
   build-macos:
     runs-on: macos-latest
+    name: m8c MacOS build (Apple Silicon)
     env:
-      BUILD_DIR: build_arm64
+      BUILD_DIR: build-arm64
     
     steps:
       - name: 'Environment info'
