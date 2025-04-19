@@ -19,7 +19,7 @@ jobs:
           uname -m
     
       - name: 'Install dependencies'
-        run: brew update && brew install cmake pkg-config sdl3 libserialport
+        run: brew install cmake pkg-config sdl3 libserialport
           
       - name: 'Checkout'
         uses: actions/checkout@v4
@@ -27,6 +27,24 @@ jobs:
       - name: Set current date as env variable
         run: echo "NOW=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
+      - name: Create Custom Keychain
+        id: createCustomKeychain
+        env:
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security list-keychains -s build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings build.keychain      
+
+      - name: Import Apple Developer Certificate
+        env:
+          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+        run: |
+          echo "${{ secrets.MACOS_CERTIFICATE }}" | base64 --decode > developer_cert.p12
+          security import developer_cert.p12 -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$CERTIFICATE_PASSWORD" build.keychain
 
       - name: 'Configure m8c'
         id: configureApplication
@@ -55,7 +73,7 @@ jobs:
 
 
       - name: Delete Custom Keychain
-        if: always()
+        if: steps.createCustomKeychain.outcome == 'success'
         run: |
           security delete-keychain build.keychain
 
