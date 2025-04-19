@@ -40,7 +40,7 @@ jobs:
 
       - name: Import Apple Developer Certificate
         env:
-          CERTIFICATE_PASSWORD: '${{ secrets.CERTIFICATE_PASSWORD }}'
+          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
         run: |
           echo "${{ secrets.MACOS_CERTIFICATE }}" | base64 --decode > developer_cert.p12
           security import developer_cert.p12 -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
