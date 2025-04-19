@@ -55,6 +55,10 @@ if (USE_RTMIDI)
     target_compile_definitions(${APP_NAME} PRIVATE USE_RTMIDI)
 endif ()
 
+if (WIN32)
+target_link_libraries(${APP_NAME} ${SDL3_LIBRARIES} ${LIBSERIALPORT_LIBRARIES})
+endif ()
+
 if (APPLE)
     # Destination paths below are relative to ${CMAKE_INSTALL_PREFIX}
     install(TARGETS ${APP_NAME}
