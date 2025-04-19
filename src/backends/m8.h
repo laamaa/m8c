@@ -1,7 +1,7 @@
 // Copyright 2021 Jonne Kokkonen
 // Released under the MIT licence, https://opensource.org/licenses/MIT
-#ifndef _M8_H_
-#define _M8_H_
+#ifndef M8_H_
+#define M8_H_
 
 #include "../config.h"
 

@@ -16,7 +16,6 @@
 #include "backends/m8.h"
 #include "common.h"
 #include "config.h"
-#include "events.h"
 #include "gamepads.h"
 #include "render.h"
 

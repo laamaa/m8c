@@ -3,7 +3,6 @@
 #ifndef USE_LIBUSB
 #include "audio.h"
 #include <SDL3/SDL.h>
-#include <stdint.h>
 
 SDL_AudioStream *audio_stream_in, *audio_stream_out;
 

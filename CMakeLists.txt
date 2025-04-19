@@ -1,60 +1,58 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.20)
 
-project(m8c LANGUAGES C)
+project(m8c LANGUAGES C VERSION 2.0.0)
 
 set(APP_NAME m8c)
 
-if (NOT DEFINED USE_LIBSERIALPORT AND NOT DEFINED USE_LIBUSB AND NOT DEFINED USE_RTMIDI)
-    set(USE_LIBSERIALPORT 1)
-endif ()
-
-find_package(PkgConfig REQUIRED)
-find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3)
-
-pkg_check_modules(SDL3 REQUIRED sdl3)
-if (USE_LIBSERIALPORT)
-    pkg_check_modules(LIBSERIALPORT REQUIRED libserialport)
-    link_directories(${SDL3_LIBRARY_DIRS} ${LIBSERIALPORT_LIBRARY_DIRS})
-    add_compile_definitions(USE_LIBSERIALPORT)
-endif (USE_LIBSERIALPORT)
-if (USE_LIBUSB)
-    pkg_check_modules(LIBUSB REQUIRED libusb-1.0)
-    link_directories(${SDL3_LIBRARY_DIRS} ${LIBUSB_LIBRARY_DIRS})
-    add_compile_definitions(USE_LIBUSB)
-endif (USE_LIBUSB)
-if (USE_RTMIDI)
-    pkg_check_modules(RTMIDI REQUIRED rtmidi)
-    link_directories(${SDL3_LIBRARY_DIRS} ${RTMIDI_LIBRARY_DIRS})
-    add_compile_definitions(USE_RTMIDI)
-endif (USE_RTMIDI)
-
+option(USE_LIBSERIALPORT "Use libserialport as a backend" ON)
+option(USE_LIBUSB "Use libusb as a backend" OFF)
+option(USE_RTMIDI "Use RtMidi as a backend" OFF)
 
 file(GLOB m8c_SRC "src/*.h" "src/*.c" "src/backends/*.h" "src/backends/*.c" "src/fonts/*.h")
 
 set(MACOS_CONTENTS "${CMAKE_CURRENT_SOURCE_DIR}/package/macos/m8c.app/Contents")
+set(MACOS_ENTITLEMENTS_FILE "${CMAKE_CURRENT_SOURCE_DIR}/package/macos/Entitlements.plist")
 
 set(APP_ICON ${MACOS_CONTENTS}/Resources/m8c.icns)
 set_source_files_properties(${APP_ICON} PROPERTIES
         MACOSX_PACKAGE_LOCATION "Resources")
 
-add_executable(${APP_NAME} WIN32 MACOSX_BUNDLE ${APP_ICON} ${m8c_SRC})
+if (APPLE)
+    add_executable(${APP_NAME} MACOSX_BUNDLE ${APP_ICON} ${m8c_SRC})
+elseif (WIN32)
+    add_executable(${APP_NAME} WIN32 ${m8c_SRC})
+else ()
+    add_executable(${APP_NAME} ${m8c_SRC})
+endif ()
+
+find_package(PkgConfig REQUIRED pkgconfig)
+pkg_check_modules(SDL3 REQUIRED SDL3)
+target_link_options(${APP_NAME} PRIVATE ${SDL3_LDFLAGS})
+target_include_directories(${APP_NAME} PRIVATE ${SDL3_INCLUDE_DIRS})
+target_compile_options(${APP_NAME} PRIVATE ${SDL3_CFLAGS_OTHER})
 
 if (USE_LIBSERIALPORT)
-    target_link_libraries(${APP_NAME} ${SDL3_LIBRARIES} ${LIBSERIALPORT_LIBRARIES})
-    target_include_directories(${APP_NAME} PUBLIC ${SDL3_INCLUDE_DIRS} ${LIBSERIALPORT_INCLUDE_DIRS})
-    target_compile_options(${APP_NAME} PUBLIC ${SDL3_CFLAGS_OTHER} ${LIBSERIALPORT_CFLAGS_OTHER})
+    pkg_check_modules(LIBSERIALPORT REQUIRED libserialport)
+    target_link_options(${APP_NAME} PRIVATE ${LIBSERIALPORT_LDFLAGS})
+    target_include_directories(${APP_NAME} PRIVATE ${LIBSERIALPORT_INCLUDE_DIRS})
+    target_compile_options(${APP_NAME} PRIVATE ${LIBSERIALPORT_CFLAGS_OTHER})
+    target_compile_definitions(${APP_NAME} PRIVATE USE_LIBSERIALPORT)
 endif ()
 
 if (USE_LIBUSB)
-    target_link_libraries(${APP_NAME} ${SDL3_LIBRARIES} ${LIBUSB_LIBRARIES})
-    target_include_directories(${APP_NAME} PUBLIC ${SDL3_INCLUDE_DIRS} ${LIBUSB_INCLUDE_DIRS})
-    target_compile_options(${APP_NAME} PUBLIC ${SDL3_CFLAGS_OTHER} ${LIBUSB_CFLAGS_OTHER})
+    pkg_check_modules(LIBUSB REQUIRED libusb-1.0)
+    target_link_options(${APP_NAME} PRIVATE ${LIBUSB_LDFLAGS})
+    target_include_directories(${APP_NAME} PRIVATE ${LIBUSB_INCLUDE_DIRS})
+    target_compile_options(${APP_NAME} PRIVATE ${LIBUSB_CFLAGS_OTHER})
+    target_compile_definitions(${APP_NAME} PRIVATE USE_LIBUSB)
 endif ()
 
 if (USE_RTMIDI)
-    target_link_libraries(${APP_NAME} ${SDL3_LIBRARIES} ${RTMIDI_LIBRARIES})
-    target_include_directories(${APP_NAME} PUBLIC ${SDL3_INCLUDE_DIRS} ${RTMIDI_INCLUDE_DIRS})
-    target_compile_options(${APP_NAME} PUBLIC ${SDL3_CFLAGS_OTHER} ${RTMIDI_CFLAGS_OTHER})
+    pkg_check_modules(RTMIDI REQUIRED rtmidi)
+    target_link_options(${APP_NAME} PRIVATE ${RTMIDI_LDFLAGS})
+    target_include_directories(${APP_NAME} PRIVATE ${RTMIDI_INCLUDE_DIRS})
+    target_compile_options(${APP_NAME} PRIVATE ${RTMIDI_CFLAGS_OTHER})
+    target_compile_definitions(${APP_NAME} PRIVATE USE_RTMIDI)
 endif ()
 
 if (APPLE)
@@ -68,17 +66,21 @@ if (APPLE)
             MACOSX_BUNDLE TRUE
             MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/package/macos/m8c.app/Contents/Info.plist"
             MACOSX_BUNDLE_BUNDLE_NAME "m8c"
-            MACOSX_BUNDLE_BUNDLE_VERSION "1"
             MACOSX_BUNDLE_COPYRIGHT "Copyright © 2021 laamaa. All rights reserved."
             MACOSX_BUNDLE_GUI_IDENTIFIER "fi.laamaa.m8c"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "2.0.0"
+            MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
             MACOSX_BUNDLE_ICON_FILE "m8c.icns")
 
     set(APPS "\${CMAKE_INSTALL_PREFIX}/${APP_NAME}.app")
 
-    install(CODE "include(BundleUtilities)
+    install(CODE "
+    include(BundleUtilities)
     fixup_bundle(\"${APPS}\" \"\" \"\")
-    execute_process(COMMAND codesign --force --deep --sign - \${CMAKE_INSTALL_PREFIX}/${APP_NAME}.app)")
+    execute_process(COMMAND codesign --force --deep --entitlements \"${MACOS_ENTITLEMENTS_FILE}\" --sign \"${MACOS_CODE_SIGN_IDENTITY}\" \"${CMAKE_INSTALL_PREFIX}/${APP_NAME}.app\"
+    )")
+    set(CPACK_PACKAGE_NAME "m8c")
+    set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
     set(CPACK_GENERATOR "DragNDrop")
     include(CPack)
 endif ()

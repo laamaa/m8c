@@ -3,10 +3,6 @@
 //
 
 #include "gamepads.h"
-#include "backends/m8.h"
-#include "config.h"
-#include "events.h"
-#include "render.h"
 
 #include <SDL3/SDL.h>
 #include <stdio.h>
