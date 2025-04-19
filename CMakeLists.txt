@@ -62,8 +62,7 @@ if (APPLE)
             RUNTIME DESTINATION bin COMPONENT Runtime
     )
 
-    set(CODESIGN_APPLE_ID "" CACHE STRING "The apple ID for code signing")
-    set(CODESIGN_TEAM_ID "" CACHE STRING "The development team ID for code signing")
+    set(CODESIGN_CERT_NAME "" CACHE STRING "The developer ID cert name for codesign")
 
     set_target_properties(${APP_NAME} PROPERTIES
             MACOSX_BUNDLE TRUE
@@ -80,7 +79,7 @@ if (APPLE)
 
     install(CODE "include(BundleUtilities)
     fixup_bundle(\"${APPS}\" \"\" \"\")
-    execute_process(COMMAND codesign --force --deep --sign \"Apple Development: ${CODESIGN_APPLE_ID} (${CODESIGN_TEAM_ID})\"  \${CMAKE_INSTALL_PREFIX}/${APP_NAME}.app)")
+    execute_process(COMMAND codesign --force --options runtime --deep --entitlements ../package/macos/Entitlements.plist --sign \"${CODESIGN_CERT_NAME}\" --timestamp  \${CMAKE_INSTALL_PREFIX}/${APP_NAME}.app)")
 
     set(CPACK_PACKAGE_NAME "m8c")
     set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
