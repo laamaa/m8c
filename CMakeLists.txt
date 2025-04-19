@@ -62,6 +62,9 @@ if (APPLE)
             RUNTIME DESTINATION bin COMPONENT Runtime
     )
 
+    set(CODESIGN_APPLE_ID "" CACHE STRING "The apple ID for code signing")
+    set(CODESIGN_TEAM_ID "" CACHE STRING "The development team ID for code signing")
+
     set_target_properties(${APP_NAME} PROPERTIES
             MACOSX_BUNDLE TRUE
             MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/package/macos/m8c.app/Contents/Info.plist"
@@ -70,17 +73,18 @@ if (APPLE)
             MACOSX_BUNDLE_GUI_IDENTIFIER "fi.laamaa.m8c"
             MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
             MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
-            MACOSX_BUNDLE_ICON_FILE "m8c.icns")
+            MACOSX_BUNDLE_ICON_FILE "m8c.icns"
+    )
 
     set(APPS "\${CMAKE_INSTALL_PREFIX}/${APP_NAME}.app")
 
-    install(CODE "
-    include(BundleUtilities)
+    install(CODE "include(BundleUtilities)
     fixup_bundle(\"${APPS}\" \"\" \"\")
-    execute_process(COMMAND codesign --force --deep --entitlements \"${MACOS_ENTITLEMENTS_FILE}\" --sign \"${MACOS_CODE_SIGN_IDENTITY}\" \"${CMAKE_INSTALL_PREFIX}/${APP_NAME}.app\"
-    )")
+    execute_process(COMMAND codesign --force --deep --sign \"Apple Development: ${CODESIGN_APPLE_ID} (${CODESIGN_TEAM_ID})\"  \${CMAKE_INSTALL_PREFIX}/${APP_NAME}.app)")
+
     set(CPACK_PACKAGE_NAME "m8c")
     set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+    set(CPACK_PACKAGE_DIRECTORY "package-output")
     set(CPACK_GENERATOR "DragNDrop")
     include(CPack)
 endif ()

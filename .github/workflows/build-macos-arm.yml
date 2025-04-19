@@ -52,10 +52,11 @@ jobs:
         run: |
           mkdir -p ${{ env.BUILD_DIR }}
           pushd ${{ env.BUILD_DIR }}
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DMACOS_CODE_SIGN_IDENTITY="$MACOS_CODE_SIGN_IDENTITY"
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCODESIGN_APPLE_ID="$APPLE_ID" -DCODESIGN_TEAM_ID="$TEAM_ID"
           popd
         env:
-          MACOS_CODE_SIGN_IDENTITY: 'Apple Development: ${{ secrets.APPLE_ID }} (${{ secrets.TEAM_ID }})'
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
 
       - name: 'Build and package m8c'
         id: buildApplication
@@ -70,8 +71,6 @@ jobs:
       - name: 'View debug log if compilation fails'
         if: failure() && steps.buildApplication.outcome == 'failure'
         run: cat /Users/runner/work/m8c/m8c/${{ env.BUILD_DIR }}/_CPack_Packages/Darwin/DragNDrop/PreinstallOutput.log
-
-
 
       - name: Delete Custom Keychain
         if: steps.createCustomKeychain.outcome == 'success'

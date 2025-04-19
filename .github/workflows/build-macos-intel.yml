@@ -49,10 +49,11 @@ jobs:
         run: |
           mkdir -p ${{ env.BUILD_DIR }}
           pushd ${{ env.BUILD_DIR }}
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DMACOS_CODE_SIGN_IDENTITY="$MACOS_CODE_SIGN_IDENTITY"
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCODESIGN_APPLE_ID="$APPLE_ID" -DCODESIGN_TEAM_ID="$TEAM_ID"
           popd
         env:
-          MACOS_CODE_SIGN_IDENTITY: 'Apple Development: ${{ secrets.APPLE_ID }} (${{ secrets.TEAM_ID }})'
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
 
       - name: 'Build and package m8c'
         id: buildApplication
@@ -73,7 +74,7 @@ jobs:
           pushd ${{ env.BUILD_DIR }}
           APP_PATH=$(find build_output -name "*.dmg" | head -n 1)
           xcrun notarytool submit \
-            --apple-id "$APPLE_EMAIL" \
+            --apple-id "$APPLE_ID" \
             --team-id "$TEAM_ID" \
             --password "$APPLE_PASSWORD" \
             --wait \
@@ -81,7 +82,7 @@ jobs:
           xcrun stapler staple "$APP_PATH"
           popd
         env:
-          APPLE_EMAIL: ${{ secrets.APPLE_ID }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
           TEAM_ID: ${{ secrets.TEAM_ID }}
 
