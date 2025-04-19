@@ -52,10 +52,10 @@ jobs:
         run: |
           mkdir -p ${{ env.BUILD_DIR }}
           pushd ${{ env.BUILD_DIR }}
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DCODESIGN_CERT_NAME=
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCODESIGN_CERT_NAME="$CODESIGN_CERT_NAME"
           popd
         env:
-          APPLE_ID: ${{ secrets.MACOS_CODE_SIGN_IDENTITY }}
+          CODESIGN_CERT_NAME: ${{ secrets.MACOS_CODE_SIGN_IDENTITY }}
 
       - name: 'Build and package m8c'
         id: buildApplication
@@ -74,7 +74,7 @@ jobs:
       - name: 'Notarize the App'
         run: |
           pushd ${{ env.BUILD_DIR }}
-          APP_PATH=$(find package-output -name "*.dmg" | head -n 1)
+          APP_PATH=$(find package-output -maxdepth 1 -name "m8c*.dmg" | head -n 1)
           xcrun notarytool submit \
             --apple-id "$APPLE_ID" \
             --team-id "$TEAM_ID" \
@@ -91,7 +91,7 @@ jobs:
 
       - name: 'Verify Stapling'
         run: |
-          APP_PATH=$(find "${{ env.BUILD_DIR }}/package-output" -name "*.dmg" | head -n 1)
+          APP_PATH=$(find "${{ env.BUILD_DIR }}/package-output" -maxdepth 1 -name "m8c*.dmg" | head -n 1)
           echo "Verifying stapling on $APP_PATH"
           xcrun stapler validate "$APP_PATH"        
 
@@ -102,7 +102,7 @@ jobs:
 
       - name: 'Copy package'
         run: |
-          APP_PATH=$(find "${{ env.BUILD_DIR }}/package-output" -name "*.dmg" | head -n 1)
+          APP_PATH=$(find "${{ env.BUILD_DIR }}/package-output" -maxdepth 1 -name "m8c*.dmg" | head -n 1)
           mv "$APP_PATH" m8c-${{ env.NOW }}-macos-applesilicon.dmg
 
       - name: 'Upload DMG package'
