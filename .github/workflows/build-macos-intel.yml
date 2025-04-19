@@ -100,8 +100,7 @@ jobs:
 
       - name: 'Copy package'
         run: |
-          APP_PATH=$(find build_output -name "*.dmg" | head -n 1)
-          mv "$APP_PATH" m8c-${{ env.NOW }}-macos-intel.dmg
+          mv  m8c-${{ env.NOW }}-macos-intel.dmg
 
       - name: 'Upload DMG package'
         uses: actions/upload-artifact@v4
