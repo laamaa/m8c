@@ -69,31 +69,10 @@ jobs:
         if: failure() && steps.buildApplication.outcome == 'failure'
         run: cat /Users/runner/work/m8c/m8c/${{ env.BUILD_DIR }}/_CPack_Packages/Darwin/DragNDrop/PreinstallOutput.log
 
-      - name: Notarize the App
-        run: |
-          pushd ${{ env.BUILD_DIR }}
-          APP_PATH=$(find build_output -name "*.dmg" | head -n 1)
-          xcrun notarytool submit \
-            --apple-id "$APPLE_EMAIL" \
-            --team-id "$TEAM_ID" \
-            --password "$APPLE_PASSWORD" \
-            --wait \
-            $APP_PATH
-          xcrun stapler staple "$APP_PATH"
-          popd
-        env:
-          APPLE_EMAIL: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
-          TEAM_ID: ${{ secrets.TEAM_ID }}
 
-
-      - name: Verify Stapling
-        run: |
-          APP_PATH=$(find "${{ env.BUILD_DIR }}/build_output" -name "*.dmg" | head -n 1)
-          echo "Verifying stapling on $APP_PATH"
-          xcrun stapler validate "$APP_PATH"
 
       - name: Delete Custom Keychain
+        if: always()
         run: |
           security delete-keychain build.keychain
 

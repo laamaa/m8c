@@ -93,13 +93,14 @@ jobs:
           xcrun stapler validate "$APP_PATH"
 
       - name: Delete Custom Keychain
+        if: always()
         run: |
           security delete-keychain build.keychain
 
       - name: 'Copy package'
         run: |
           APP_PATH=$(find build_output -name "*.dmg" | head -n 1)
-          mv "$APP_PATH" m8c-${{ env.NOW }}-macos-applesilicon.dmg
+          mv "$APP_PATH" m8c-${{ env.NOW }}-macos-intel.dmg
 
       - name: 'Upload DMG package'
         uses: actions/upload-artifact@v4
