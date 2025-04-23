@@ -377,6 +377,7 @@ int screensaver_init(void) {
   if (screensaver_initialized) {
     return 1;
   }
+  SDL_SetRenderTarget(rend,main_texture);
   renderer_set_font_mode(1);
   global_background_color.r = 0, global_background_color.g = 0, global_background_color.b = 0;
   fx_cube_init(rend, (SDL_Color){255, 255, 255, 255}, texture_width, texture_height,

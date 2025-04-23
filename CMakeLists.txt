@@ -25,8 +25,11 @@ else ()
     add_executable(${APP_NAME} ${m8c_SRC})
 endif ()
 
-find_package(PkgConfig REQUIRED pkgconfig)
-pkg_check_modules(SDL3 REQUIRED SDL3)
+find_package(PkgConfig REQUIRED)
+find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3)
+
+pkg_check_modules(SDL3 REQUIRED sdl3)
+
 target_link_options(${APP_NAME} PRIVATE ${SDL3_LDFLAGS})
 target_include_directories(${APP_NAME} PRIVATE ${SDL3_INCLUDE_DIRS})
 target_compile_options(${APP_NAME} PRIVATE ${SDL3_CFLAGS_OTHER})

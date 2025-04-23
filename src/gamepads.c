@@ -59,7 +59,6 @@ int gamepads_initialize() {
     } else {
       SDL_LogError(SDL_LOG_CATEGORY_INPUT, "Error loading game controller mappings.");
     }
-    SDL_CloseIO(db_rw);
   } else {
     SDL_LogError(SDL_LOG_CATEGORY_INPUT, "Unable to open game controller database file.");
   }
