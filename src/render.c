@@ -46,7 +46,7 @@ struct inline_font *fonts[5] = {&font_v1_small, &font_v1_large, &font_v2_small, 
 
 uint8_t fullscreen = 0;
 
-static uint8_t dirty = 1;
+static uint8_t dirty = 0;
 
 // Creates an intermediate texture dynamically based on window size
 static void create_hd_texture() {
@@ -66,6 +66,7 @@ static void create_hd_texture() {
   const int new_hd_texture_height = texture_height * scale_factor;
   if (hd_texture != NULL && new_hd_texture_width == hd_texture_width && new_hd_texture_height == hd_texture_height) {
     // Texture exists and there is no change in the size, carry on
+    SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "HD texture size not changed, skipping");
     return;
   }
 
@@ -369,6 +370,11 @@ int renderer_initialize(config_params_s *conf) {
     return false;
   }
 
+  if (conf->integer_scaling == 0) {
+    // Create the HD texture dynamically based on window size
+    create_hd_texture();
+  }
+
   SDL_SetTextureScaleMode(main_texture, texture_scaling_mode);
 
   SDL_SetRenderTarget(rend, main_texture);
@@ -384,6 +390,7 @@ int renderer_initialize(config_params_s *conf) {
   renderer_set_font_mode(0);
 
   SDL_SetHint(SDL_HINT_IOS_HIDE_HOME_INDICATOR, "1");
+  renderer_fix_texture_scaling_after_window_resize(conf); // iOS needs this, doesn't hurt on others either
 
   dirty = 1;
 
@@ -426,9 +433,8 @@ void render_screen(config_params_s *conf) {
       SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't render texture: %s", SDL_GetError());
     }
   } else {
-
     int window_width, window_height;
-    if (!SDL_GetWindowSize(win, &window_width, &window_height)) {
+    if (!SDL_GetWindowSizeInPixels(win, &window_width, &window_height)) {
       SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't get window size: %s", SDL_GetError());
     }
 
@@ -539,10 +545,27 @@ void renderer_fix_texture_scaling_after_window_resize(config_params_s *conf) {
     if (hd_texture != NULL) {
       create_hd_texture(); // Recreate hd texture if necessary
     }
+    int window_width, window_height;
+    if (!SDL_GetWindowSizeInPixels(win, &window_width, &window_height)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't get window size: %s", SDL_GetError());
+    }
+
+    // Determine the texture aspect ratio
+    const float texture_aspect_ratio = (float)texture_width / (float)texture_height;
+
+    // Determine the window aspect ratio
+    const float window_aspect_ratio = (float)window_width / (float)window_height;
+
     // SDL forces black borders in letterbox mode, so in HD mode the texture scaling is manual
     SDL_SetRenderLogicalPresentation(rend, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
     SDL_SetTextureScaleMode(main_texture, SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(hd_texture, SDL_SCALEMODE_LINEAR);
+
+    // Check the aspect ratio to avoid unnecessary antialiasing
+    if (texture_aspect_ratio == window_aspect_ratio) {
+      SDL_SetTextureScaleMode(hd_texture, SDL_SCALEMODE_NEAREST);
+    } else {
+      SDL_SetTextureScaleMode(hd_texture, SDL_SCALEMODE_LINEAR);
+    }
   }
   SDL_SetTextureScaleMode(main_texture, texture_scaling_mode);
 }

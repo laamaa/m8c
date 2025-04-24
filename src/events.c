@@ -20,7 +20,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     break;
   case SDL_EVENT_WINDOW_RESIZED:
   case SDL_EVENT_WINDOW_MOVED:
-    // If the window size is changed, some operating systems might need a little nudge to fix scaling
+    // If the window size is changed, some systems might need a little nudge to fix scaling
     renderer_fix_texture_scaling_after_window_resize(&ctx->conf);
     break;
 
@@ -47,8 +47,6 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
       renderer_clear_screen();
       m8_resume_processing();
     }
-  case SDL_EVENT_FINGER_DOWN:
-
 
   // --- Input events ---
   case SDL_EVENT_GAMEPAD_ADDED:
