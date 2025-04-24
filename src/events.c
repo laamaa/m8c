@@ -47,6 +47,10 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
       renderer_clear_screen();
       m8_resume_processing();
     }
+    break;
+  case SDL_EVENT_FINGER_DOWN:
+    input_handle_finger_down(ctx, event);
+    break;
 
   // --- Input events ---
   case SDL_EVENT_GAMEPAD_ADDED:

@@ -30,13 +30,13 @@ static SDL_ScaleMode texture_scaling_mode = SDL_SCALEMODE_NEAREST;
 static uint32_t ticks_fps;
 static int fps;
 static int font_mode = -1;
-static unsigned int m8_hardware_model = 1;
+static unsigned int m8_hardware_model = 0;
 static int screen_offset_y = 0;
 static int text_offset_y = 0;
 static int waveform_max_height = 24;
 
-static int texture_width = 480;
-static int texture_height = 320;
+static int texture_width = 320;
+static int texture_height = 240;
 static int hd_texture_width, hd_texture_height = 0;
 
 static int screensaver_initialized = 0;
@@ -124,7 +124,6 @@ static void create_hd_texture() {
   }
 
   setup_hd_texture_scaling();
-
 }
 
 static void change_font(struct inline_font *font) {

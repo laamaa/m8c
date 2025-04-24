@@ -51,6 +51,6 @@ void input_handle_key_down_event(struct app_context *ctx, const SDL_Event *event
 void input_handle_key_up_event(const struct app_context *ctx, const SDL_Event *event);
 void input_handle_gamepad_button(struct app_context *ctx, SDL_GamepadButton button, bool pressed);
 void input_handle_gamepad_axis(const struct app_context *ctx, SDL_GamepadAxis axis, Sint16 value);
-void input_handle_finger_down(const struct app_context *ctx, const SDL_Event *event);
+void input_handle_finger_down(struct app_context *ctx, const SDL_Event *event);
 
 #endif // INPUT_H
