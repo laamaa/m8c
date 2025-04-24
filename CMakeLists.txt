@@ -4,9 +4,16 @@ project(m8c LANGUAGES C VERSION 2.0.0)
 
 set(APP_NAME m8c)
 
-option(USE_LIBSERIALPORT "Use libserialport as a backend" ON)
+option(USE_LIBSERIALPORT "Use libserialport as a backend" OFF)
 option(USE_LIBUSB "Use libusb as a backend" OFF)
 option(USE_RTMIDI "Use RtMidi as a backend" OFF)
+
+# Enable USE_LIBSERIALPORT by default if neither USE_LIBUSB nor USE_RTMIDI are defined
+if (NOT USE_LIBUSB AND NOT USE_RTMIDI)
+    message(STATUS "Neither USE_LIBUSB nor USE_RTMIDI are enabled. Enabling USE_LIBSERIALPORT by default.")
+    set(USE_LIBSERIALPORT ON)
+endif ()
+
 
 file(GLOB m8c_SRC "src/*.h" "src/*.c" "src/backends/*.h" "src/backends/*.c" "src/fonts/*.h")
 

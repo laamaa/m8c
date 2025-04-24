@@ -19,12 +19,13 @@
 
 #include <stdlib.h>
 
-SDL_Window *win;
-SDL_Renderer *rend;
-SDL_Texture *main_texture;
-SDL_Color global_background_color = (SDL_Color){.r = 0x00, .g = 0x00, .b = 0x00, .a = 0x00};
-SDL_RendererLogicalPresentation window_scaling_mode = SDL_LOGICAL_PRESENTATION_INTEGER_SCALE;
-SDL_ScaleMode texture_scaling_mode = SDL_SCALEMODE_NEAREST;
+static SDL_Window *win;
+static SDL_Renderer *rend;
+static SDL_Texture *main_texture;
+static SDL_Texture *hd_texture = NULL;
+static SDL_Color global_background_color = (SDL_Color){.r = 0x00, .g = 0x00, .b = 0x00, .a = 0x00};
+static SDL_RendererLogicalPresentation window_scaling_mode = SDL_LOGICAL_PRESENTATION_INTEGER_SCALE;
+static SDL_ScaleMode texture_scaling_mode = SDL_SCALEMODE_NEAREST;
 
 static uint32_t ticks_fps;
 static int fps;
@@ -44,79 +45,46 @@ struct inline_font *fonts[5] = {&font_v1_small, &font_v1_large, &font_v2_small, 
 
 uint8_t fullscreen = 0;
 
-static uint8_t dirty = 0;
+static uint8_t dirty = 1;
 
-static void use_integer_scaling(const unsigned int use_integer_scaling) {
-  if (use_integer_scaling) {
-    window_scaling_mode = SDL_LOGICAL_PRESENTATION_INTEGER_SCALE;
-    texture_scaling_mode = SDL_SCALEMODE_NEAREST;
-  } else {
-    window_scaling_mode = SDL_LOGICAL_PRESENTATION_LETTERBOX;
-    texture_scaling_mode = SDL_SCALEMODE_NEAREST;
+// Creates an intermediate texture dynamically based on window size
+static void create_hd_texture() {
+  SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "Creating HD texture");
+  int window_width, window_height;
+
+  // Get the current window size
+  SDL_GetWindowSize(win, &window_width, &window_height);
+
+  // Calculate the maximum integer scaling factor
+  int scale_factor = SDL_min(window_width / texture_width, window_height / texture_height);
+  if (scale_factor < 1) {
+    scale_factor = 1; // Ensure at least 1x scaling
   }
-  renderer_fix_texture_scaling_after_window_resize();
-}
+  SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "HD texture scale factor: %d", scale_factor);
 
-// Initializes SDL and creates a renderer and required surfaces
-int renderer_initialize(config_params_s *conf) {
+  // Calculate the HD texture size
+  const int hd_texture_width = texture_width * scale_factor;
+  const int hd_texture_height = texture_height * scale_factor;
+  SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "HD texture size: %dx%d", hd_texture_width,
+               hd_texture_height);
 
-  // SDL documentation recommends this
-  atexit(SDL_Quit);
-
-  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) == false) {
-    SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "SDL_Init: %s", SDL_GetError());
-    return 0;
+  // Destroy any existing HD texture
+  if (hd_texture != NULL) {
+    SDL_DestroyTexture(hd_texture);
   }
 
-  if (!SDL_CreateWindowAndRenderer("m8c", texture_width * 2, texture_height * 2,
-                                   SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY |
-                                       SDL_WINDOW_OPENGL | conf->init_fullscreen,
-                                   &win, &rend)) {
-    SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create window and renderer: %s",
+  // Create a new HD texture with the calculated size
+  hd_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
+                                 hd_texture_width, hd_texture_height);
+  if (!hd_texture) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't create HD texture: %s", SDL_GetError());
+  }
+
+  // Optionally, set a linear scaling mode for smoother rendering
+  if (!SDL_SetTextureScaleMode(hd_texture, SDL_SCALEMODE_LINEAR)) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't set HD texture scale mode: %s",
                     SDL_GetError());
-    return false;
   }
-
-  SDL_SetRenderVSync(rend, 1);
-
-  if (!SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height, window_scaling_mode)) {
-    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't set renderer logical presentation: %s",
-                 SDL_GetError());
-    return false;
-  }
-
-  main_texture = NULL;
-  main_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
-                                   texture_width, texture_height);
-
-  if (main_texture == NULL) {
-    SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create texture: %s", SDL_GetError());
-    return false;
-  }
-
-  SDL_SetTextureScaleMode(main_texture, texture_scaling_mode);
-  use_integer_scaling(conf->integer_scaling);
-
-  SDL_SetRenderTarget(rend, main_texture);
-
-  SDL_SetRenderDrawColor(rend, global_background_color.r, global_background_color.g,
-                         global_background_color.b, global_background_color.a);
-
-  if (!SDL_RenderClear(rend)) {
-    SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Couldn't clear renderer: %s", SDL_GetError());
-    return 0;
-  }
-
-  renderer_set_font_mode(0);
-
-  SDL_SetHint(SDL_HINT_IOS_HIDE_HOME_INDICATOR, "1");
-
-  dirty = 1;
-
-  SDL_PumpEvents();
-  render_screen();
-
-  return 1;
 }
 
 static void change_font(struct inline_font *font) {
@@ -142,7 +110,15 @@ static void check_and_adjust_window_and_texture_size(const int new_width, const 
     SDL_SetWindowSize(win, texture_width * 2, texture_height * 2);
   }
 
-  SDL_DestroyTexture(main_texture);
+  if (hd_texture != NULL) {
+    SDL_DestroyTexture(hd_texture);
+    create_hd_texture(); // Create the texture dynamically based on window size
+  }
+
+  if (main_texture != NULL) {
+    SDL_DestroyTexture(main_texture);
+  }
+
   SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height, window_scaling_mode);
   main_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
                                    texture_width, texture_height);
@@ -185,7 +161,12 @@ void renderer_set_font_mode(int mode) {
 void renderer_close(void) {
   SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "Closing renderer");
   inline_font_close();
-  SDL_DestroyTexture(main_texture);
+  if (main_texture != NULL) {
+    SDL_DestroyTexture(main_texture);
+  }
+  if (hd_texture != NULL) {
+    SDL_DestroyTexture(hd_texture);
+  }
   SDL_DestroyRenderer(rend);
   SDL_DestroyWindow(win);
 }
@@ -334,50 +315,194 @@ void display_keyjazz_overlay(const uint8_t show, const uint8_t base_octave,
   dirty = 1;
 }
 
-void render_screen(void) {
-  if (dirty) {
-    dirty = 0;
+static void log_fps_stats(void) {
+  fps++;
 
-    if (!SDL_SetRenderTarget(rend, NULL)) {
-      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't set renderer target to window: %s", SDL_GetError());
-    }
+  if (SDL_GetTicks() - ticks_fps > 5000) {
+    ticks_fps = SDL_GetTicks();
+    SDL_LogDebug(SDL_LOG_CATEGORY_VIDEO, "%.1f fps\n", (float)fps / 5);
+    fps = 0;
+  }
+}
 
-    if (!SDL_SetRenderDrawColor(rend, global_background_color.r, global_background_color.g,
-                           global_background_color.b, global_background_color.a)) {
-      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't set render draw color: %s", SDL_GetError());
-    }
+// Initializes SDL and creates a renderer and required surfaces
+int renderer_initialize(config_params_s *conf) {
 
-    if (!SDL_RenderClear(rend)) {
-      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't clear renderer: %s", SDL_GetError());
-    }
+  // SDL documentation recommends this
+  atexit(SDL_Quit);
 
+  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) == false) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "SDL_Init: %s", SDL_GetError());
+    return 0;
+  }
+
+  if (!SDL_CreateWindowAndRenderer("m8c", texture_width * 2, texture_height * 2,
+                                   SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY |
+                                       SDL_WINDOW_OPENGL | conf->init_fullscreen,
+                                   &win, &rend)) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create window and renderer: %s",
+                    SDL_GetError());
+    return false;
+  }
+
+  SDL_SetRenderVSync(rend, 1);
+
+  if (!SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height, window_scaling_mode)) {
+    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't set renderer logical presentation: %s",
+                 SDL_GetError());
+    return false;
+  }
+
+  main_texture = NULL;
+  main_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
+                                   texture_width, texture_height);
+
+  if (main_texture == NULL) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create texture: %s", SDL_GetError());
+    return false;
+  }
+
+  SDL_SetTextureScaleMode(main_texture, texture_scaling_mode);
+
+  SDL_SetRenderTarget(rend, main_texture);
+
+  SDL_SetRenderDrawColor(rend, global_background_color.r, global_background_color.g,
+                         global_background_color.b, global_background_color.a);
+
+  if (!SDL_RenderClear(rend)) {
+    SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Couldn't clear renderer: %s", SDL_GetError());
+    return 0;
+  }
+
+  renderer_set_font_mode(0);
+
+  SDL_SetHint(SDL_HINT_IOS_HIDE_HOME_INDICATOR, "1");
+
+  dirty = 1;
+
+  SDL_PumpEvents();
+  render_screen(conf);
+
+  return 1;
+}
+
+void render_screen(config_params_s *conf) {
+  if (!dirty) {
+    // No draw commands have been issued since the last function call, do nothing
+    return;
+  }
+
+  if (!conf) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "render_screen configuration parameter is NULL.");
+    return;
+  }
+
+  dirty = 0;
+
+  if (!SDL_SetRenderTarget(rend, NULL)) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't set renderer target to window: %s",
+                    SDL_GetError());
+  }
+
+  if (!SDL_SetRenderDrawColor(rend, global_background_color.r, global_background_color.g,
+                              global_background_color.b, global_background_color.a)) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't set render draw color: %s", SDL_GetError());
+  }
+
+  if (!SDL_RenderClear(rend)) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't clear renderer: %s", SDL_GetError());
+  }
+
+  if (conf->integer_scaling) {
+    // Direct rendering with integer scaling
     if (!SDL_RenderTexture(rend, main_texture, NULL, NULL)) {
       SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't render texture: %s", SDL_GetError());
     }
+  } else {
 
-    if (!SDL_RenderPresent(rend)) {
-      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't present renderer: %s", SDL_GetError());
+    int window_width, window_height;
+    if (!SDL_GetWindowSize(win, &window_width, &window_height)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't get window size: %s", SDL_GetError());
     }
 
-    if (!SDL_SetRenderTarget(rend, main_texture)) {
-      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't set renderer target to texture: %s", SDL_GetError());
+    // Determine the texture aspect ratio
+    const float texture_aspect_ratio = (float)texture_width / (float)texture_height;
+
+    // Determine the window aspect ratio
+    const float window_aspect_ratio = (float)window_width / (float)window_height;
+
+    // Ensure that HD texture exists
+    if (hd_texture == NULL) {
+      create_hd_texture(); // Create the texture dynamically based on window size
     }
 
-    fps++;
+    if (!SDL_SetRenderTarget(rend, hd_texture)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't set HD render target: %s", SDL_GetError());
+    }
 
-    if (SDL_GetTicks() - ticks_fps > 5000) {
-      ticks_fps = SDL_GetTicks();
-      SDL_LogDebug(SDL_LOG_CATEGORY_VIDEO, "%.1f fps\n", (float)fps / 5);
-      fps = 0;
+    // Fill HD texture with BG color
+    SDL_SetRenderDrawColor(rend, global_background_color.r, global_background_color.g,
+                           global_background_color.b, global_background_color.a);
+
+    if (!SDL_RenderClear(rend)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't clear HD texture: %s", SDL_GetError());
+    }
+
+    // Render the main texture to hd_texture. It has the same aspect ratio, so a NULL rect works.
+    if (!SDL_RenderTexture(rend, main_texture, NULL, NULL)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't render main texture to HD texture: %s",
+                      SDL_GetError());
+    };
+
+    // Switch the render target back to the window
+    if (!SDL_SetRenderTarget(rend, NULL)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't reset render target to window: %s",
+                      SDL_GetError());
+    }
+
+    float texture_width_hd, texture_height_hd;
+    SDL_GetTextureSize(hd_texture, &texture_width_hd, &texture_height_hd);
+
+    SDL_FRect dest_rect;
+
+    if (window_aspect_ratio > texture_aspect_ratio) {
+      // Window is relatively wider than the texture
+      dest_rect.h = (float)window_height;
+      dest_rect.w = dest_rect.h * texture_aspect_ratio;
+      dest_rect.x = ((float)window_width - dest_rect.w) / 2.0f;
+      dest_rect.y = 0;
+      SDL_RenderTexture(rend, hd_texture, NULL, &dest_rect);
+    } else if (window_aspect_ratio < texture_aspect_ratio) {
+      // Window is relatively taller than the texture
+      dest_rect.w = (float)window_width;
+      dest_rect.h = dest_rect.w / texture_aspect_ratio;
+      dest_rect.x = 0;
+      dest_rect.y = ((float)window_height - dest_rect.h) / 2.0f;
+      // Render the HD texture with the calculated destination rectangle
+      SDL_RenderTexture(rend, hd_texture, NULL, &dest_rect);
+    } else {
+      // Window and texture aspect ratios match
+      SDL_RenderTexture(rend, hd_texture, NULL, NULL);
     }
   }
+
+  if (!SDL_RenderPresent(rend)) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't present renderer: %s", SDL_GetError());
+  }
+
+  if (!SDL_SetRenderTarget(rend, main_texture)) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't set renderer target to texture: %s",
+                    SDL_GetError());
+  }
+
+  log_fps_stats();
 }
 
 int screensaver_init(void) {
   if (screensaver_initialized) {
     return 1;
   }
-  SDL_SetRenderTarget(rend,main_texture);
+  SDL_SetRenderTarget(rend, main_texture);
   renderer_set_font_mode(1);
   global_background_color.r = 0, global_background_color.g = 0, global_background_color.b = 0;
   fx_cube_init(rend, (SDL_Color){255, 255, 255, 255}, texture_width, texture_height,
@@ -396,9 +521,23 @@ void screensaver_destroy(void) {
   screensaver_initialized = 0;
 }
 
-void renderer_fix_texture_scaling_after_window_resize(void) {
+void renderer_fix_texture_scaling_after_window_resize(config_params_s *conf) {
   SDL_SetRenderTarget(rend, NULL);
-  SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height, window_scaling_mode);
+  if (conf->integer_scaling) {
+    // SDL internal integer scaling works well for this purpose
+    SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height,
+                                     SDL_LOGICAL_PRESENTATION_INTEGER_SCALE);
+  } else {
+    // Fullscreen scaling: use an intermediate texture with the highest possible integer size factor
+    if (hd_texture != NULL) {
+      SDL_DestroyTexture(hd_texture);
+      create_hd_texture();
+    }
+    // SDL forces black borders in letterbox mode, so in HD mode the texture scaling is manual
+    SDL_SetRenderLogicalPresentation(rend, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
+    SDL_SetTextureScaleMode(main_texture, SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(hd_texture, SDL_SCALEMODE_LINEAR);
+  }
   SDL_SetTextureScaleMode(main_texture, texture_scaling_mode);
 }
 

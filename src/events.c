@@ -18,6 +18,13 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
   case SDL_EVENT_TERMINATING:
     ret_val = SDL_APP_SUCCESS;
     break;
+  case SDL_EVENT_WINDOW_RESIZED:
+  case SDL_EVENT_WINDOW_MOVED:
+    // If the window size is changed, some operating systems might need a little nudge to fix scaling
+    renderer_fix_texture_scaling_after_window_resize(&ctx->conf);
+    break;
+
+  // --- iOS specific events ---
   case SDL_EVENT_DID_ENTER_BACKGROUND:
     // iOS: Application entered into the background on iOS. About 5 seconds to stop things.
     SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Received SDL_EVENT_DID_ENTER_BACKGROUND");
@@ -40,11 +47,8 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
       renderer_clear_screen();
       m8_resume_processing();
     }
-  case SDL_EVENT_WINDOW_RESIZED:
-  case SDL_EVENT_WINDOW_MOVED:
-    // If the window size is changed, some operating systems might need a little nudge to fix scaling
-    renderer_fix_texture_scaling_after_window_resize();
-    break;
+  case SDL_EVENT_FINGER_DOWN:
+
 
   // --- Input events ---
   case SDL_EVENT_GAMEPAD_ADDED:

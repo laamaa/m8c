@@ -12,7 +12,7 @@
 int renderer_initialize(config_params_s *conf);
 void renderer_close(void);
 void renderer_set_font_mode(int mode);
-void renderer_fix_texture_scaling_after_window_resize(void);
+void renderer_fix_texture_scaling_after_window_resize(config_params_s *conf);
 void renderer_clear_screen(void);
 
 void draw_waveform(struct draw_oscilloscope_waveform_command *command);
@@ -21,7 +21,7 @@ int draw_character(struct draw_character_command *command);
 
 void set_m8_model(unsigned int model);
 
-void render_screen(void);
+void render_screen(config_params_s *conf);
 void toggle_fullscreen(void);
 void display_keyjazz_overlay(uint8_t show, uint8_t base_octave, uint8_t velocity);
 

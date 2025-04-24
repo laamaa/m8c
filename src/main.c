@@ -31,7 +31,7 @@ static void do_wait_for_device(struct app_context *ctx) {
     screensaver_initialized = screensaver_init();
   }
   screensaver_draw();
-  render_screen();
+  render_screen(&ctx->conf);
 
   // Poll for M8 device every second
   if (ctx->device_connected == 0 && SDL_GetTicks() - ticks_poll_device > 1000) {
@@ -45,14 +45,14 @@ static void do_wait_for_device(struct app_context *ctx) {
         }
       }
 
-      const int m8_enabled = m8_enable_display(0);
+      const int m8_enabled = m8_enable_display(1);
       // Device was found; enable display and proceed to the main loop
       if (m8_enabled == 1) {
         ctx->app_state = RUN;
         ctx->device_connected = 1;
+        SDL_Delay(100); // Give the display time to initialize
         screensaver_destroy();
         screensaver_initialized = 0;
-        SDL_Delay(100);     // Give the device time to initialize
         m8_reset_display(); // Avoid display glitches.
       } else {
         SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected.");
@@ -87,10 +87,13 @@ static config_params_s initialize_config(int argc, char *argv[], char **preferre
   }
 
   config_params_s conf = config_initialize(*config_filename);
-#ifndef TARGET_OS_IOS
-  // It's not possible to edit the config on iOS, so let's go with the defaults
-  config_read(&conf);
-#endif
+  if (TARGET_OS_IOS == 0) {
+    // It's not possible to edit the config on iOS, so let's go with the defaults
+    config_read(&conf);
+  } else {
+    // Use integer scaling on iOS
+    conf.integer_scaling = 0;
+  }
   return conf;
 }
 
@@ -141,7 +144,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     } else if (result == DEVICE_FATAL_ERROR) {
       return SDL_APP_FAILURE;
     }
-    render_screen();
+    render_screen(&ctx->conf);
     break;
   }
 
@@ -168,7 +171,6 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
 
   *appstate = ctx;
   ctx->app_state = INITIALIZE;
-
   ctx->conf = initialize_config(argc, argv, &ctx->preferred_device, &config_filename);
   ctx->device_connected =
       handle_m8_connection_init(ctx->conf.wait_for_device, ctx->preferred_device);
@@ -192,13 +194,13 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
     return SDL_APP_FAILURE;
   }
 
-  if (ctx->device_connected && m8_enable_display(0)) {
+  if (ctx->device_connected && m8_enable_display(1)) {
     if (ctx->conf.audio_enabled) {
       audio_initialize(ctx->conf.audio_device_name, ctx->conf.audio_buffer_size);
     }
     ctx->app_state = RUN;
-    SDL_Delay(100); // Give the device time to initialize
-    m8_reset_display(); // Avoid display glitches.
+    render_screen(&ctx->conf);
+    m8_reset_display(); // Second reset to avoid display glitches.
   } else {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected.");
     ctx->device_connected = 0;
