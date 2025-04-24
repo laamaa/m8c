@@ -18,6 +18,11 @@
 #include "gamepads.h"
 #include "render.h"
 
+// On MacOS TARGET_OS_IOS is defined as 0, so make sure that it's consistent on other platforms as well
+#ifndef TARGET_OS_IOS
+#define TARGET_OS_IOS 0
+#endif
+
 static void do_wait_for_device(struct app_context *ctx) {
   static Uint64 ticks_poll_device = 0;
   static int screensaver_initialized = 0;
@@ -87,13 +92,11 @@ static config_params_s initialize_config(int argc, char *argv[], char **preferre
   }
 
   config_params_s conf = config_initialize(*config_filename);
+
   if (TARGET_OS_IOS == 0) {
     // It's not possible to edit the config on iOS, so let's go with the defaults
     config_read(&conf);
-  } else {
-    // Use integer scaling on iOS
-    conf.integer_scaling = 0;
-  }
+  } 
   return conf;
 }
 

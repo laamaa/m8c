@@ -29,7 +29,7 @@ config_params_s config_initialize(char *filename) {
   }
 
   c.init_fullscreen = 0; // default fullscreen state at load
-  c.integer_scaling = 1; // use integer scaling for the user interface
+  c.integer_scaling = 0; // use integer scaling for the user interface
   c.idle_ms = 10;        // default to high performance
   c.wait_for_device = 1; // default to exit if device disconnected
   c.wait_packets = 256;  // amount of empty command queue reads before assuming device disconnected

@@ -37,6 +37,7 @@ static int waveform_max_height = 24;
 
 static int texture_width = 320;
 static int texture_height = 240;
+static int hd_texture_width, hd_texture_height = 0;
 
 static int screensaver_initialized = 0;
 
@@ -49,7 +50,6 @@ static uint8_t dirty = 1;
 
 // Creates an intermediate texture dynamically based on window size
 static void create_hd_texture() {
-  SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "Creating HD texture");
   int window_width, window_height;
 
   // Get the current window size
@@ -60,13 +60,20 @@ static void create_hd_texture() {
   if (scale_factor < 1) {
     scale_factor = 1; // Ensure at least 1x scaling
   }
-  SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "HD texture scale factor: %d", scale_factor);
 
   // Calculate the HD texture size
-  const int hd_texture_width = texture_width * scale_factor;
-  const int hd_texture_height = texture_height * scale_factor;
-  SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "HD texture size: %dx%d", hd_texture_width,
-               hd_texture_height);
+  const int new_hd_texture_width = texture_width * scale_factor;
+  const int new_hd_texture_height = texture_height * scale_factor;
+  if (hd_texture != NULL && new_hd_texture_width == hd_texture_width && new_hd_texture_height == hd_texture_height) {
+    // Texture exists and there is no change in the size, carry on
+    return;
+  }
+
+  hd_texture_width = new_hd_texture_width;
+  hd_texture_height = new_hd_texture_height;
+
+  SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "Creating HD texture, scale factor: %d, size: %dx%d", scale_factor,
+               hd_texture_width, hd_texture_height);
 
   // Destroy any existing HD texture
   if (hd_texture != NULL) {
@@ -530,8 +537,7 @@ void renderer_fix_texture_scaling_after_window_resize(config_params_s *conf) {
   } else {
     // Fullscreen scaling: use an intermediate texture with the highest possible integer size factor
     if (hd_texture != NULL) {
-      SDL_DestroyTexture(hd_texture);
-      create_hd_texture();
+      create_hd_texture(); // Recreate hd texture if necessary
     }
     // SDL forces black borders in letterbox mode, so in HD mode the texture scaling is manual
     SDL_SetRenderLogicalPresentation(rend, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
