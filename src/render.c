@@ -30,13 +30,13 @@ static SDL_ScaleMode texture_scaling_mode = SDL_SCALEMODE_NEAREST;
 static uint32_t ticks_fps;
 static int fps;
 static int font_mode = -1;
-static unsigned int m8_hardware_model = 0;
+static unsigned int m8_hardware_model = 1;
 static int screen_offset_y = 0;
 static int text_offset_y = 0;
 static int waveform_max_height = 24;
 
-static int texture_width = 320;
-static int texture_height = 240;
+static int texture_width = 480;
+static int texture_height = 320;
 static int hd_texture_width, hd_texture_height = 0;
 
 static int screensaver_initialized = 0;
@@ -48,12 +48,41 @@ uint8_t fullscreen = 0;
 
 static uint8_t dirty = 0;
 
+void setup_hd_texture_scaling(void) {
+  // Fullscreen scaling: use an intermediate texture with the highest possible integer size factor
+
+  int window_width, window_height;
+  if (!SDL_GetWindowSizeInPixels(win, &window_width, &window_height)) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't get window size: %s", SDL_GetError());
+  }
+
+  // Determine the texture aspect ratio
+  const float texture_aspect_ratio = (float)texture_width / (float)texture_height;
+
+  // Determine the window aspect ratio
+  const float window_aspect_ratio = (float)window_width / (float)window_height;
+
+  SDL_Texture *og_texture = SDL_GetRenderTarget(rend);
+  SDL_SetRenderTarget(rend, NULL);
+  // SDL forces black borders in letterbox mode, so in HD mode the texture scaling is manual
+  SDL_SetRenderLogicalPresentation(rend, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
+  SDL_SetTextureScaleMode(main_texture, SDL_SCALEMODE_NEAREST);
+
+  // Check the aspect ratio to avoid unnecessary antialiasing
+  if (texture_aspect_ratio == window_aspect_ratio) {
+    SDL_SetTextureScaleMode(hd_texture, SDL_SCALEMODE_NEAREST);
+  } else {
+    SDL_SetTextureScaleMode(hd_texture, SDL_SCALEMODE_LINEAR);
+  }
+  SDL_SetRenderTarget(rend, og_texture);
+}
+
 // Creates an intermediate texture dynamically based on window size
 static void create_hd_texture() {
   int window_width, window_height;
 
   // Get the current window size
-  SDL_GetWindowSize(win, &window_width, &window_height);
+  SDL_GetWindowSizeInPixels(win, &window_width, &window_height);
 
   // Calculate the maximum integer scaling factor
   int scale_factor = SDL_min(window_width / texture_width, window_height / texture_height);
@@ -93,6 +122,9 @@ static void create_hd_texture() {
     SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't set HD texture scale mode: %s",
                     SDL_GetError());
   }
+
+  setup_hd_texture_scaling();
+
 }
 
 static void change_font(struct inline_font *font) {
@@ -121,13 +153,13 @@ static void check_and_adjust_window_and_texture_size(const int new_width, const 
   if (hd_texture != NULL) {
     SDL_DestroyTexture(hd_texture);
     create_hd_texture(); // Create the texture dynamically based on window size
+    setup_hd_texture_scaling();
   }
 
   if (main_texture != NULL) {
     SDL_DestroyTexture(main_texture);
   }
 
-  SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height, window_scaling_mode);
   main_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
                                    texture_width, texture_height);
   SDL_SetTextureScaleMode(main_texture, texture_scaling_mode);
@@ -541,31 +573,10 @@ void renderer_fix_texture_scaling_after_window_resize(config_params_s *conf) {
     SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height,
                                      SDL_LOGICAL_PRESENTATION_INTEGER_SCALE);
   } else {
-    // Fullscreen scaling: use an intermediate texture with the highest possible integer size factor
     if (hd_texture != NULL) {
       create_hd_texture(); // Recreate hd texture if necessary
     }
-    int window_width, window_height;
-    if (!SDL_GetWindowSizeInPixels(win, &window_width, &window_height)) {
-      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't get window size: %s", SDL_GetError());
-    }
-
-    // Determine the texture aspect ratio
-    const float texture_aspect_ratio = (float)texture_width / (float)texture_height;
-
-    // Determine the window aspect ratio
-    const float window_aspect_ratio = (float)window_width / (float)window_height;
-
-    // SDL forces black borders in letterbox mode, so in HD mode the texture scaling is manual
-    SDL_SetRenderLogicalPresentation(rend, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
-    SDL_SetTextureScaleMode(main_texture, SDL_SCALEMODE_NEAREST);
-
-    // Check the aspect ratio to avoid unnecessary antialiasing
-    if (texture_aspect_ratio == window_aspect_ratio) {
-      SDL_SetTextureScaleMode(hd_texture, SDL_SCALEMODE_NEAREST);
-    } else {
-      SDL_SetTextureScaleMode(hd_texture, SDL_SCALEMODE_LINEAR);
-    }
+    setup_hd_texture_scaling();
   }
   SDL_SetTextureScaleMode(main_texture, texture_scaling_mode);
 }
