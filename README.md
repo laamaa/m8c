@@ -32,7 +32,7 @@ When running the program for the first time on MacOS, it may not open as it is f
 
 ### Linux
 
-There are packages available for Fedora Linux and NixOS, or you can build the program from source.
+There are packages available for Fedora Linux, NixOS and Guix, or you can build the program from source.
 
 #### Fedora
 ``` sh
@@ -49,6 +49,11 @@ Or if you're using flakes and the nix command, you can run the app directly with
 
 ```sh
 nix run github:laamaa/m8c
+```
+
+#### Guix
+``` sh
+guix install m8c
 ```
 
 ### Building from source code
