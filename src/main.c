@@ -93,10 +93,13 @@ static config_params_s initialize_config(int argc, char *argv[], char **preferre
 
   config_params_s conf = config_initialize(*config_filename);
 
-  if (TARGET_OS_IOS == 0) {
-    // It's not possible to edit the config on iOS, so let's go with the defaults
+  if (TARGET_OS_IOS == 1) {
+    // Predefined settings for iOS
+    conf.init_fullscreen=1;
+  } else {
+    // On other platforms, read config normally
     config_read(&conf);
-  } 
+  }
   return conf;
 }
 
