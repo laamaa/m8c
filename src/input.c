@@ -165,12 +165,8 @@ static input_msg_s handle_m8_keys(const SDL_Event *event, const config_params_s 
 
 /**
  * Handles the key down events during the application runtime.
- * Processes specific key inputs for actions such as toggling fullscreen,
- * quitting the application, toggling audio, resetting display, or handling keyjazz
- * and M8 key mappings. Integrates input settings based on the current context and input state.
  *
- * @param ctx Pointer to the app_context structure containing the current application
- * context and configuration parameters.
+ * @param ctx Pointer to the app_context structure
  * @param event Pointer to the SDL_Event structure containing data about the key down
  * event, including key and modifier states.
  */
@@ -198,7 +194,7 @@ void input_handle_key_down_event(struct app_context *ctx, const SDL_Event *event
     return;
   }
 
-  if (event->key.scancode == ctx->conf.key_reset && ctx->device_connected) {
+  if (event->key.scancode == ctx->conf.key_reset && ctx->device_connected && !keyjazz_enabled) {
     m8_reset_display();
     return;
   }
@@ -368,6 +364,7 @@ int input_process_and_send(const struct app_context *ctx) {
   return 1;
 }
 
+// Touch screen double tap: switch between integer scaling / full screen scaling
 void input_handle_finger_down(struct app_context *ctx, const SDL_Event *event) {
   static Uint64 last_finger_down_time = 0;
   SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Finger down");
