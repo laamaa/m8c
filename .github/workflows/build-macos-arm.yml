@@ -3,6 +3,8 @@ name: m8c macos arm64 build
 on:
   push:
   pull_request:
+  release:
+    types: [published]
   workflow_dispatch:
 
 jobs:
@@ -29,6 +31,7 @@ jobs:
 
       - name: Create Custom Keychain
         id: createCustomKeychain
+        if: github.event_name == 'release'
         env:
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
@@ -39,6 +42,8 @@ jobs:
           security set-keychain-settings build.keychain      
 
       - name: Import Apple Developer Certificate
+        id: importAppleCertificate
+        if: github.event_name == 'release'
         env:
           CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
@@ -72,6 +77,8 @@ jobs:
         run: cat /Users/runner/work/m8c/m8c/${{ env.BUILD_DIR }}/_CPack_Packages/Darwin/DragNDrop/PreinstallOutput.log
 
       - name: 'Notarize the App'
+        id: notarizeApp
+        if: github.event_name == 'release'
         run: |
           pushd ${{ env.BUILD_DIR }}
           APP_PATH=$(find package-output -maxdepth 1 -name "m8c*.dmg" | head -n 1)
@@ -88,15 +95,17 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
           TEAM_ID: ${{ secrets.TEAM_ID }}
 
-
       - name: 'Verify Stapling'
+        id: verifyStapling
+        if: github.event_name == 'release'
         run: |
           APP_PATH=$(find "${{ env.BUILD_DIR }}/package-output" -maxdepth 1 -name "m8c*.dmg" | head -n 1)
           echo "Verifying stapling on $APP_PATH"
           xcrun stapler validate "$APP_PATH"        
 
       - name: 'Delete Custom Keychain'
-        if: steps.createCustomKeychain.outcome == 'success'
+        id: deleteCustomKeychain
+        if: github.event_name == 'release' && steps.createCustomKeychain.outcome == 'success'
         run: |
           security delete-keychain build.keychain        
 
