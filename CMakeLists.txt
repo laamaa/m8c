@@ -91,9 +91,17 @@ if (APPLE)
 
     set(APPS "\${CMAKE_INSTALL_PREFIX}/${APP_NAME}.app")
 
-    install(CODE "include(BundleUtilities)
-    fixup_bundle(\"${APPS}\" \"\" \"\")
-    execute_process(COMMAND codesign --force --options runtime --deep --entitlements ../package/macos/Entitlements.plist --sign \"${CODESIGN_CERT_NAME}\" --timestamp  \${CMAKE_INSTALL_PREFIX}/${APP_NAME}.app)")
+    if(CODESIGN_CERT_NAME)
+        # Use the specified certificate
+        install(CODE "include(BundleUtilities)
+        fixup_bundle(\"${APPS}\" \"\" \"\")
+        execute_process(COMMAND codesign --force --options runtime --deep --entitlements ../package/macos/Entitlements.plist --sign \"${CODESIGN_CERT_NAME}\" --timestamp  \${CMAKE_INSTALL_PREFIX}/${APP_NAME}.app)")
+    else()
+        # Use ad-hoc signing (self-signed) when no certificate is specified
+        install(CODE "include(BundleUtilities)
+        fixup_bundle(\"${APPS}\" \"\" \"\")
+        execute_process(COMMAND codesign --force --options runtime --deep --entitlements ../package/macos/Entitlements.plist --sign - --timestamp  \${CMAKE_INSTALL_PREFIX}/${APP_NAME}.app)")
+    endif()
 
     set(CPACK_PACKAGE_NAME "m8c")
     set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
@@ -101,4 +109,3 @@ if (APPLE)
     set(CPACK_GENERATOR "DragNDrop")
     include(CPack)
 endif ()
-
