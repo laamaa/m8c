@@ -51,7 +51,7 @@ int m8_list_devices() {
 
   libusb_device **device_list = NULL;
   int count = libusb_get_device_list(ctx, &device_list);
-  for (size_t idx = 0; idx < count; ++idx) {
+  for (size_t idx = 0; idx < (size_t)count; ++idx) {
     libusb_device *device = device_list[idx];
     struct libusb_device_descriptor desc;
     int rc = libusb_get_device_descriptor(device, &desc);
@@ -71,6 +71,8 @@ int m8_list_devices() {
 }
 
 static int usb_loop(void *data) {
+  (void)data;  // Suppress unused parameter warning
+  
   SDL_SetCurrentThreadPriority(SDL_THREAD_PRIORITY_TIME_CRITICAL);
   while (!do_exit) {
     int rc = libusb_handle_events(ctx);
@@ -130,6 +132,8 @@ int blocking_write(void *buf, int count, unsigned int timeout_ms) {
   return bulk_transfer(ep_out_addr, buf, count, timeout_ms);
 }
 
+// This function is currently unused but kept for potential future use
+__attribute__((unused))
 static int bulk_async_transfer(int endpoint, uint8_t *serial_buf, int count, unsigned int timeout_ms,
                         void (*f)(struct libusb_transfer *), void *user_data) {
   struct libusb_transfer *transfer;
@@ -260,6 +264,7 @@ void async_read_stop() {
 }
 
 int m8_process_data(const config_params_s *conf) {
+  (void)conf; // Suppress unused parameter warning
   // Process any queued messages
   if (queue_size(&queue) > 0) {
     unsigned char *command;
@@ -368,6 +373,8 @@ int init_serial_with_file_descriptor(int file_descriptor) {
 }
 
 int m8_initialize(int verbose, const char *preferred_device) {
+  (void)verbose; // Suppress unused parameter warning
+  (void)preferred_device; // Suppress unused parameter warning
 
   if (devh != NULL) {
     return 1;
@@ -393,17 +400,23 @@ int m8_initialize(int verbose, const char *preferred_device) {
     char *port;
     char *saveptr = NULL;
     char *bus;
-    port = SDL_strtok_r(preferred_device, ":", &saveptr);
+    char *device_copy = SDL_strdup(preferred_device);  // Create a copy to avoid const qualifier warning
+    if (device_copy == NULL) {
+      SDL_Log("Failed to allocate memory for device string");
+      return 0;
+    }
+    port = SDL_strtok_r(device_copy, ":", &saveptr);
     bus = SDL_strtok_r(NULL, ":", &saveptr);
     libusb_device **device_list = NULL;
     int count = libusb_get_device_list(ctx, &device_list);
-    for (size_t idx = 0; idx < count; ++idx) {
+    for (size_t idx = 0; idx < (size_t)count; ++idx) {
       libusb_device *device = device_list[idx];
       struct libusb_device_descriptor desc;
       r = libusb_get_device_descriptor(device, &desc);
       if (r < 0) {
         SDL_Log("libusb_get_device_descriptor failed: %s", libusb_error_name(r));
         libusb_free_device_list(device_list, 1);
+        SDL_free(device_copy);
         return 0;
       }
 
@@ -415,12 +428,15 @@ int m8_initialize(int verbose, const char *preferred_device) {
           r = libusb_open(device, &devh);
           if (r < 0) {
             SDL_Log("libusb_open failed: %s", libusb_error_name(r));
+            libusb_free_device_list(device_list, 1);
+            SDL_free(device_copy);
             return 0;
           }
         }
       }
     }
     libusb_free_device_list(device_list, 1);
+    SDL_free(device_copy);  // Free the allocated copy
     if (devh == NULL) {
       SDL_Log("Preferred device %s not found, using first available", preferred_device);
       devh = libusb_open_device_with_vid_pid(ctx, M8_VID, M8_PID);
@@ -452,6 +468,7 @@ int m8_reset_display() {
 }
 
 int m8_enable_display(const unsigned char reset_display) {
+  (void)reset_display; // Suppress unused parameter warning
   if (devh == NULL) {
     return 0;
   }

@@ -26,14 +26,17 @@ static int audio_prebuffer_filled = 0;
 #define PREBUFFER_SIZE (8 * 1024)  // Wait for 8KB before starting playback
 
 static void audio_callback(void *userdata, SDL_AudioStream *stream, int additional_amount, int total_amount) {
+  (void)userdata;  // Suppress unused parameter warning
+  (void)additional_amount;  // Suppress unused parameter warning
+  
   // Reallocate callback buffer if needed
-  if (audio_callback_buffer_size < total_amount) {
+  if (audio_callback_buffer_size < (size_t)total_amount) {
     audio_callback_buffer = SDL_realloc(audio_callback_buffer, total_amount);
     if (audio_callback_buffer == NULL) {
       SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to allocate audio buffer");
       return;
     }
-    audio_callback_buffer_size = total_amount;
+    audio_callback_buffer_size = (size_t)total_amount;
   }
 
   // Try to get audio data from ring buffer
@@ -55,7 +58,7 @@ static void audio_callback(void *userdata, SDL_AudioStream *stream, int addition
     SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Audio prebuffer filled, starting playback");
   }
 
-  if (available_bytes >= total_amount) {
+  if (available_bytes >= (uint32_t)total_amount) {
     // We have enough data, read it
     uint32_t read_len = ring_buffer_pop(audio_buffer, audio_callback_buffer, total_amount);
     if (read_len > 0) {
@@ -86,7 +89,7 @@ static void cb_xfr(struct libusb_transfer *xfr) {
   unsigned int i;
   static int error_count = 0;
 
-  for (i = 0; i < xfr->num_iso_packets; i++) {
+  for (i = 0; i < (unsigned int)xfr->num_iso_packets; i++) {
     struct libusb_iso_packet_descriptor *pack = &xfr->iso_packet_desc[i];
 
     if (pack->status != LIBUSB_TRANSFER_COMPLETED) {
@@ -102,7 +105,7 @@ static void cb_xfr(struct libusb_transfer *xfr) {
       const uint8_t *data = libusb_get_iso_packet_buffer_simple(xfr, i);
       if (sdl_audio_stream != 0 && audio_buffer != NULL) {
         uint32_t actual = ring_buffer_push(audio_buffer, data, pack->actual_length);
-        if (actual == -1) {
+        if (actual == (uint32_t)-1) {
           SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Buffer overflow!");
         }
       }
@@ -146,6 +149,8 @@ static int benchmark_in() {
 }
 
 int audio_initialize(const char *output_device_name, unsigned int audio_buffer_size) {
+  (void)audio_buffer_size;  // Suppress unused parameter warning
+  
   SDL_Log("USB audio setup");
 
   if (devh == NULL) {
@@ -283,6 +288,8 @@ void audio_close() {
 }
 
 void audio_toggle(const char *output_device_name, unsigned int audio_buffer_size) {
+  (void)output_device_name;  // Suppress unused parameter warning
+  (void)audio_buffer_size;  // Suppress unused parameter warning
   SDL_Log("Libusb audio toggling not implemented yet");
 }
 

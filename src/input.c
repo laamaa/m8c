@@ -366,6 +366,7 @@ int input_process_and_send(const struct app_context *ctx) {
 
 // Touch screen double tap: switch between integer scaling / full screen scaling
 void input_handle_finger_down(struct app_context *ctx, const SDL_Event *event) {
+  (void)event; // Suppress unused parameter warning
   static Uint64 last_finger_down_time = 0;
   SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Finger down");
   const Uint64 current_time = SDL_GetTicks();
