@@ -9,13 +9,13 @@
 typedef struct config_params_s {
   char *filename;
   unsigned int init_fullscreen;
-  unsigned int init_use_gpu;
+  unsigned int integer_scaling;
   unsigned int idle_ms;
   unsigned int wait_for_device;
   unsigned int wait_packets;
   unsigned int audio_enabled;
   unsigned int audio_buffer_size;
-  const char *audio_device_name;
+  char *audio_device_name;
 
   unsigned int key_up;
   unsigned int key_left;
@@ -59,9 +59,8 @@ typedef struct config_params_s {
 
 } config_params_s;
 
-
-config_params_s init_config(char *filename);
-void read_config(config_params_s *conf);
+config_params_s config_initialize(char *filename);
+void config_read(config_params_s *conf);
 void read_audio_config(const ini_t *ini, config_params_s *conf);
 void read_graphics_config(const ini_t *ini, config_params_s *conf);
 void read_key_config(const ini_t *ini, config_params_s *conf);

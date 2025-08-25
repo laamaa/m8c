@@ -3,35 +3,43 @@
 
 #include "render.h"
 
-#include <SDL.h>
-#include <stdio.h>
+#include <SDL3/SDL.h>
 
 #include "SDL2_inprint.h"
 #include "command.h"
+#include "config.h"
 #include "fx_cube.h"
 
-#include "font1.h"
-#include "font2.h"
-#include "font3.h"
-#include "font4.h"
-#include "font5.h"
-#include "inline_font.h"
+#include "fonts/font1.h"
+#include "fonts/font2.h"
+#include "fonts/font3.h"
+#include "fonts/font4.h"
+#include "fonts/font5.h"
+#include "fonts/inline_font.h"
 
-SDL_Window *win;
-SDL_Renderer *rend;
-SDL_Texture *maintexture;
-SDL_Color background_color = (SDL_Color){.r = 0x00, .g = 0x00, .b = 0x00, .a = 0x00};
+#include <stdlib.h>
+
+static SDL_Window *win;
+static SDL_Renderer *rend;
+static SDL_Texture *main_texture;
+static SDL_Texture *hd_texture = NULL;
+static SDL_Color global_background_color = (SDL_Color){.r = 0x00, .g = 0x00, .b = 0x00, .a = 0x00};
+static SDL_RendererLogicalPresentation window_scaling_mode = SDL_LOGICAL_PRESENTATION_INTEGER_SCALE;
+static SDL_ScaleMode texture_scaling_mode = SDL_SCALEMODE_NEAREST;
 
 static uint32_t ticks_fps;
 static int fps;
 static int font_mode = -1;
-static int m8_hardware_model = 0;
+static unsigned int m8_hardware_model = 0;
 static int screen_offset_y = 0;
 static int text_offset_y = 0;
 static int waveform_max_height = 24;
 
 static int texture_width = 320;
 static int texture_height = 240;
+static int hd_texture_width, hd_texture_height = 0;
+
+static int screensaver_initialized = 0;
 
 struct inline_font *fonts[5] = {&font_v1_small, &font_v1_large, &font_v2_small, &font_v2_large,
                                 &font_v2_huge};
@@ -40,93 +48,136 @@ uint8_t fullscreen = 0;
 
 static uint8_t dirty = 0;
 
-// Initializes SDL and creates a renderer and required surfaces
-int initialize_sdl(const int init_fullscreen, const int init_use_gpu) {
+void setup_hd_texture_scaling(void) {
+  // Fullscreen scaling: use an intermediate texture with the highest possible integer size factor
 
-  if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-    SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "SDL_Init: %s\n", SDL_GetError());
-    return -1;
+  int window_width, window_height;
+  if (!SDL_GetWindowSizeInPixels(win, &window_width, &window_height)) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't get window size: %s", SDL_GetError());
   }
 
-  // SDL documentation recommends this
-  atexit(SDL_Quit);
+  // Determine the texture aspect ratio
+  const float texture_aspect_ratio = (float)texture_width / (float)texture_height;
 
-  win = SDL_CreateWindow(
-      "m8c", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, texture_width * 2, texture_height * 2,
-      SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | init_fullscreen);
+  // Determine the window aspect ratio
+  const float window_aspect_ratio = (float)window_width / (float)window_height;
 
-  rend =
-      SDL_CreateRenderer(win, -1, init_use_gpu ? SDL_RENDERER_ACCELERATED : SDL_RENDERER_SOFTWARE);
+  SDL_Texture *og_texture = SDL_GetRenderTarget(rend);
+  SDL_SetRenderTarget(rend, NULL);
+  // SDL forces black borders in letterbox mode, so in HD mode the texture scaling is manual
+  SDL_SetRenderLogicalPresentation(rend, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
+  SDL_SetTextureScaleMode(main_texture, SDL_SCALEMODE_NEAREST);
 
-  SDL_RenderSetLogicalSize(rend, texture_width, texture_height);
+  // Check the aspect ratio to avoid unnecessary antialiasing
+  if (texture_aspect_ratio == window_aspect_ratio) {
+    SDL_SetTextureScaleMode(hd_texture, SDL_SCALEMODE_NEAREST);
+  } else {
+    SDL_SetTextureScaleMode(hd_texture, SDL_SCALEMODE_LINEAR);
+  }
+  SDL_SetRenderTarget(rend, og_texture);
+}
 
-  maintexture = NULL;
+// Creates an intermediate texture dynamically based on window size
+static void create_hd_texture() {
+  int window_width, window_height;
 
-  maintexture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
-                                  texture_width, texture_height);
+  // Get the current window size
+  SDL_GetWindowSizeInPixels(win, &window_width, &window_height);
 
-  SDL_SetRenderTarget(rend, maintexture);
+  // Calculate the maximum integer scaling factor
+  int scale_factor = SDL_min(window_width / texture_width, window_height / texture_height);
+  if (scale_factor < 1) {
+    scale_factor = 1; // Ensure at least 1x scaling
+  }
 
-  SDL_SetRenderDrawColor(rend, background_color.r, background_color.g, background_color.b,
-                         background_color.a);
+  // Calculate the HD texture size
+  const int new_hd_texture_width = texture_width * scale_factor;
+  const int new_hd_texture_height = texture_height * scale_factor;
+  if (hd_texture != NULL && new_hd_texture_width == hd_texture_width && new_hd_texture_height == hd_texture_height) {
+    // Texture exists and there is no change in the size, carry on
+    SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "HD texture size not changed, skipping");
+    return;
+  }
 
-  SDL_RenderClear(rend);
+  hd_texture_width = new_hd_texture_width;
+  hd_texture_height = new_hd_texture_height;
 
-  set_font_mode(0);
+  SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "Creating HD texture, scale factor: %d, size: %dx%d", scale_factor,
+               hd_texture_width, hd_texture_height);
 
-  SDL_LogSetAllPriority(SDL_LOG_PRIORITY_INFO);
+  // Destroy any existing HD texture
+  if (hd_texture != NULL) {
+    SDL_DestroyTexture(hd_texture);
+  }
 
-  dirty = 1;
+  // Create a new HD texture with the calculated size
+  hd_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
+                                 hd_texture_width, hd_texture_height);
+  if (!hd_texture) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't create HD texture: %s", SDL_GetError());
+  }
 
-  return 1;
+  // Optionally, set a linear scaling mode for smoother rendering
+  if (!SDL_SetTextureScaleMode(hd_texture, SDL_SCALEMODE_LINEAR)) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't set HD texture scale mode: %s",
+                    SDL_GetError());
+  }
+
+  setup_hd_texture_scaling();
 }
 
 static void change_font(struct inline_font *font) {
-  kill_inline_font();
-  inrenderer(rend);
-  prepare_inline_font(font);
+  inline_font_close();
+  inline_font_set_renderer(rend);
+  inline_font_initialize(font);
 }
 
-static void check_and_adjust_window_and_texture_size(const unsigned int new_width,
-                                                     const unsigned int new_height) {
+static void check_and_adjust_window_and_texture_size(const int new_width, const int new_height) {
 
-  int h, w;
+  if (texture_width == new_width && texture_height == new_height) {
+    return;
+  }
+
+  int window_h, window_w;
 
   texture_width = new_width;
   texture_height = new_height;
 
   // Query window size and resize if smaller than default
-  SDL_GetWindowSize(win, &w, &h);
-  if (w < texture_width * 2 || h < texture_height * 2) {
+  SDL_GetWindowSize(win, &window_w, &window_h);
+  if (window_w < texture_width * 2 || window_h < texture_height * 2) {
     SDL_SetWindowSize(win, texture_width * 2, texture_height * 2);
   }
 
-  SDL_DestroyTexture(maintexture);
+  if (hd_texture != NULL) {
+    SDL_DestroyTexture(hd_texture);
+    create_hd_texture(); // Create the texture dynamically based on window size
+    setup_hd_texture_scaling();
+  }
 
-  SDL_RenderSetLogicalSize(rend, texture_width, texture_height);
+  if (main_texture != NULL) {
+    SDL_DestroyTexture(main_texture);
+  }
 
-  maintexture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
-                                  texture_width, texture_height);
-
-  SDL_SetRenderTarget(rend, maintexture);
+  main_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
+                                   texture_width, texture_height);
+  SDL_SetTextureScaleMode(main_texture, texture_scaling_mode);
+  SDL_SetRenderTarget(rend, main_texture);
 }
 
-// Set M8 hardware model in use. 0 = MK1, 1 = MK2
+// Set the M8 hardware model in use. 0 = MK1, 1 = MK2
 void set_m8_model(const unsigned int model) {
 
-  switch (model) {
-  case 1:
+  if (model == 1) {
     m8_hardware_model = 1;
     check_and_adjust_window_and_texture_size(480, 320);
-    break;
-  default:
+  } else {
     m8_hardware_model = 0;
     check_and_adjust_window_and_texture_size(320, 240);
-    break;
   }
 }
 
-void set_font_mode(int mode) {
+void renderer_set_font_mode(int mode) {
   if (mode < 0 || mode > 2) {
     // bad font mode
     return;
@@ -146,19 +197,31 @@ void set_font_mode(int mode) {
   SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "Font mode %i, Screen offset %i", mode, screen_offset_y);
 }
 
-void close_renderer() {
-  kill_inline_font();
-  SDL_DestroyTexture(maintexture);
+void renderer_close(void) {
+  SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "Closing renderer");
+  inline_font_close();
+  if (main_texture != NULL) {
+    SDL_DestroyTexture(main_texture);
+  }
+  if (hd_texture != NULL) {
+    SDL_DestroyTexture(hd_texture);
+  }
   SDL_DestroyRenderer(rend);
   SDL_DestroyWindow(win);
 }
 
-void toggle_fullscreen() {
+void toggle_fullscreen(void) {
 
-  const int fullscreen_state = SDL_GetWindowFlags(win) & SDL_WINDOW_FULLSCREEN;
+  const unsigned long fullscreen_state = SDL_GetWindowFlags(win) & SDL_WINDOW_FULLSCREEN;
 
-  SDL_SetWindowFullscreen(win, fullscreen_state ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
-  SDL_ShowCursor(fullscreen_state);
+  SDL_SetWindowFullscreen(win, fullscreen_state ? false : true);
+  SDL_SyncWindow(win);
+  if (fullscreen_state) {
+    // Show cursor when in a windowed state
+    SDL_ShowCursor();
+  } else {
+    SDL_HideCursor();
+  }
 
   dirty = 1;
 }
@@ -171,14 +234,13 @@ int draw_character(struct draw_character_command *command) {
       command->background.r << 16 | command->background.g << 8 | command->background.b;
 
   /* Notes:
-     If large font is enabled, offset the screen elements by a fixed amount.
-     If background and foreground colors are the same, draw transparent
+     If a large font is enabled, offset the screen elements by a fixed amount.
+     If background and foreground colors are the same, draw a transparent
      background. Due to the font bitmaps, a different pixel offset is needed for
      both*/
 
   inprint(rend, (char *)&command->c, command->pos.x,
-          command->pos.y + text_offset_y + screen_offset_y, fgcolor,
-          bgcolor);
+          command->pos.y + text_offset_y + screen_offset_y, fgcolor, bgcolor);
 
   dirty = 1;
 
@@ -187,23 +249,23 @@ int draw_character(struct draw_character_command *command) {
 
 void draw_rectangle(struct draw_rectangle_command *command) {
 
-  SDL_Rect render_rect;
+  SDL_FRect render_rect;
 
-  render_rect.x = command->pos.x;
-  render_rect.y = command->pos.y + screen_offset_y;
+  render_rect.x = (float)command->pos.x;
+  render_rect.y = (float)(command->pos.y + screen_offset_y);
   render_rect.h = command->size.height;
   render_rect.w = command->size.width;
 
   // Background color changed
-  if (render_rect.x == 0 && render_rect.y <= 0 && render_rect.w == texture_width &&
-      render_rect.h >= texture_height) {
+  if (render_rect.x == 0 && render_rect.y <= 0 && render_rect.w == (float)texture_width &&
+      render_rect.h >= (float)texture_height) {
     SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "BG color change: %d %d %d", command->color.r,
                  command->color.g, command->color.b);
-    background_color.r = command->color.r;
-    background_color.g = command->color.g;
-    background_color.b = command->color.b;
-    background_color.a = 0xFF;
-    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "x:%i, y:%i, w:%i, h:%i", render_rect.x,
+    global_background_color.r = command->color.r;
+    global_background_color.g = command->color.g;
+    global_background_color.b = command->color.b;
+    global_background_color.a = 0xFF;
+    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "x:%f, y:%f, w:%f, h:%f", render_rect.x,
                  render_rect.y, render_rect.w, render_rect.h);
 
 #ifdef __ANDROID__
@@ -223,44 +285,42 @@ void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
   static uint8_t wfm_cleared = 0;
   static int prev_waveform_size = 0;
 
-  // If the waveform is not being displayed and it's already been cleared, skip
-  // rendering it
+  // If the waveform is not being displayed, and it's already been cleared, skip rendering it
   if (!(wfm_cleared && command->waveform_size == 0)) {
 
-    SDL_Rect wf_rect;
+    SDL_FRect wf_rect;
     if (command->waveform_size > 0) {
-      wf_rect.x = texture_width - command->waveform_size;
+      wf_rect.x = (float)(texture_width - command->waveform_size);
       wf_rect.y = 0;
       wf_rect.w = command->waveform_size;
-      wf_rect.h = waveform_max_height + 1;
+      wf_rect.h = (float)(waveform_max_height + 1);
     } else {
-      wf_rect.x = texture_width - prev_waveform_size;
+      wf_rect.x = (float)(texture_width - prev_waveform_size);
       wf_rect.y = 0;
-      wf_rect.w = prev_waveform_size;
-      wf_rect.h = waveform_max_height + 1;
+      wf_rect.w = (float)prev_waveform_size;
+      wf_rect.h = (float)(waveform_max_height + 1);
     }
     prev_waveform_size = command->waveform_size;
 
-    SDL_SetRenderDrawColor(rend, background_color.r, background_color.g, background_color.b,
-                           background_color.a);
+    SDL_SetRenderDrawColor(rend, global_background_color.r, global_background_color.g,
+                           global_background_color.b, global_background_color.a);
     SDL_RenderFillRect(rend, &wf_rect);
 
     SDL_SetRenderDrawColor(rend, command->color.r, command->color.g, command->color.b, 255);
 
-    // Create a SDL_Point array of the waveform pixels for batch drawing
-    SDL_Point waveform_points[command->waveform_size];
+    // Create an SDL_Point array of the waveform pixels for batch drawing
+    SDL_FPoint waveform_points[command->waveform_size];
 
     for (int i = 0; i < command->waveform_size; i++) {
-      // Limit value because the oscilloscope commands seem to glitch
-      // occasionally
+      // Limit value to avoid random glitches
       if (command->waveform[i] > waveform_max_height) {
         command->waveform[i] = waveform_max_height;
       }
-      waveform_points[i].x = i + wf_rect.x;
+      waveform_points[i].x = (float)i + wf_rect.x;
       waveform_points[i].y = command->waveform[i];
     }
 
-    SDL_RenderDrawPoints(rend, waveform_points, command->waveform_size);
+    SDL_RenderPoints(rend, waveform_points, command->waveform_size);
 
     // The packet we just drew was an empty waveform
     if (command->waveform_size == 0) {
@@ -278,59 +338,258 @@ void display_keyjazz_overlay(const uint8_t show, const uint8_t base_octave,
 
   const Uint16 overlay_offset_x = texture_width - (fonts[font_mode]->glyph_x * 7 + 1);
   const Uint16 overlay_offset_y = texture_height - (fonts[font_mode]->glyph_y + 1);
-  const Uint32 bgcolor =
-      background_color.r << 16 | background_color.g << 8 | background_color.b;
+  const Uint32 bg_color =
+      global_background_color.r << 16 | global_background_color.g << 8 | global_background_color.b;
 
   if (show) {
     char overlay_text[7];
-    snprintf(overlay_text, sizeof(overlay_text), "%02X %u", velocity, base_octave);
-    inprint(rend, overlay_text, overlay_offset_x, overlay_offset_y, 0xC8C8C8, bgcolor);
+    SDL_snprintf(overlay_text, sizeof(overlay_text), "%02X %u", velocity, base_octave);
+    inprint(rend, overlay_text, overlay_offset_x, overlay_offset_y, 0xC8C8C8, bg_color);
     inprint(rend, "*", overlay_offset_x + (fonts[font_mode]->glyph_x * 5 + 5), overlay_offset_y,
-            0xFF0000, bgcolor);
+            0xFF0000, bg_color);
   } else {
-    inprint(rend, "      ", overlay_offset_x, overlay_offset_y, 0xC8C8C8, bgcolor);
+    inprint(rend, "      ", overlay_offset_x, overlay_offset_y, 0xC8C8C8, bg_color);
   }
 
   dirty = 1;
 }
 
-void render_screen() {
-  if (dirty) {
-    dirty = 0;
-    SDL_SetRenderTarget(rend, NULL);
+static void log_fps_stats(void) {
+  fps++;
 
-    SDL_SetRenderDrawColor(rend, background_color.r, background_color.g, background_color.b,
-                           background_color.a);
-
-    SDL_RenderClear(rend);
-    SDL_RenderCopy(rend, maintexture, NULL, NULL);
-    SDL_RenderPresent(rend);
-    SDL_SetRenderTarget(rend, maintexture);
-
-    fps++;
-
-    if (SDL_GetTicks() - ticks_fps > 5000) {
-      ticks_fps = SDL_GetTicks();
-      SDL_LogDebug(SDL_LOG_CATEGORY_VIDEO, "%.1f fps\n", (float)fps / 5);
-      fps = 0;
-    }
+  if (SDL_GetTicks() - ticks_fps > 5000) {
+    ticks_fps = SDL_GetTicks();
+    SDL_LogDebug(SDL_LOG_CATEGORY_VIDEO, "%.1f fps\n", (float)fps / 5);
+    fps = 0;
   }
 }
 
-void screensaver_init() {
-  set_font_mode(1);
+// Initializes SDL and creates a renderer and required surfaces
+int renderer_initialize(config_params_s *conf) {
+
+  // SDL documentation recommends this
+  atexit(SDL_Quit);
+
+  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) == false) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "SDL_Init: %s", SDL_GetError());
+    return 0;
+  }
+
+  if (!SDL_CreateWindowAndRenderer("m8c", texture_width * 2, texture_height * 2,
+                                   SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY |
+                                       SDL_WINDOW_OPENGL | conf->init_fullscreen,
+                                   &win, &rend)) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create window and renderer: %s",
+                    SDL_GetError());
+    return false;
+  }
+
+  SDL_SetRenderVSync(rend, 1);
+
+  if (!SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height, window_scaling_mode)) {
+    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't set renderer logical presentation: %s",
+                 SDL_GetError());
+    return false;
+  }
+
+  main_texture = NULL;
+  main_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
+                                   texture_width, texture_height);
+
+  if (main_texture == NULL) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create texture: %s", SDL_GetError());
+    return false;
+  }
+
+  if (conf->integer_scaling == 0) {
+    // Create the HD texture dynamically based on window size
+    create_hd_texture();
+  }
+
+  SDL_SetTextureScaleMode(main_texture, texture_scaling_mode);
+
+  SDL_SetRenderTarget(rend, main_texture);
+
+  SDL_SetRenderDrawColor(rend, global_background_color.r, global_background_color.g,
+                         global_background_color.b, global_background_color.a);
+
+  if (!SDL_RenderClear(rend)) {
+    SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Couldn't clear renderer: %s", SDL_GetError());
+    return 0;
+  }
+
+  renderer_set_font_mode(0);
+
+  SDL_SetHint(SDL_HINT_IOS_HIDE_HOME_INDICATOR, "1");
+  renderer_fix_texture_scaling_after_window_resize(conf); // iOS needs this, doesn't hurt on others either
+
+  dirty = 1;
+
+  SDL_PumpEvents();
+  render_screen(conf);
+
+  return 1;
+}
+
+void render_screen(config_params_s *conf) {
+  if (!dirty) {
+    // No draw commands have been issued since the last function call, do nothing
+    return;
+  }
+
+  if (!conf) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "render_screen configuration parameter is NULL.");
+    return;
+  }
+
+  dirty = 0;
+
+  if (!SDL_SetRenderTarget(rend, NULL)) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't set renderer target to window: %s",
+                    SDL_GetError());
+  }
+
+  if (!SDL_SetRenderDrawColor(rend, global_background_color.r, global_background_color.g,
+                              global_background_color.b, global_background_color.a)) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't set render draw color: %s", SDL_GetError());
+  }
+
+  if (!SDL_RenderClear(rend)) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't clear renderer: %s", SDL_GetError());
+  }
+
+  if (conf->integer_scaling) {
+    // Direct rendering with integer scaling
+    if (!SDL_RenderTexture(rend, main_texture, NULL, NULL)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't render texture: %s", SDL_GetError());
+    }
+  } else {
+    int window_width, window_height;
+    if (!SDL_GetWindowSizeInPixels(win, &window_width, &window_height)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't get window size: %s", SDL_GetError());
+    }
+
+    // Determine the texture aspect ratio
+    const float texture_aspect_ratio = (float)texture_width / (float)texture_height;
+
+    // Determine the window aspect ratio
+    const float window_aspect_ratio = (float)window_width / (float)window_height;
+
+    // Ensure that HD texture exists
+    if (hd_texture == NULL) {
+      create_hd_texture(); // Create the texture dynamically based on window size
+    }
+
+    if (!SDL_SetRenderTarget(rend, hd_texture)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't set HD render target: %s", SDL_GetError());
+    }
+
+    // Fill HD texture with BG color
+    SDL_SetRenderDrawColor(rend, global_background_color.r, global_background_color.g,
+                           global_background_color.b, global_background_color.a);
+
+    if (!SDL_RenderClear(rend)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't clear HD texture: %s", SDL_GetError());
+    }
+
+    // Render the main texture to hd_texture. It has the same aspect ratio, so a NULL rect works.
+    if (!SDL_RenderTexture(rend, main_texture, NULL, NULL)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't render main texture to HD texture: %s",
+                      SDL_GetError());
+    };
+
+    // Switch the render target back to the window
+    if (!SDL_SetRenderTarget(rend, NULL)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't reset render target to window: %s",
+                      SDL_GetError());
+    }
+
+    float texture_width_hd, texture_height_hd;
+    SDL_GetTextureSize(hd_texture, &texture_width_hd, &texture_height_hd);
+
+    SDL_FRect dest_rect;
+
+    if (window_aspect_ratio > texture_aspect_ratio) {
+      // Window is relatively wider than the texture
+      dest_rect.h = (float)window_height;
+      dest_rect.w = dest_rect.h * texture_aspect_ratio;
+      dest_rect.x = ((float)window_width - dest_rect.w) / 2.0f;
+      dest_rect.y = 0;
+      SDL_RenderTexture(rend, hd_texture, NULL, &dest_rect);
+    } else if (window_aspect_ratio < texture_aspect_ratio) {
+      // Window is relatively taller than the texture
+      dest_rect.w = (float)window_width;
+      dest_rect.h = dest_rect.w / texture_aspect_ratio;
+      dest_rect.x = 0;
+      dest_rect.y = ((float)window_height - dest_rect.h) / 2.0f;
+      // Render the HD texture with the calculated destination rectangle
+      SDL_RenderTexture(rend, hd_texture, NULL, &dest_rect);
+    } else {
+      // Window and texture aspect ratios match
+      SDL_RenderTexture(rend, hd_texture, NULL, NULL);
+    }
+  }
+
+  if (!SDL_RenderPresent(rend)) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't present renderer: %s", SDL_GetError());
+  }
+
+  if (!SDL_SetRenderTarget(rend, main_texture)) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't set renderer target to texture: %s",
+                    SDL_GetError());
+  }
+
+  log_fps_stats();
+}
+
+int screensaver_init(void) {
+  if (screensaver_initialized) {
+    return 1;
+  }
+  SDL_SetRenderTarget(rend, main_texture);
+  renderer_set_font_mode(1);
+  global_background_color.r = 0, global_background_color.g = 0, global_background_color.b = 0;
   fx_cube_init(rend, (SDL_Color){255, 255, 255, 255}, texture_width, texture_height,
                fonts[font_mode]->glyph_x);
   SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Screensaver initialized");
+  screensaver_initialized = 1;
+  return 1;
 }
 
-void screensaver_draw() {
-  fx_cube_update();
-  dirty = 1;
-}
+void screensaver_draw(void) { dirty = fx_cube_update(); }
 
-void screensaver_destroy() {
+void screensaver_destroy(void) {
   fx_cube_destroy();
-  set_font_mode(0);
+  renderer_set_font_mode(0);
   SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Screensaver destroyed");
+  screensaver_initialized = 0;
+}
+
+void renderer_fix_texture_scaling_after_window_resize(config_params_s *conf) {
+  SDL_SetRenderTarget(rend, NULL);
+  if (conf->integer_scaling) {
+    // SDL internal integer scaling works well for this purpose
+    SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height,
+                                     SDL_LOGICAL_PRESENTATION_INTEGER_SCALE);
+  } else {
+    if (hd_texture != NULL) {
+      create_hd_texture(); // Recreate hd texture if necessary
+    }
+    setup_hd_texture_scaling();
+  }
+  SDL_SetTextureScaleMode(main_texture, texture_scaling_mode);
+}
+
+void show_error_message(const char *message) {
+  SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "m8c error", message, win);
+}
+
+void renderer_clear_screen(void) {
+  SDL_SetRenderDrawColor(rend, global_background_color.r, global_background_color.g,
+                         global_background_color.b, global_background_color.a);
+  SDL_SetRenderTarget(rend, main_texture);
+  SDL_RenderClear(rend);
+  SDL_SetRenderTarget(rend, NULL);
+
+  SDL_RenderClear(rend);
 }

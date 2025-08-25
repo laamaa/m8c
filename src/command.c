@@ -1,7 +1,7 @@
 // Copyright 2021 Jonne Kokkonen
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
-#include <SDL_log.h>
+#include <SDL3/SDL.h>
 
 #include "command.h"
 #include "render.h"
@@ -27,7 +27,7 @@ enum m8_command_bytes {
 };
 
 static void dump_packet(const uint32_t size, const uint8_t *recv_buf) {
-  for (uint16_t a = 0; a < size; a++) {
+  for (uint32_t a = 0; a < size; a++) {
     SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "0x%02X ", recv_buf[a]);
   }
   SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "\n");
@@ -168,7 +168,7 @@ int process_command(uint8_t *data, uint32_t size) {
       set_m8_model(0);
     }
 
-    set_font_mode(recv_buf[5]);
+    renderer_set_font_mode(recv_buf[5]);
 
     return 1;
   }

@@ -3,12 +3,17 @@ name: m8c macos arm64 build
 on:
   push:
   pull_request:
+  release:
+    types: [published]
   workflow_dispatch:
 
 jobs:
      
   build-macos:
     runs-on: macos-latest
+    name: m8c MacOS build (Apple Silicon)
+    env:
+      BUILD_DIR: build-arm64
     
     steps:
       - name: 'Environment info'
@@ -16,22 +21,100 @@ jobs:
           uname -m
     
       - name: 'Install dependencies'
-        run: brew install cmake pkg-config sdl2 libserialport 
+        run: brew install cmake pkg-config sdl3 libserialport
           
       - name: 'Checkout'
         uses: actions/checkout@v4
 
       - name: Set current date as env variable
         run: echo "NOW=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
-        
-      - name: 'Build m8c'
-        run: |
-          mkdir -p build_arm64 && cd build_arm64 && cmake .. && cpack -V
 
-      - name: 'Build package'
+      - name: Create Custom Keychain
+        id: createCustomKeychain
+        if: github.event_name == 'release'
+        env:
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
-          mv build_arm64/m8c-0.1.1-Darwin.dmg m8c-${{ env.NOW }}-macos-applesilicon.dmg
-      - name: 'Upload artifact'
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security list-keychains -s build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings build.keychain      
+
+      - name: Import Apple Developer Certificate
+        id: importAppleCertificate
+        if: github.event_name == 'release'
+        env:
+          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          echo "${{ secrets.MACOS_CERTIFICATE }}" | base64 --decode > developer_cert.p12
+          security import developer_cert.p12 -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+
+      - name: 'Configure m8c'
+        id: configureApplication
+        run: |
+          mkdir -p ${{ env.BUILD_DIR }}
+          pushd ${{ env.BUILD_DIR }}
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCODESIGN_CERT_NAME="$CODESIGN_CERT_NAME"
+          popd
+        env:
+          CODESIGN_CERT_NAME: ${{ secrets.MACOS_CODE_SIGN_IDENTITY }}
+
+      - name: 'Build and package m8c'
+        id: buildApplication
+        continue-on-error: true
+        run: |
+          pushd ${{ env.BUILD_DIR }}
+          cpack -V .
+          popd
+        env:
+          CMAKE_INSTALL_PREFIX: build_output
+
+      - name: 'View debug log if compilation fails'
+        if: failure() && steps.buildApplication.outcome == 'failure'
+        run: cat /Users/runner/work/m8c/m8c/${{ env.BUILD_DIR }}/_CPack_Packages/Darwin/DragNDrop/PreinstallOutput.log
+
+      - name: 'Notarize the App'
+        id: notarizeApp
+        if: github.event_name == 'release'
+        run: |
+          pushd ${{ env.BUILD_DIR }}
+          APP_PATH=$(find package-output -maxdepth 1 -name "m8c*.dmg" | head -n 1)
+          xcrun notarytool submit \
+            --apple-id "$APPLE_ID" \
+            --team-id "$TEAM_ID" \
+            --password "$APPLE_PASSWORD" \
+            --wait \
+            $APP_PATH
+          xcrun stapler staple "$APP_PATH"
+          popd
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+
+      - name: 'Verify Stapling'
+        id: verifyStapling
+        if: github.event_name == 'release'
+        run: |
+          APP_PATH=$(find "${{ env.BUILD_DIR }}/package-output" -maxdepth 1 -name "m8c*.dmg" | head -n 1)
+          echo "Verifying stapling on $APP_PATH"
+          xcrun stapler validate "$APP_PATH"        
+
+      - name: 'Delete Custom Keychain'
+        id: deleteCustomKeychain
+        if: github.event_name == 'release' && steps.createCustomKeychain.outcome == 'success'
+        run: |
+          security delete-keychain build.keychain        
+
+      - name: 'Copy package'
+        run: |
+          APP_PATH=$(find "${{ env.BUILD_DIR }}/package-output" -maxdepth 1 -name "m8c*.dmg" | head -n 1)
+          mv "$APP_PATH" m8c-${{ env.NOW }}-macos-applesilicon.dmg
+
+      - name: 'Upload DMG package'
         uses: actions/upload-artifact@v4
         with:
           name: m8c-${{ env.NOW }}-macos-applesilicon

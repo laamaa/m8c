@@ -3,8 +3,9 @@
 
 #include "config.h"
 #include "ini.h"
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <assert.h>
+#include <ctype.h>
 #include <stdio.h>
 
 /* Case-insensitive string compare from ini.h library */
@@ -18,7 +19,7 @@ static int strcmpci(const char *a, const char *b) {
   }
 }
 
-config_params_s init_config(char *filename) {
+config_params_s config_initialize(char *filename) {
   config_params_s c;
 
   if (filename == NULL) {
@@ -28,13 +29,12 @@ config_params_s init_config(char *filename) {
   }
 
   c.init_fullscreen = 0; // default fullscreen state at load
-  c.init_use_gpu = 1;    // default to use hardware acceleration
+  c.integer_scaling = 0; // use integer scaling for the user interface
   c.idle_ms = 10;        // default to high performance
   c.wait_for_device = 1; // default to exit if device disconnected
-  c.wait_packets = 1024; // default zero-byte attempts to disconnect (about 2
-  // sec for default idle_ms)
+  c.wait_packets = 256;  // amount of empty command queue reads before assuming device disconnected
   c.audio_enabled = 0;        // route M8 audio to default output
-  c.audio_buffer_size = 1024; // requested audio buffer size in samples
+  c.audio_buffer_size = 0; // requested audio buffer size in samples: 0 = let SDL decide
   c.audio_device_name = NULL; // Use this device, leave NULL to use the default output device
 
   c.key_up = SDL_SCANCODE_UP;
@@ -57,25 +57,25 @@ config_params_s init_config(char *filename) {
   c.key_jazz_dec_velocity = SDL_SCANCODE_KP_PLUS;
   c.key_toggle_audio = SDL_SCANCODE_F12;
 
-  c.gamepad_up = SDL_CONTROLLER_BUTTON_DPAD_UP;
-  c.gamepad_left = SDL_CONTROLLER_BUTTON_DPAD_LEFT;
-  c.gamepad_down = SDL_CONTROLLER_BUTTON_DPAD_DOWN;
-  c.gamepad_right = SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
-  c.gamepad_select = SDL_CONTROLLER_BUTTON_BACK;
-  c.gamepad_start = SDL_CONTROLLER_BUTTON_START;
-  c.gamepad_opt = SDL_CONTROLLER_BUTTON_B;
-  c.gamepad_edit = SDL_CONTROLLER_BUTTON_A;
-  c.gamepad_quit = SDL_CONTROLLER_BUTTON_RIGHTSTICK;
-  c.gamepad_reset = SDL_CONTROLLER_BUTTON_LEFTSTICK;
+  c.gamepad_up = SDL_GAMEPAD_BUTTON_DPAD_UP;
+  c.gamepad_left = SDL_GAMEPAD_BUTTON_DPAD_LEFT;
+  c.gamepad_down = SDL_GAMEPAD_BUTTON_DPAD_DOWN;
+  c.gamepad_right = SDL_GAMEPAD_BUTTON_DPAD_RIGHT;
+  c.gamepad_select = SDL_GAMEPAD_BUTTON_BACK;
+  c.gamepad_start = SDL_GAMEPAD_BUTTON_START;
+  c.gamepad_opt = SDL_GAMEPAD_BUTTON_EAST;
+  c.gamepad_edit = SDL_GAMEPAD_BUTTON_SOUTH;
+  c.gamepad_quit = SDL_GAMEPAD_BUTTON_RIGHT_STICK;
+  c.gamepad_reset = SDL_GAMEPAD_BUTTON_LEFT_STICK;
 
   c.gamepad_analog_threshold = 30000;
   c.gamepad_analog_invert = 0;
-  c.gamepad_analog_axis_updown = SDL_CONTROLLER_AXIS_LEFTY;
-  c.gamepad_analog_axis_leftright = SDL_CONTROLLER_AXIS_LEFTX;
-  c.gamepad_analog_axis_start = SDL_CONTROLLER_AXIS_TRIGGERRIGHT;
-  c.gamepad_analog_axis_select = SDL_CONTROLLER_AXIS_TRIGGERLEFT;
-  c.gamepad_analog_axis_opt = SDL_CONTROLLER_AXIS_INVALID;
-  c.gamepad_analog_axis_edit = SDL_CONTROLLER_AXIS_INVALID;
+  c.gamepad_analog_axis_updown = SDL_GAMEPAD_AXIS_LEFTY;
+  c.gamepad_analog_axis_leftright = SDL_GAMEPAD_AXIS_LEFTX;
+  c.gamepad_analog_axis_start = SDL_GAMEPAD_AXIS_RIGHT_TRIGGER;
+  c.gamepad_analog_axis_select = SDL_GAMEPAD_AXIS_LEFT_TRIGGER;
+  c.gamepad_analog_axis_opt = SDL_GAMEPAD_AXIS_INVALID;
+  c.gamepad_analog_axis_edit = SDL_GAMEPAD_AXIS_INVALID;
 
   return c;
 }
@@ -86,7 +86,7 @@ void write_config(const config_params_s *conf) {
   // Open the default config file for writing
   char config_path[1024] = {0};
   snprintf(config_path, sizeof(config_path), "%s%s", SDL_GetPrefPath("", "m8c"), conf->filename);
-  SDL_RWops *rw = SDL_RWFromFile(config_path, "w");
+  SDL_IOStream *rw = SDL_IOFromFile(config_path, "w");
 
   SDL_Log("Writing config file to %s", config_path);
 
@@ -99,12 +99,12 @@ void write_config(const config_params_s *conf) {
   snprintf(ini_values[initPointer++], LINELEN, "[graphics]\n");
   snprintf(ini_values[initPointer++], LINELEN, "fullscreen=%s\n",
            conf->init_fullscreen ? "true" : "false");
-  snprintf(ini_values[initPointer++], LINELEN, "use_gpu=%s\n",
-           conf->init_use_gpu ? "true" : "false");
   snprintf(ini_values[initPointer++], LINELEN, "idle_ms=%d\n", conf->idle_ms);
   snprintf(ini_values[initPointer++], LINELEN, "wait_for_device=%s\n",
            conf->wait_for_device ? "true" : "false");
   snprintf(ini_values[initPointer++], LINELEN, "wait_packets=%d\n", conf->wait_packets);
+  snprintf(ini_values[initPointer++], LINELEN, "integer_scaling=%s\n",
+           conf->integer_scaling ? "true" : "false");
   snprintf(ini_values[initPointer++], LINELEN, "[audio]\n");
   snprintf(ini_values[initPointer++], LINELEN, "audio_enabled=%s\n",
            conf->audio_enabled ? "true" : "false");
@@ -171,20 +171,20 @@ void write_config(const config_params_s *conf) {
     // Write ini_values array to config file
     for (unsigned int i = 0; i < INI_LINE_COUNT; i++) {
       const size_t len = SDL_strlen(ini_values[i]);
-      if (SDL_RWwrite(rw, ini_values[i], 1, len) != len) {
+      if (SDL_WriteIO(rw, ini_values[i], len) != len) {
         SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Couldn't write line into config file.");
       } else {
         SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Wrote to config: %s", ini_values[i]);
       }
     }
-    SDL_RWclose(rw);
+    SDL_CloseIO(rw);
   } else {
     SDL_Log("Couldn't write into config file.");
   }
 }
 
 // Read config
-void read_config(config_params_s *conf) {
+void config_read(config_params_s *conf) {
 
   char config_path[1024] = {0};
   snprintf(config_path, sizeof(config_path), "%s%s", SDL_GetPrefPath("", "m8c"), conf->filename);
@@ -232,21 +232,15 @@ void read_audio_config(const ini_t *ini, config_params_s *conf) {
 
 void read_graphics_config(const ini_t *ini, config_params_s *conf) {
   const char *param_fs = ini_get(ini, "graphics", "fullscreen");
-  const char *param_gpu = ini_get(ini, "graphics", "use_gpu");
   const char *idle_ms = ini_get(ini, "graphics", "idle_ms");
   const char *param_wait = ini_get(ini, "graphics", "wait_for_device");
   const char *wait_packets = ini_get(ini, "graphics", "wait_packets");
+  const char *integer_scaling = ini_get(ini, "graphics", "integer_scaling");
 
-  if (strcmpci(param_fs, "true") == 0) {
+  if (param_fs != NULL && strcmpci(param_fs, "true") == 0) {
     conf->init_fullscreen = 1;
-  } else
+  } else {
     conf->init_fullscreen = 0;
-
-  if (param_gpu != NULL) {
-    if (strcmpci(param_gpu, "true") == 0) {
-      conf->init_use_gpu = 1;
-    } else
-      conf->init_use_gpu = 0;
   }
 
   if (idle_ms != NULL)
@@ -261,6 +255,12 @@ void read_graphics_config(const ini_t *ini, config_params_s *conf) {
   }
   if (wait_packets != NULL)
     conf->wait_packets = SDL_atoi(wait_packets);
+
+  if (integer_scaling != NULL && strcmpci(integer_scaling, "true") == 0) {
+    conf->integer_scaling = 1;
+  } else {
+    conf->integer_scaling = 0;
+  }
 }
 
 void read_key_config(const ini_t *ini, config_params_s *conf) {

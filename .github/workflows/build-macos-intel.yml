@@ -1,94 +1,120 @@
-name: m8c macos intel build 
+name: m8c macos intel build
 
 on:
   push:
   pull_request:
+  release:
+    types: [published]
   workflow_dispatch:
 
 jobs:
      
   build-macos:
     runs-on: macos-13
+    name: m8c MacOS build (Intel)
     env:
-      SDL_VERSION: 2.32.0
-      SDL_SHA256: f5c2b52498785858f3de1e2996eba3c1b805d08fe168a47ea527c7fc339072d0
-
+      BUILD_DIR: build-intel
+    
     steps:
-      - name: 'Install dependencies'
-        run: brew install cmake pkg-config autoconf automake libtool
-
-      - name: 'Cache x86_64 files'
-        id: cache-x86_64-files
-        uses: actions/cache@v4
-        with:
-          path: '/Users/runner/x86_64'
-          key: mac-x86_64-files
-          
-      - name: 'Download 10.7 SDK for x86_64'
-        if: steps.cache-x86_64-files.outputs.cache-hit != 'true'
+      - name: 'Environment info'
         run: |
-          mkdir -p "$HOME/x86_64"
-          pushd "$HOME/x86_64"
-          mkdir SDKs
-          cd SDKs
-          curl -L "https://github.com/alexey-lysiuk/macos-sdk/releases/download/10.7/MacOSX10.7.tar.bz2" | tar -xvf -
-          popd
-
+          uname -m
+    
+      - name: 'Install dependencies'
+        run: brew install cmake pkg-config sdl3 libserialport
+          
       - name: 'Checkout'
         uses: actions/checkout@v4
 
       - name: Set current date as env variable
         run: echo "NOW=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
-      - name: 'Cache SDL2 files'
-        id: cache-x86_64-sdl2-files
-        uses: actions/cache@v4
-        with:
-          path: 'SDL2-2.30.4'
-          key: mac-x86_64-sdl2-files        
-        
-      - name: 'Download SDL2 sources'
-        if: steps.cache-x86_64-sdl2-files.outputs.cache-hit != 'true'
+      - name: Create Custom Keychain
+        id: createCustomKeychain
+        if: github.event_name == 'release'
+        env:
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
-          (curl https://www.libsdl.org/release/SDL2-$SDL_VERSION.tar.gz || curl -L https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL2-$SDL_VERSION.tar.gz) | tar xvf -
-        
-      - name: 'Build SDL2'
-        if: steps.cache-x86_64-sdl2-files.outputs.cache-hit != 'true'
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security list-keychains -s build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings build.keychain      
+
+      - name: Import Apple Developer Certificate
+        id: importAppleCertificate
+        if: github.event_name == 'release'
+        env:
+          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
-          export MACOSX_DEPLOYMENT_TARGET="10.9"
-          pushd SDL2-$SDL_VERSION
-          mkdir build_x86_64
-          cd build_x86_64
-          ../configure CPPFLAGS="-arch x86_64 -mmacosx-version-min=10.7 -DMAC_OS_X_VERSION_MIN_REQUIRED=1070 -isysroot $HOME/x86_64/SDKs/MacOSX10.7.sdk" CFLAGS="-arch x86_64" CXXFLAGS="-arch x86_64" LDFLAGS="-arch x86_64 -F$HOME/x86_64/SDKs/MacOSX10.7.sdk/System/Library/Frameworks -L/usr/lib -L/usr/lib/system -Wl,-syslibroot,$HOME/x86_64/SDKs/MacOSX10.7.sdk" --host=x86_64-apple-darwin13 --prefix="$HOME/x86_64prefix"
-          make
+          echo "${{ secrets.MACOS_CERTIFICATE }}" | base64 --decode > developer_cert.p12
+          security import developer_cert.p12 -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+
+      - name: 'Configure m8c'
+        id: configureApplication
+        run: |
+          mkdir -p ${{ env.BUILD_DIR }}
+          pushd ${{ env.BUILD_DIR }}
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCODESIGN_CERT_NAME="$CODESIGN_CERT_NAME"
           popd
+        env:
+          CODESIGN_CERT_NAME: ${{ secrets.MACOS_CODE_SIGN_IDENTITY }}
 
-      - name: 'Install SDL2'
+      - name: 'Build and package m8c'
+        id: buildApplication
+        continue-on-error: true
         run: |
-          pushd SDL2-$SDL_VERSION/build_x86_64
-          make install 
+          pushd ${{ env.BUILD_DIR }}
+          cpack -V .
           popd
+        env:
+          CMAKE_INSTALL_PREFIX: build_output
 
-      - name: 'Download libserialport sources'
+      - name: 'View debug log if compilation fails'
+        if: failure() && steps.buildApplication.outcome == 'failure'
+        run: cat /Users/runner/work/m8c/m8c/${{ env.BUILD_DIR }}/_CPack_Packages/Darwin/DragNDrop/PreinstallOutput.log
+
+      - name: 'Notarize the App'
+        id: notarizeApp
+        if: github.event_name == 'release'
         run: |
-          curl -L -O https://github.com/sigrokproject/libserialport/archive/refs/heads/master.zip && unzip master.zip && rm master.zip
-          
-      - name: 'Build libserialport'
-        run: |
-          pushd libserialport-master
-          mkdir autostuff
-          autoreconf -I"$HOME/x86_64prefix/share/aclocal" -i
-          export MACOSX_DEPLOYMENT_TARGET="10.7" && mkdir build_x86_64 && cd build_x86_64 && ../configure CFLAGS="-arch x86_64 -mmacosx-version-min=10.7 -DMAC_OS_X_VERSION_MIN_REQUIRED=1070 -isysroot $HOME/x86_64/SDKs/MacOSX10.7.sdk" LDFLAGS="-arch x86_64 -F$HOME/x86_64/SDKs/MacOSX10.7.sdk/System/Library/Frameworks -L/usr/lib -L/usr/lib/system -Wl,-syslibroot,$HOME/x86_64/SDKs/MacOSX10.7.sdk" --host=x86_64-apple-darwin13 --prefix="$HOME/x86_64prefix" && make && make install
+          pushd ${{ env.BUILD_DIR }}
+          APP_PATH=$(find package-output -maxdepth 1 -name "m8c*.dmg" | head -n 1)
+          xcrun notarytool submit \
+            --apple-id "$APPLE_ID" \
+            --team-id "$TEAM_ID" \
+            --password "$APPLE_PASSWORD" \
+            --wait \
+            $APP_PATH
+          xcrun stapler staple "$APP_PATH"
           popd
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
 
-      - name: 'Build m8c'
+      - name: 'Verify Stapling'
+        id: verifyStapling
+        if: github.event_name == 'release'
         run: |
-          export MACOSX_DEPLOYMENT_TARGET="10.7" && export PKG_CONFIG_PATH="$HOME/x86_64prefix/lib/pkgconfig" && export CFLAGS="-arch x86_64 -mmacosx-version-min=10.7 -DMAC_OS_X_VERSION_MIN_REQUIRED=1070 -isysroot $HOME/x86_64/SDKs/MacOSX10.7.sdk" && mkdir build_x86_64 && cd build_x86_64 && cmake -DCMAKE_OSX_ARCHITECTURES="x86_64" .. && cpack -V
+          APP_PATH=$(find "${{ env.BUILD_DIR }}/package-output" -maxdepth 1 -name "m8c*.dmg" | head -n 1)
+          echo "Verifying stapling on $APP_PATH"
+          xcrun stapler validate "$APP_PATH"        
 
-      - name: 'Build package'
+      - name: 'Delete Custom Keychain'
+        id: deleteCustomKeychain
+        if: github.event_name == 'release' && steps.createCustomKeychain.outcome == 'success'
         run: |
-          mv build_x86_64/m8c-0.1.1-Darwin.dmg m8c-${{ env.NOW }}-macos-intel.dmg
-      - name: 'Upload artifact'
+          security delete-keychain build.keychain        
+
+      - name: 'Copy package'
+        run: |
+          APP_PATH=$(find "${{ env.BUILD_DIR }}/package-output" -maxdepth 1 -name "m8c*.dmg" | head -n 1)
+          mv "$APP_PATH" m8c-${{ env.NOW }}-macos-intel.dmg
+
+      - name: 'Upload DMG package'
         uses: actions/upload-artifact@v4
         with:
           name: m8c-${{ env.NOW }}-macos-intel

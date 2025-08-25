@@ -4,25 +4,31 @@
 #ifndef RENDER_H_
 #define RENDER_H_
 
-#include <stdint.h>
 #include "command.h"
+#include "config.h"
 
-int initialize_sdl(int init_fullscreen, int init_use_gpu);
-void close_renderer();
+#include <stdint.h>
+
+int renderer_initialize(config_params_s *conf);
+void renderer_close(void);
+void renderer_set_font_mode(int mode);
+void renderer_fix_texture_scaling_after_window_resize(config_params_s *conf);
+void renderer_clear_screen(void);
 
 void draw_waveform(struct draw_oscilloscope_waveform_command *command);
 void draw_rectangle(struct draw_rectangle_command *command);
 int draw_character(struct draw_character_command *command);
-void set_font_mode(int mode);
-void set_m8_model(unsigned int model);
-void view_changed(int view);
 
-void render_screen();
-void toggle_fullscreen();
+void set_m8_model(unsigned int model);
+
+void render_screen(config_params_s *conf);
+void toggle_fullscreen(void);
 void display_keyjazz_overlay(uint8_t show, uint8_t base_octave, uint8_t velocity);
 
-void screensaver_init();
-void screensaver_draw();
-void screensaver_destroy();
+void show_error_message(const char *message);
+
+int screensaver_init(void);
+void screensaver_draw(void);
+void screensaver_destroy(void);
 
 #endif

@@ -1,5 +1,9 @@
 name: m8c linux x64 build
 
+env:
+  SDL_VERSION: 3.2.20
+  SDL_SHA256: "467600ae090dd28616fa37369faf4e3143198ff1da37729b552137e47f751a67  SDL3-3.2.20.tar.gz"
+
 on:
   push:
   pull_request:
@@ -8,29 +12,71 @@ on:
 jobs:
  
   build-linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     name: linux-x86_64
     steps:
       - name: 'Install dependencies'
         run: |
           sudo apt-get update
-          sudo apt-get install --fix-missing build-essential libsdl2-dev libserialport-dev zip
+          sudo apt-get install --fix-missing build-essential libserialport-dev zip git make pkg-config cmake ninja-build gnome-desktop-testing libasound2-dev libpulse-dev libaudio-dev libjack-dev libsndio-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libpipewire-0.3-dev libwayland-dev libdecor-0-dev
+
       - name: 'Checkout'
         uses: actions/checkout@v4
 
       - name: Set current date as env variable
         run: echo "NOW=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
-      - name: 'Build package'
+      - name: 'Cache SDL3 files'
+        id: cache-x86_64-sdl3-files
+        uses: actions/cache@v4
+        with:
+          path: 'SDL3-3.2.20'
+          key: linux-x86_64-sdl3-files
+
+      - name: 'Download SDL3 sources'
+        if: steps.cache-x86_64-sdl3-files.outputs.cache-hit != 'true'
+        run: |
+          (curl -O https://www.libsdl.org/release/SDL3-$SDL_VERSION.tar.gz || curl -O -L https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL3-$SDL_VERSION.tar.gz)
+          if ! echo $SDL_SHA256 | sha256sum -c --status -; then echo "SDL archive checksum failed"; exit 1; fi
+          tar zxvf SDL3-$SDL_VERSION.tar.gz
+
+      - name: 'Build SDL3'
+        if: steps.cache-x86_64-sdl3-files.outputs.cache-hit != 'true'
+        run: |
+          pushd SDL3-$SDL_VERSION
+          mkdir build_x86_64
+          cmake -S . -B build_x86_64 -DCMAKE_BUILD_TYPE=Release
+          cmake --build build_x86_64
+          popd
+
+      - name: 'Install SDL3'
+        run: |
+          pushd SDL3-$SDL_VERSION
+          sudo cmake --install build_x86_64
+          popd
+
+      - name: 'Build binary'
         run: |
           make
+
       - name: 'Upload artifact'
         uses: actions/upload-artifact@v4
         with:
-          name: m8c-${{ env.NOW }}-linux
+          name: m8c-${{ env.NOW }}-linux-x86_64
           path: |
             LICENSE
             README.md
             AUDIOGUIDE.md
             m8c
             gamecontrollerdb.txt
+          
+      - name: 'Build AppImage'
+        run: |
+          bash package/appimage/package.sh
+
+      - name: 'Upload artifact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: m8c-${{ env.NOW }}-linux-x86_64.AppImage
+          path: |
+            m8c*.AppImage

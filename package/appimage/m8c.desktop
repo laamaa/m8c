@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=m8c
+Comment=
+Exec=m8c
+Icon=icon
+Terminal=false
+Categories=Audio
+X-AppImage-Version=1.0
