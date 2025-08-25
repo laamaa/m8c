@@ -1,3 +1,5 @@
+#include "SDL3/SDL_audio.h"
+#include "SDL3/SDL_error.h"
 #ifdef USE_LIBUSB
 
 #include "m8.h"
@@ -15,47 +17,109 @@
 
 extern libusb_device_handle *devh;
 
-SDL_AudioDeviceID sdl_audio_device_id = 0;
+SDL_AudioStream *sdl_audio_stream = NULL;
 int audio_initialized = 0;
 RingBuffer *audio_buffer = NULL;
+static uint8_t *audio_callback_buffer = NULL;
+static size_t audio_callback_buffer_size = 0;
+static int audio_prebuffer_filled = 0;
+#define PREBUFFER_SIZE (8 * 1024)  // Wait for 8KB before starting playback
 
-static void audio_callback(void *userdata, Uint8 *stream, int len) {
-  uint32_t read_len = ring_buffer_pop(audio_buffer, stream, len);
-
-  if (read_len == -1) {
-    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Buffer underflow!");
+static void audio_callback(void *userdata, SDL_AudioStream *stream, int additional_amount, int total_amount) {
+  (void)userdata;  // Suppress unused parameter warning
+  (void)additional_amount;  // Suppress unused parameter warning
+  
+  // Reallocate callback buffer if needed
+  if (audio_callback_buffer_size < (size_t)total_amount) {
+    audio_callback_buffer = SDL_realloc(audio_callback_buffer, total_amount);
+    if (audio_callback_buffer == NULL) {
+      SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to allocate audio buffer");
+      return;
+    }
+    audio_callback_buffer_size = (size_t)total_amount;
   }
 
-  // If we didn't read the full len bytes, fill the rest with zeros
-  if (read_len < len) {
-    SDL_memset(&stream[read_len], 0, len - read_len);
+  // Try to get audio data from ring buffer
+  uint32_t available_bytes = audio_buffer->size;
+  
+  // Check if we have enough data for initial buffering
+  if (!audio_prebuffer_filled && available_bytes < PREBUFFER_SIZE) {
+    // Not enough data yet, output silence and wait
+    SDL_memset(audio_callback_buffer, 0, total_amount);
+    if(!SDL_PutAudioStreamData(stream, audio_callback_buffer, total_amount)) {
+      SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to put audio stream data: %s", SDL_GetError());
+    }
+    return;
+  }
+  
+  // Mark prebuffer as filled once we have enough data
+  if (!audio_prebuffer_filled) {
+    audio_prebuffer_filled = 1;
+    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Audio prebuffer filled, starting playback");
+  }
+
+  if (available_bytes >= (uint32_t)total_amount) {
+    // We have enough data, read it
+    uint32_t read_len = ring_buffer_pop(audio_buffer, audio_callback_buffer, total_amount);
+    if (read_len > 0) {
+      if(!SDL_PutAudioStreamData(stream, audio_callback_buffer, read_len)) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to put audio stream data: %s", SDL_GetError());
+      }
+    }
+  } else if (available_bytes > 0) {
+    // We have some data but not enough - read what we can and pad with silence
+    uint32_t read_len = ring_buffer_pop(audio_buffer, audio_callback_buffer, available_bytes);
+    SDL_memset(audio_callback_buffer + read_len, 0, total_amount - read_len);
+    if(!SDL_PutAudioStreamData(stream, audio_callback_buffer, total_amount)) {
+      SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to put audio stream data: %s", SDL_GetError());
+    }
+    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Partial buffer: %d/%d bytes", available_bytes, total_amount);
+  } else {
+    // No data available - put silence and reset prebuffer flag
+    SDL_memset(audio_callback_buffer, 0, total_amount);
+    if(!SDL_PutAudioStreamData(stream, audio_callback_buffer, total_amount)) {
+      SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to put audio stream data: %s", SDL_GetError());
+    }
+    audio_prebuffer_filled = 0;  // Reset prebuffer to avoid continuous dropouts
+    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Buffer underflow! Resetting prebuffer");
   }
 }
 
 static void cb_xfr(struct libusb_transfer *xfr) {
   unsigned int i;
+  static int error_count = 0;
 
-  for (i = 0; i < xfr->num_iso_packets; i++) {
+  for (i = 0; i < (unsigned int)xfr->num_iso_packets; i++) {
     struct libusb_iso_packet_descriptor *pack = &xfr->iso_packet_desc[i];
 
     if (pack->status != LIBUSB_TRANSFER_COMPLETED) {
-      SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "XFR callback error (status %d: %s)", pack->status,
-                   libusb_error_name(pack->status));
-      /* This doesn't happen, so bail out if it does. */
-      return;
+      error_count++;
+      if (error_count % 100 == 1) { // Log only every 100th error to avoid spam
+        SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "XFR callback error (status %d: %s)", pack->status,
+                     libusb_error_name(pack->status));
+      }
+      continue; // Skip this packet but continue processing others
     }
 
-    const uint8_t *data = libusb_get_iso_packet_buffer_simple(xfr, i);
-    if (sdl_audio_device_id != 0) {
-      uint32_t actual = ring_buffer_push(audio_buffer, data, pack->actual_length);
-      if (actual == -1) {
-        SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Buffer overflow!");
+    if (pack->actual_length > 0) {
+      const uint8_t *data = libusb_get_iso_packet_buffer_simple(xfr, i);
+      if (sdl_audio_stream != 0 && audio_buffer != NULL) {
+        uint32_t actual = ring_buffer_push(audio_buffer, data, pack->actual_length);
+        if (actual == (uint32_t)-1) {
+          SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Buffer overflow!");
+        }
       }
     }
   }
 
-  if (libusb_submit_transfer(xfr) < 0) {
-    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "error re-submitting URB\n");
+  // Reset error count on successful transfer
+  if (xfr->status == LIBUSB_TRANSFER_COMPLETED) {
+    error_count = 0;
+  }
+
+  int submit_result = libusb_submit_transfer(xfr);
+  if (submit_result < 0) {
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "error re-submitting URB: %s", libusb_error_name(submit_result));
     SDL_free(xfr->buffer);
   }
 }
@@ -84,20 +148,28 @@ static int benchmark_in() {
   return 1;
 }
 
-int audio_initialize(int audio_buffer_size, const char *output_device_name) {
-  SDL_LogError(SDL_LOG_CATEGORY_AUDIO,"LIBUSB audio not implemented yet");
-  return -1;
-  /*
+int audio_initialize(const char *output_device_name, unsigned int audio_buffer_size) {
+  (void)audio_buffer_size;  // Suppress unused parameter warning
+  
   SDL_Log("USB audio setup");
+
+  if (devh == NULL) {
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Device handle is NULL - cannot initialize audio");
+    return -1;
+  }
 
   int rc;
 
   rc = libusb_kernel_driver_active(devh, IFACE_NUM);
+  if (rc < 0) {
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error checking kernel driver status: %s", libusb_error_name(rc));
+    return rc;
+  }
   if (rc == 1) {
     SDL_Log("Detaching kernel driver");
     rc = libusb_detach_kernel_driver(devh, IFACE_NUM);
     if (rc < 0) {
-      SDL_Log("Could not detach kernel driver: %s\n", libusb_error_name(rc));
+      SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Could not detach kernel driver: %s", libusb_error_name(rc));
       return rc;
     }
   }
@@ -115,7 +187,7 @@ int audio_initialize(int audio_buffer_size, const char *output_device_name) {
   }
 
   if (!SDL_WasInit(SDL_INIT_AUDIO)) {
-    if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
+    if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) {
       SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Init audio failed %s", SDL_GetError());
       return -1;
     }
@@ -127,28 +199,28 @@ int audio_initialize(int audio_buffer_size, const char *output_device_name) {
   audio_spec.format = SDL_AUDIO_S16;
   audio_spec.channels = 2;
   audio_spec.freq = 44100;
-  audio_spec.samples = audio_buffer_size;
-  audio_spec.callback = audio_callback;
-
-  SDL_AudioSpec _obtained;
-  SDL_zero(_obtained);
 
   SDL_Log("Current audio driver is %s and device %s", SDL_GetCurrentAudioDriver(),
           output_device_name);
 
+  // Create larger ring buffer for stable audio - about 1.5 seconds at 44.1kHz stereo 16-bit
+  audio_buffer = ring_buffer_create(256 * 1024);
+
   if (SDL_strcasecmp(SDL_GetCurrentAudioDriver(), "openslES") == 0 || output_device_name == NULL) {
     SDL_Log("Using default audio device");
-    sdl_audio_device_id = SDL_OpenAudioDevice(NULL, 0, &audio_spec, &_obtained, 0);
+    sdl_audio_stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &audio_spec, &audio_callback, &audio_buffer);
   } else {
-    sdl_audio_device_id = SDL_OpenAudioDevice(output_device_name, 0, &audio_spec, &_obtained, 0);
+    // TODO: Implement audio device selection
+    sdl_audio_stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &audio_spec, &audio_callback, &audio_buffer);
   }
 
-  audio_buffer = ring_buffer_create(4 * _obtained.size);
+  if (sdl_audio_stream == NULL) {
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to open audio stream: %s", SDL_GetError());
+    ring_buffer_free(audio_buffer);
+    return -1;
+  }
 
-  SDL_Log("Obtained audio spec. Sample rate: %d, channels: %d, samples: %d, size: %d",
-          _obtained.freq, _obtained.channels, _obtained.samples, +_obtained.size);
-
-  SDL_PauseAudioDevice(sdl_audio_device_id, 0);
+  SDL_ResumeAudioStreamDevice(sdl_audio_stream);
 
   // Good to go
   SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Starting capture");
@@ -157,13 +229,20 @@ int audio_initialize(int audio_buffer_size, const char *output_device_name) {
     return rc;
   }
 
+  audio_initialized = 1;
+  audio_prebuffer_filled = 0;  // Reset prebuffer state
   SDL_Log("Successful init");
   return 1;
-  */
+
 }
 
 void audio_close() {
-  if (devh == NULL || !audio_initialized) {
+  if (devh == NULL) {
+    SDL_LogDebug(SDL_LOG_CATEGORY_AUDIO, "Device handle is NULL - audio already closed or not initialized");
+    return;
+  }
+  if (!audio_initialized) {
+    SDL_LogDebug(SDL_LOG_CATEGORY_AUDIO, "Audio not initialized - nothing to close");
     return;
   }
 
@@ -187,19 +266,30 @@ void audio_close() {
     return;
   }
 
-  if (sdl_audio_device_id != 0) {
-    SDL_Log("Closing audio device %d", sdl_audio_device_id);
-    const SDL_AudioDeviceID device = sdl_audio_device_id;
-    sdl_audio_device_id = 0;
-    SDL_CloseAudioDevice(device);
+  if (sdl_audio_stream != NULL) {
+    SDL_Log("Closing audio device");
+    SDL_DestroyAudioStream(sdl_audio_stream);
+    sdl_audio_stream = 0;
   }
 
   SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Audio closed");
 
   ring_buffer_free(audio_buffer);
+
+  // Free callback buffer
+  if (audio_callback_buffer) {
+    SDL_free(audio_callback_buffer);
+    audio_callback_buffer = NULL;
+    audio_callback_buffer_size = 0;
+  }
+
+  audio_initialized = 0;
+  audio_prebuffer_filled = 0;
 }
 
-void audio_toggle(unsigned int audio_buffer_size, const char *output_device_name) {
+void audio_toggle(const char *output_device_name, unsigned int audio_buffer_size) {
+  (void)output_device_name;  // Suppress unused parameter warning
+  (void)audio_buffer_size;  // Suppress unused parameter warning
   SDL_Log("Libusb audio toggling not implemented yet");
 }
 

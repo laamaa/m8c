@@ -3,12 +3,16 @@
 
 // Contains portions of code from libserialport's examples released to the
 // public domain
+#include "m8.h"
 #ifdef USE_LIBUSB
 
 #include <SDL3/SDL.h>
 #include <libusb.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../command.h"
+#include "queue.h"
+#include "slip.h"
 
 static int ep_out_addr = 0x03;
 static int ep_in_addr = 0x83;
@@ -19,10 +23,23 @@ static int ep_in_addr = 0x83;
 #define M8_VID 0x16c0
 #define M8_PID 0x048a
 
+#define SERIAL_READ_SIZE 1024  // maximum amount of bytes to read from the serial in one pass
+
 libusb_context *ctx = NULL;
 libusb_device_handle *devh = NULL;
-
+static uint8_t serial_buffer[SERIAL_READ_SIZE] = {0};
+static uint8_t slip_buffer[SERIAL_READ_SIZE] = {0};
+static slip_handler_s slip;
+message_queue_s queue;
 static int do_exit = 0;
+static int async_transfer_active = 0;
+static struct libusb_transfer *async_transfer = NULL;
+static int shutdown_in_progress = 0;
+
+static int send_message_to_queue(uint8_t *data, const uint32_t size) {
+  push_message(&queue, data, size);
+  return 1;
+}
 
 int m8_list_devices() {
   int r;
@@ -34,7 +51,7 @@ int m8_list_devices() {
 
   libusb_device **device_list = NULL;
   int count = libusb_get_device_list(ctx, &device_list);
-  for (size_t idx = 0; idx < count; ++idx) {
+  for (size_t idx = 0; idx < (size_t)count; ++idx) {
     libusb_device *device = device_list[idx];
     struct libusb_device_descriptor desc;
     int rc = libusb_get_device_descriptor(device, &desc);
@@ -53,7 +70,9 @@ int m8_list_devices() {
   return 0;
 }
 
-int usb_loop(void *data) {
+static int usb_loop(void *data) {
+  (void)data;  // Suppress unused parameter warning
+  
   SDL_SetCurrentThreadPriority(SDL_THREAD_PRIORITY_TIME_CRITICAL);
   while (!do_exit) {
     int rc = libusb_handle_events(ctx);
@@ -72,7 +91,7 @@ static void LIBUSB_CALL xfr_cb_in(struct libusb_transfer *transfer) {
   *completed = 1;
 }
 
-int bulk_transfer(int endpoint, uint8_t *serial_buf, int count, unsigned int timeout_ms) {
+static int bulk_transfer(int endpoint, uint8_t *serial_buf, int count, unsigned int timeout_ms) {
   if (devh == NULL) {
     return -1;
   }
@@ -113,8 +132,151 @@ int blocking_write(void *buf, int count, unsigned int timeout_ms) {
   return bulk_transfer(ep_out_addr, buf, count, timeout_ms);
 }
 
-int m8_process_data(uint8_t *serial_buf, int count) {
-  return bulk_transfer(ep_in_addr, serial_buf, count, 1);
+// This function is currently unused but kept for potential future use
+__attribute__((unused))
+static int bulk_async_transfer(int endpoint, uint8_t *serial_buf, int count, unsigned int timeout_ms,
+                        void (*f)(struct libusb_transfer *), void *user_data) {
+  struct libusb_transfer *transfer;
+  transfer = libusb_alloc_transfer(1);
+  libusb_fill_bulk_stream_transfer(transfer, devh, endpoint, 0, serial_buf, count, f, user_data,
+                                   timeout_ms);
+  int r = libusb_submit_transfer(transfer);
+
+  if (r < 0) {
+    SDL_Log("Error");
+    libusb_free_transfer(transfer);
+    return r;
+  }
+  return 0;
+}
+
+static void async_callback(struct libusb_transfer *xfr) {
+  if (shutdown_in_progress) {
+    async_transfer_active = 0;
+    return;
+  }
+
+  if (xfr->status != LIBUSB_TRANSFER_COMPLETED) {
+    if (xfr->status == LIBUSB_TRANSFER_CANCELLED) {
+      SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Async transfer cancelled");
+      async_transfer_active = 0;
+      return;
+    }
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Async transfer failed with status: %s", 
+                 libusb_error_name(xfr->status));
+    if (!shutdown_in_progress && libusb_submit_transfer(xfr) < 0) {
+      SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error re-submitting failed transfer");
+      async_transfer_active = 0;
+    }
+    return;
+  }
+
+  int bytes_read = xfr->actual_length;
+  if (bytes_read < 0) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error %d reading serial", (int)bytes_read);
+  } else if (bytes_read > 0) {
+    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Received %d bytes from M8", bytes_read);
+    uint8_t *serial_buf = xfr->buffer;
+    uint8_t *cur = serial_buf;
+    const uint8_t *end = serial_buf + bytes_read;
+    slip_handler_s *slip = (slip_handler_s *)xfr->user_data;
+    while (cur < end) {
+      // process the incoming bytes into commands and draw them
+      int n = slip_read_byte(slip, *(cur++));
+      if (n != SLIP_NO_ERROR) {
+        if (n == SLIP_ERROR_INVALID_PACKET) {
+          SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Invalid SLIP packet!\n");
+
+        } else {
+          SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SLIP error %d\n", n);
+        }
+      }
+    }
+  }
+  if (!shutdown_in_progress) {
+    int submit_result = libusb_submit_transfer(xfr);
+    if (submit_result < 0) {
+      SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error re-submitting URB: %s", 
+                   libusb_error_name(submit_result));
+      async_transfer_active = 0;
+    }
+  } else {
+    async_transfer_active = 0;
+  }
+}
+
+int async_read_start(uint8_t *serial_buf, int count, slip_handler_s *slip) {
+  if (async_transfer_active) {
+    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Async transfer already active, skipping");
+    return 0; // Already active
+  }
+  
+  if (devh == NULL) {
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Device handle is NULL, cannot start async transfer");
+    return -1;
+  }
+  
+  async_transfer = libusb_alloc_transfer(1);
+  if (!async_transfer) {
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to allocate async transfer");
+    return -1;
+  }
+  
+  libusb_fill_bulk_stream_transfer(async_transfer, devh, ep_in_addr, 0, serial_buf, count, 
+                                   &async_callback, slip, 300);
+  int r = libusb_submit_transfer(async_transfer);
+  
+  if (r < 0) {
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error starting async transfer: %s", libusb_error_name(r));
+    libusb_free_transfer(async_transfer);
+    async_transfer = NULL;
+    return r;
+  }
+  
+  async_transfer_active = 1;
+  SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Async transfer started successfully");
+  return 0;
+}
+
+void async_read_stop() {
+  shutdown_in_progress = 1;
+  
+  if (async_transfer_active && async_transfer) {
+    SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Stopping async transfer");
+    int cancel_result = libusb_cancel_transfer(async_transfer);
+    if (cancel_result < 0) {
+      if (cancel_result == LIBUSB_ERROR_NOT_FOUND) {
+        SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Transfer already completed or cancelled");
+      } else if (cancel_result == LIBUSB_ERROR_INVALID_PARAM) {
+        SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Transfer not valid for cancellation");
+      } else {
+        SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Transfer cancellation returned: %s", 
+                     libusb_error_name(cancel_result));
+      }
+    }
+    // Wait briefly for the callback to complete
+    for (int i = 0; i < 10 && async_transfer_active; i++) {
+      SDL_Delay(1);
+    }
+    // Force cleanup if still active
+    async_transfer_active = 0;
+  }
+}
+
+int m8_process_data(const config_params_s *conf) {
+  (void)conf; // Suppress unused parameter warning
+  // Process any queued messages
+  if (queue_size(&queue) > 0) {
+    unsigned char *command;
+    size_t length = 0;
+    while ((command = pop_message(&queue, &length)) != NULL) {
+      if (length > 0) {
+        process_command(command, length);
+      }
+      SDL_free(command);
+    }
+  }
+  return DEVICE_PROCESSING;
 }
 
 int check_serial_port() {
@@ -166,7 +328,14 @@ int init_interface() {
     return 0;
   }
 
+  init_queue(&queue);
+
   usb_thread = SDL_CreateThread(&usb_loop, "USB", NULL);
+
+  // Start async transfer for reading data from M8
+  if (async_read_start(serial_buffer, SERIAL_READ_SIZE, &slip) < 0) {
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to start async transfer during initialization");
+  }
 
   return 1;
 }
@@ -203,11 +372,21 @@ int init_serial_with_file_descriptor(int file_descriptor) {
   return init_interface();
 }
 
-int m8_initialize(int verbose, char *preferred_device) {
+int m8_initialize(int verbose, const char *preferred_device) {
+  (void)verbose; // Suppress unused parameter warning
+  (void)preferred_device; // Suppress unused parameter warning
 
   if (devh != NULL) {
     return 1;
   }
+
+  // Initialize slip descriptor
+  static const slip_descriptor_s slip_descriptor = {
+      .buf = slip_buffer,
+      .buf_size = sizeof(slip_buffer),
+      .recv_message = send_message_to_queue,
+  };
+  slip_init(&slip, &slip_descriptor);
 
   int r;
   r = libusb_init(&ctx);
@@ -221,17 +400,23 @@ int m8_initialize(int verbose, char *preferred_device) {
     char *port;
     char *saveptr = NULL;
     char *bus;
-    port = SDL_strtok_r(preferred_device, ":", &saveptr);
+    char *device_copy = SDL_strdup(preferred_device);  // Create a copy to avoid const qualifier warning
+    if (device_copy == NULL) {
+      SDL_Log("Failed to allocate memory for device string");
+      return 0;
+    }
+    port = SDL_strtok_r(device_copy, ":", &saveptr);
     bus = SDL_strtok_r(NULL, ":", &saveptr);
     libusb_device **device_list = NULL;
     int count = libusb_get_device_list(ctx, &device_list);
-    for (size_t idx = 0; idx < count; ++idx) {
+    for (size_t idx = 0; idx < (size_t)count; ++idx) {
       libusb_device *device = device_list[idx];
       struct libusb_device_descriptor desc;
       r = libusb_get_device_descriptor(device, &desc);
       if (r < 0) {
         SDL_Log("libusb_get_device_descriptor failed: %s", libusb_error_name(r));
         libusb_free_device_list(device_list, 1);
+        SDL_free(device_copy);
         return 0;
       }
 
@@ -243,12 +428,15 @@ int m8_initialize(int verbose, char *preferred_device) {
           r = libusb_open(device, &devh);
           if (r < 0) {
             SDL_Log("libusb_open failed: %s", libusb_error_name(r));
+            libusb_free_device_list(device_list, 1);
+            SDL_free(device_copy);
             return 0;
           }
         }
       }
     }
     libusb_free_device_list(device_list, 1);
+    SDL_free(device_copy);  // Free the allocated copy
     if (devh == NULL) {
       SDL_Log("Preferred device %s not found, using first available", preferred_device);
       devh = libusb_open_device_with_vid_pid(ctx, M8_VID, M8_PID);
@@ -280,6 +468,7 @@ int m8_reset_display() {
 }
 
 int m8_enable_display(const unsigned char reset_display) {
+  (void)reset_display; // Suppress unused parameter warning
   if (devh == NULL) {
     return 0;
   }
@@ -296,8 +485,7 @@ int m8_enable_display(const unsigned char reset_display) {
   }
 
   SDL_Delay(5);
-  if ()
-    result = m8_reset_display();
+  result = m8_reset_display();
   return result;
 }
 
@@ -307,6 +495,9 @@ int m8_close() {
   int result;
 
   SDL_Log("Disconnecting M8\n");
+
+  // Stop async transfer first
+  async_read_stop();
 
   result = blocking_write(buf, 1, 5);
   if (result != 1) {
@@ -334,6 +525,15 @@ int m8_close() {
   SDL_WaitThread(usb_thread, NULL);
 
   libusb_exit(ctx);
+
+  destroy_queue(&queue);
+  
+  if (async_transfer) {
+    libusb_free_transfer(async_transfer);
+    async_transfer = NULL;
+  }
+  async_transfer_active = 0;
+  shutdown_in_progress = 0;
 
   return 1;
 }
