@@ -10,11 +10,13 @@ static unsigned int audio_paused = 0;
 static unsigned int audio_initialized = 0;
 static SDL_AudioSpec audio_spec_in = {SDL_AUDIO_S16LE, 2, 44100};
 
-static void SDLCALL audio_cb_out(void *userdata, SDL_AudioStream *stream, int length, int unused) {
+static void SDLCALL audio_cb_out(void *userdata, SDL_AudioStream *stream, int additional_amount, int total_amount) {
   // suppress compiler warnings
   (void)userdata;
-  (void)length;
-  (void)unused;
+
+  if (additional_amount <= 0) {
+    return;
+  }
 
   const int bytes_available = SDL_GetAudioStreamAvailable(audio_stream_in);
   if (bytes_available == -1) {
@@ -24,27 +26,51 @@ static void SDLCALL audio_cb_out(void *userdata, SDL_AudioStream *stream, int le
     audio_close();
     return;
   }
-  if (bytes_available == 0) {
-    return;
+
+  // Decide how much to feed this time.
+  int to_write_goal = additional_amount;
+  if (total_amount > 0) {
+    const int prefill_cap = additional_amount * 2;
+    if (to_write_goal < total_amount) {
+      to_write_goal = SDL_min(total_amount, prefill_cap);
+    }
   }
 
-  Uint8 *src_audio_data = SDL_malloc(bytes_available);
-  if (!src_audio_data) { // check allocation
-    SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Failed to allocate audio buffer");
-    audio_close();
-    return;
-  }
+  int to_write = to_write_goal;
+  Uint8 temp[4096];
 
-  const int bytes_read = SDL_GetAudioStreamData(audio_stream_in, src_audio_data, bytes_available);
-  if (bytes_read == bytes_available) {
-    SDL_PutAudioStreamData(stream, src_audio_data, bytes_read);
-  } else {
-    SDL_LogError(SDL_LOG_CATEGORY_AUDIO,
-                 "Error getting available audio stream bytes: %s, destroying audio",
-                 SDL_GetError());
-    audio_close();
+  while (to_write > 0) {
+    int still_avail = SDL_GetAudioStreamAvailable(audio_stream_in);
+    if (still_avail <= 0) {
+      break; // nothing more to pull now
+    }
+
+    int chunk = still_avail;
+    if (chunk > (int)sizeof(temp)) chunk = (int)sizeof(temp);
+    if (chunk > to_write) chunk = to_write;
+
+    const int got = SDL_GetAudioStreamData(audio_stream_in, temp, chunk);
+    if (got == -1) {
+      SDL_LogError(SDL_LOG_CATEGORY_AUDIO,
+                   "Error reading audio stream data: %s, destroying audio",
+                   SDL_GetError());
+      audio_close();
+      return;
+    }
+    if (got == 0) {
+      break; // no data currently available
+    }
+
+    if (!SDL_PutAudioStreamData(stream, temp, got)) {
+      SDL_LogError(SDL_LOG_CATEGORY_AUDIO,
+                   "Error putting audio stream data: %s, destroying audio",
+                   SDL_GetError());
+      audio_close();
+      return;
+    }
+
+    to_write -= got;
   }
-  SDL_free(src_audio_data);
 }
 
 void audio_toggle(const char *output_device_name, unsigned int audio_buffer_size) {
@@ -134,17 +160,17 @@ int audio_initialize(const char *output_device_name, const unsigned int audio_bu
   audio_stream_out = SDL_OpenAudioDeviceStream(output_device_id, NULL, audio_cb_out, NULL);
 
   SDL_AudioSpec audio_spec_out;
-  int audio_buffer_size_real = 0;
+  int audio_out_buffer_size_real, audio_in_buffer_size_real = 0;
 
-  SDL_GetAudioDeviceFormat(output_device_id, &audio_spec_out, &audio_buffer_size_real);
+  SDL_GetAudioDeviceFormat(output_device_id, &audio_spec_out, &audio_out_buffer_size_real);
 
   if (!audio_stream_out) {
     SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Error opening audio output device: %s", SDL_GetError());
     return 0;
   }
   SDL_LogInfo(SDL_LOG_CATEGORY_AUDIO,
-              "Opening audio output: rate %dhz, buffer size: %d sample frames", audio_spec_out.freq,
-              audio_buffer_size_real);
+              "Opening audio output: rate %dhz, buffer size: %d frames", audio_spec_out.freq,
+              audio_out_buffer_size_real);
 
   audio_stream_in = SDL_OpenAudioDeviceStream(m8_device_id, &audio_spec_in, NULL, NULL);
   if (!audio_stream_in) {
@@ -152,10 +178,13 @@ int audio_initialize(const char *output_device_name, const unsigned int audio_bu
     SDL_DestroyAudioStream(audio_stream_out);
     return 0;
   }
-  SDL_LogDebug(SDL_LOG_CATEGORY_AUDIO, "Audiospec In: format %d, channels %d, rate %d",
-               audio_spec_in.format, audio_spec_in.channels, audio_spec_in.freq);
 
   SDL_SetAudioStreamFormat(audio_stream_in, &audio_spec_in, &audio_spec_out);
+  SDL_GetAudioDeviceFormat(m8_device_id, &audio_spec_in, &audio_in_buffer_size_real);
+  SDL_LogDebug(SDL_LOG_CATEGORY_AUDIO, "Audiospec In: format %d, channels %d, rate %d, buffer size %d frames",
+               audio_spec_in.format, audio_spec_in.channels, audio_spec_in.freq, audio_in_buffer_size_real);
+
+
 
   SDL_ResumeAudioStreamDevice(audio_stream_out);
   SDL_ResumeAudioStreamDevice(audio_stream_in);
