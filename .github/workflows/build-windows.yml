@@ -20,7 +20,7 @@ jobs:
         shell: msys2 {0}
     env:
       MINGW_ARCH: ${{ matrix.sys }}
-      SDL_VERSION: 3.2.8
+      SDL_VERSION: 3.2.20
     steps:
 
     - name: 'git config'
@@ -43,7 +43,7 @@ jobs:
       id: cache-sdl3-files
       uses: actions/cache@v4
       with:
-        path: 'SDL3-3.2.8'
+        path: 'SDL3-3.2.20'
         key: win-sdl3-files-${{ matrix.sys }}
 
     - name: 'Download SDL3 sources'

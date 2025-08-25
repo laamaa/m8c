@@ -1,8 +1,8 @@
 name: m8c linux x64 build
 
 env:
-  SDL_VERSION: 3.2.8
-  SDL_SHA256: "13388fabb361de768ecdf2b65e52bb27d1054cae6ccb6942ba926e378e00db03  SDL3-3.2.8.tar.gz"
+  SDL_VERSION: 3.2.20
+  SDL_SHA256: "467600ae090dd28616fa37369faf4e3143198ff1da37729b552137e47f751a67  SDL3-3.2.20.tar.gz"
 
 on:
   push:
@@ -30,7 +30,7 @@ jobs:
         id: cache-x86_64-sdl3-files
         uses: actions/cache@v4
         with:
-          path: 'SDL3-3.2.8'
+          path: 'SDL3-3.2.20'
           key: linux-x86_64-sdl3-files
 
       - name: 'Download SDL3 sources'
