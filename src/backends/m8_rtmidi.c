@@ -200,7 +200,6 @@ static int disconnect(void) {
 }
 
 int m8_initialize(const int verbose, const char *preferred_device) {
-
   int m8_midi_port_number = 0;
 
   SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Initialize M8 via RTMIDI called");
@@ -257,35 +256,38 @@ int m8_enable_display(const unsigned char reset_display) {
 }
 
 int m8_send_msg_controller(const unsigned char input) {
-  SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "MIDI key inputs not implemented yet");
-  return 0;
-#if 0
   SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Sending controller input 0x%02X", input);
-  // Encode a 8bit byte to two 7-bit bytes
-  //const unsigned char sysex_encoded_input[2] = {input & 0x7F, (input >> 7) & 0x01};
-  const unsigned char input_sysex[10] = {0xF0, 0x00, 0x02, 0x61, 0x00, 0x00, 'C', sysex_encoded_input[0], sysex_encoded_input[1], 0xF7};
-  const int result = rtmidi_out_send_message(midi_out, &input_sysex[0], sizeof(input_sysex));
+
+  // Get MSB from input
+  const uint8_t msb = 0 | (input & 0x80 ? 1u << 2 : 0);
+  const unsigned char controller_sysex[10] = {
+      0xF0, 0x00, 0x02, 0x61, 0x00, msb, 0x00, (uint8_t)('C' & 0x7F), (uint8_t)(input & 0x7F),
+      0xF7};
+
+  const int result = rtmidi_out_send_message(midi_out, controller_sysex, sizeof(controller_sysex));
   if (result != 0) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to send key input message");
     return 0;
   }
   return 1;
-#endif
 }
 
 int m8_send_msg_keyjazz(const unsigned char note, unsigned char velocity) {
-  SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "MIDI keyjazz not implemented yet");
-  return 0;
-#if 0
   if (velocity > 0x7F) {
     velocity = 0x7F;
   }
 
   // Special case for note off
   if (note == 0xFF && velocity == 0x00) {
-    const unsigned char all_notes_off_sysex[9] = {0xF0, 0x00, 0x02, 0x61, 0x00, 0x00, 'K', 0xFF, 0xF7};
-    const int result =
-        rtmidi_out_send_message(midi_out, &all_notes_off_sysex[0], sizeof(all_notes_off_sysex));
+
+    const uint8_t msb = 0 | 1u << 2;
+    const unsigned char keyjazz_sysex[10] = {
+        0xF0, 0x00, 0x02, 0x61, 0x00,
+        msb, 0x00, (uint8_t)('K' & 0x7F), (uint8_t)(0xFF & 0x7F),
+        0xF7
+    };
+
+    const int result = rtmidi_out_send_message(midi_out, &keyjazz_sysex[0], sizeof(keyjazz_sysex));
     if (result != 0) {
       SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to send all notes off");
       return 0;
@@ -293,19 +295,23 @@ int m8_send_msg_keyjazz(const unsigned char note, unsigned char velocity) {
     return 1;
   }
 
-  const unsigned char keyjazz_sysex[10] = {0xF0, 0x00, 0x02, 0x61,     0x00,
-                                           0x00, 'K',  note, velocity, 0xF7};
+  // Get MSB from input
+  const uint8_t msb = 0 | (note & 0x80 ? 1u << 2 : 0) | (velocity & 0x80 ? 1u << 3 : 0);
+  const unsigned char keyjazz_sysex[11] = {
+    0xF0, 0x00, 0x02, 0x61, 0x00,
+    msb, 0x00, (uint8_t)('K' & 0x7F), (uint8_t)(note & 0x7F), (uint8_t)(velocity & 0x7F),
+    0xF7
+  };
+
   const int result = rtmidi_out_send_message(midi_out, &keyjazz_sysex[0], sizeof(keyjazz_sysex));
   if (result != 0) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to send keyjazz input message");
     return 0;
   }
   return 1;
-#endif
 }
 
 int m8_process_data(const config_params_s *conf) {
-
   static unsigned int empty_cycles = 0;
 
   if (queue_size(&queue) > 0) {

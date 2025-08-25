@@ -90,78 +90,78 @@ void write_config(const config_params_s *conf) {
 
   SDL_Log("Writing config file to %s", config_path);
 
-  const unsigned int INI_LINE_COUNT = 50;
-  const unsigned int LINELEN = 50;
+  #define INI_LINE_COUNT 50
+  #define INI_LINE_LENGTH 50
 
   // Entries for the config file
-  char ini_values[INI_LINE_COUNT][LINELEN];
+  char ini_values[INI_LINE_COUNT][INI_LINE_LENGTH];
   int initPointer = 0;
-  snprintf(ini_values[initPointer++], LINELEN, "[graphics]\n");
-  snprintf(ini_values[initPointer++], LINELEN, "fullscreen=%s\n",
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "[graphics]\n");
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "fullscreen=%s\n",
            conf->init_fullscreen ? "true" : "false");
-  snprintf(ini_values[initPointer++], LINELEN, "idle_ms=%d\n", conf->idle_ms);
-  snprintf(ini_values[initPointer++], LINELEN, "wait_for_device=%s\n",
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "idle_ms=%d\n", conf->idle_ms);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "wait_for_device=%s\n",
            conf->wait_for_device ? "true" : "false");
-  snprintf(ini_values[initPointer++], LINELEN, "wait_packets=%d\n", conf->wait_packets);
-  snprintf(ini_values[initPointer++], LINELEN, "integer_scaling=%s\n",
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "wait_packets=%d\n", conf->wait_packets);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "integer_scaling=%s\n",
            conf->integer_scaling ? "true" : "false");
-  snprintf(ini_values[initPointer++], LINELEN, "[audio]\n");
-  snprintf(ini_values[initPointer++], LINELEN, "audio_enabled=%s\n",
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "[audio]\n");
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "audio_enabled=%s\n",
            conf->audio_enabled ? "true" : "false");
-  snprintf(ini_values[initPointer++], LINELEN, "audio_buffer_size=%d\n", conf->audio_buffer_size);
-  snprintf(ini_values[initPointer++], LINELEN, "audio_device_name=%s\n",
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "audio_buffer_size=%d\n", conf->audio_buffer_size);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "audio_device_name=%s\n",
            conf->audio_device_name ? conf->audio_device_name : "Default");
-  snprintf(ini_values[initPointer++], LINELEN, "[keyboard]\n");
-  snprintf(ini_values[initPointer++], LINELEN, ";Ref: https://wiki.libsdl.org/SDL2/SDL_Scancode\n");
-  snprintf(ini_values[initPointer++], LINELEN, "key_up=%d\n", conf->key_up);
-  snprintf(ini_values[initPointer++], LINELEN, "key_left=%d\n", conf->key_left);
-  snprintf(ini_values[initPointer++], LINELEN, "key_down=%d\n", conf->key_down);
-  snprintf(ini_values[initPointer++], LINELEN, "key_right=%d\n", conf->key_right);
-  snprintf(ini_values[initPointer++], LINELEN, "key_select=%d\n", conf->key_select);
-  snprintf(ini_values[initPointer++], LINELEN, "key_select_alt=%d\n", conf->key_select_alt);
-  snprintf(ini_values[initPointer++], LINELEN, "key_start=%d\n", conf->key_start);
-  snprintf(ini_values[initPointer++], LINELEN, "key_start_alt=%d\n", conf->key_start_alt);
-  snprintf(ini_values[initPointer++], LINELEN, "key_opt=%d\n", conf->key_opt);
-  snprintf(ini_values[initPointer++], LINELEN, "key_opt_alt=%d\n", conf->key_opt_alt);
-  snprintf(ini_values[initPointer++], LINELEN, "key_edit=%d\n", conf->key_edit);
-  snprintf(ini_values[initPointer++], LINELEN, "key_edit_alt=%d\n", conf->key_edit_alt);
-  snprintf(ini_values[initPointer++], LINELEN, "key_delete=%d\n", conf->key_delete);
-  snprintf(ini_values[initPointer++], LINELEN, "key_reset=%d\n", conf->key_reset);
-  snprintf(ini_values[initPointer++], LINELEN, "key_jazz_inc_octave=%d\n",
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "[keyboard]\n");
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, ";Ref: https://wiki.libsdl.org/SDL2/SDL_Scancode\n");
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_up=%d\n", conf->key_up);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_left=%d\n", conf->key_left);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_down=%d\n", conf->key_down);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_right=%d\n", conf->key_right);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_select=%d\n", conf->key_select);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_select_alt=%d\n", conf->key_select_alt);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_start=%d\n", conf->key_start);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_start_alt=%d\n", conf->key_start_alt);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_opt=%d\n", conf->key_opt);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_opt_alt=%d\n", conf->key_opt_alt);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_edit=%d\n", conf->key_edit);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_edit_alt=%d\n", conf->key_edit_alt);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_delete=%d\n", conf->key_delete);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_reset=%d\n", conf->key_reset);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_jazz_inc_octave=%d\n",
            conf->key_jazz_inc_octave);
-  snprintf(ini_values[initPointer++], LINELEN, "key_jazz_dec_octave=%d\n",
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_jazz_dec_octave=%d\n",
            conf->key_jazz_dec_octave);
-  snprintf(ini_values[initPointer++], LINELEN, "key_jazz_inc_velocity=%d\n",
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_jazz_inc_velocity=%d\n",
            conf->key_jazz_inc_velocity);
-  snprintf(ini_values[initPointer++], LINELEN, "key_jazz_dec_velocity=%d\n",
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_jazz_dec_velocity=%d\n",
            conf->key_jazz_dec_velocity);
-  snprintf(ini_values[initPointer++], LINELEN, "key_toggle_audio=%d\n", conf->key_toggle_audio);
-  snprintf(ini_values[initPointer++], LINELEN, "[gamepad]\n");
-  snprintf(ini_values[initPointer++], LINELEN, "gamepad_up=%d\n", conf->gamepad_up);
-  snprintf(ini_values[initPointer++], LINELEN, "gamepad_left=%d\n", conf->gamepad_left);
-  snprintf(ini_values[initPointer++], LINELEN, "gamepad_down=%d\n", conf->gamepad_down);
-  snprintf(ini_values[initPointer++], LINELEN, "gamepad_right=%d\n", conf->gamepad_right);
-  snprintf(ini_values[initPointer++], LINELEN, "gamepad_select=%d\n", conf->gamepad_select);
-  snprintf(ini_values[initPointer++], LINELEN, "gamepad_start=%d\n", conf->gamepad_start);
-  snprintf(ini_values[initPointer++], LINELEN, "gamepad_opt=%d\n", conf->gamepad_opt);
-  snprintf(ini_values[initPointer++], LINELEN, "gamepad_edit=%d\n", conf->gamepad_edit);
-  snprintf(ini_values[initPointer++], LINELEN, "gamepad_quit=%d\n", conf->gamepad_quit);
-  snprintf(ini_values[initPointer++], LINELEN, "gamepad_reset=%d\n", conf->gamepad_reset);
-  snprintf(ini_values[initPointer++], LINELEN, "gamepad_analog_threshold=%d\n",
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_toggle_audio=%d\n", conf->key_toggle_audio);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "[gamepad]\n");
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "gamepad_up=%d\n", conf->gamepad_up);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "gamepad_left=%d\n", conf->gamepad_left);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "gamepad_down=%d\n", conf->gamepad_down);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "gamepad_right=%d\n", conf->gamepad_right);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "gamepad_select=%d\n", conf->gamepad_select);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "gamepad_start=%d\n", conf->gamepad_start);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "gamepad_opt=%d\n", conf->gamepad_opt);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "gamepad_edit=%d\n", conf->gamepad_edit);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "gamepad_quit=%d\n", conf->gamepad_quit);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "gamepad_reset=%d\n", conf->gamepad_reset);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "gamepad_analog_threshold=%d\n",
            conf->gamepad_analog_threshold);
-  snprintf(ini_values[initPointer++], LINELEN, "gamepad_analog_invert=%s\n",
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "gamepad_analog_invert=%s\n",
            conf->gamepad_analog_invert ? "true" : "false");
-  snprintf(ini_values[initPointer++], LINELEN, "gamepad_analog_axis_updown=%d\n",
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "gamepad_analog_axis_updown=%d\n",
            conf->gamepad_analog_axis_updown);
-  snprintf(ini_values[initPointer++], LINELEN, "gamepad_analog_axis_leftright=%d\n",
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "gamepad_analog_axis_leftright=%d\n",
            conf->gamepad_analog_axis_leftright);
-  snprintf(ini_values[initPointer++], LINELEN, "gamepad_analog_axis_select=%d\n",
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "gamepad_analog_axis_select=%d\n",
            conf->gamepad_analog_axis_select);
-  snprintf(ini_values[initPointer++], LINELEN, "gamepad_analog_axis_start=%d\n",
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "gamepad_analog_axis_start=%d\n",
            conf->gamepad_analog_axis_start);
-  snprintf(ini_values[initPointer++], LINELEN, "gamepad_analog_axis_opt=%d\n",
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "gamepad_analog_axis_opt=%d\n",
            conf->gamepad_analog_axis_opt);
-  snprintf(ini_values[initPointer++], LINELEN, "gamepad_analog_axis_edit=%d\n",
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "gamepad_analog_axis_edit=%d\n",
            conf->gamepad_analog_axis_edit);
 
   // Ensure we aren't writing off the end of the array
