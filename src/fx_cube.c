@@ -117,17 +117,17 @@ int fx_cube_update(void) {
     SDL_SetRenderDrawColor(fx_renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
     SDL_RenderClear(fx_renderer);
 
-    const Uint64 seconds = SDL_GetTicks() / 1000;
-    const float scale_factor = 1 + SDL_sinf((float)seconds) * (float)0.005;
+    const Uint64 ms = SDL_GetTicks();
+    const float t = (float)ms / 1000.0f;
+    const float pulse = 1.0f + 0.25f * SDL_sinf(t);
 
-    scale(scale_factor, scale_factor, scale_factor);
     rotate_cube(M_PI / 180, M_PI / 270);
 
     for (int i = 0; i < 12; i++) {
       const float *p1 = nodes[edges[i][0]];
       const float *p2 = nodes[edges[i][1]];
-      points[points_counter++] = (SDL_FPoint){p1[0] + center_x, nodes[edges[i][0]][1] + center_y};
-      points[points_counter++] = (SDL_FPoint){p2[0] + center_x, p2[1] + center_y};
+      points[points_counter++] = (SDL_FPoint){p1[0] * pulse + center_x, p1[1] * pulse + center_y};
+      points[points_counter++] = (SDL_FPoint){p2[0] * pulse + center_x, p2[1] * pulse + center_y};
     }
 
     SDL_RenderTexture(fx_renderer, texture_text, NULL, NULL);
