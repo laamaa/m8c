@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     systems.url = "github:nix-systems/default";
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";
@@ -31,7 +31,7 @@
         { stdenv
         , gnumake
         , pkg-config
-        , SDL3
+        , sdl3
         , libserialport
         , fetchFromGitHub
         }:
@@ -47,7 +47,7 @@
 
           installFlags = [ "PREFIX=$(out)" ];
           nativeBuildInputs = [ gnumake pkg-config ];
-          buildInputs = [ SDL3 libserialport ];
+          buildInputs = [ sdl3 libserialport ];
         };
       eachSystem = f: nixpkgs.lib.genAttrs (import systems) (system: f
         (import nixpkgs { inherit system; })
@@ -86,6 +86,8 @@
       devShells = eachSystem (pkgs: with pkgs; {
         default = mkShell {
           packages = [
+            cmake
+            gnumake
             nix-prefetch-github
             treefmtEval.${system}.config.build.wrapper
           ];
