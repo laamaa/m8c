@@ -1,5 +1,5 @@
 #Set the compiler you are using
-CC = gcc
+CC ?= gcc
 
 #Set the filename extension of your C files
 EXTENSION = .c
