@@ -23,6 +23,7 @@ static SDL_Window *win;
 static SDL_Renderer *rend;
 static SDL_Texture *main_texture;
 static SDL_Texture *hd_texture = NULL;
+static SDL_Texture *log_texture = NULL;
 static SDL_Color global_background_color = (SDL_Color){.r = 0x00, .g = 0x00, .b = 0x00, .a = 0x00};
 static SDL_RendererLogicalPresentation window_scaling_mode = SDL_LOGICAL_PRESENTATION_INTEGER_SCALE;
 static SDL_ScaleMode texture_scaling_mode = SDL_SCALEMODE_NEAREST;
@@ -34,6 +35,21 @@ static unsigned int m8_hardware_model = 0;
 static int screen_offset_y = 0;
 static int text_offset_y = 0;
 static int waveform_max_height = 24;
+
+// Log overlay state
+static int log_overlay_visible = 0;
+static int log_overlay_needs_redraw = 0;
+
+// Log buffer configuration
+#define LOG_BUFFER_MAX_LINES 512
+#define LOG_LINE_MAX_CHARS 256
+static char log_lines[LOG_BUFFER_MAX_LINES][LOG_LINE_MAX_CHARS];
+static int log_line_start = 0; // index of the oldest line
+static int log_line_count = 0; // number of valid lines
+
+// Previous SDL log output forwarding
+static SDL_LogOutputFunction prev_log_output_fn = NULL;
+static void *prev_log_output_userdata = NULL;
 
 static int texture_width = 320;
 static int texture_height = 240;
@@ -93,7 +109,8 @@ static void create_hd_texture() {
   // Calculate the HD texture size
   const int new_hd_texture_width = texture_width * scale_factor;
   const int new_hd_texture_height = texture_height * scale_factor;
-  if (hd_texture != NULL && new_hd_texture_width == hd_texture_width && new_hd_texture_height == hd_texture_height) {
+  if (hd_texture != NULL && new_hd_texture_width == hd_texture_width &&
+      new_hd_texture_height == hd_texture_height) {
     // Texture exists and there is no change in the size, carry on
     SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "HD texture size not changed, skipping");
     return;
@@ -102,8 +119,8 @@ static void create_hd_texture() {
   hd_texture_width = new_hd_texture_width;
   hd_texture_height = new_hd_texture_height;
 
-  SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "Creating HD texture, scale factor: %d, size: %dx%d", scale_factor,
-               hd_texture_width, hd_texture_height);
+  SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "Creating HD texture, scale factor: %d, size: %dx%d",
+               scale_factor, hd_texture_width, hd_texture_height);
 
   // Destroy any existing HD texture
   if (hd_texture != NULL) {
@@ -132,6 +149,164 @@ static void change_font(struct inline_font *font) {
   inline_font_initialize(font);
 }
 
+// Append a formatted line to the circular log buffer
+static void log_buffer_append_line(const char *line) {
+  if (line == NULL || line[0] == '\0') {
+    return;
+  }
+  const int index = (log_line_start + log_line_count) % LOG_BUFFER_MAX_LINES;
+  SDL_strlcpy(log_lines[index], line, LOG_LINE_MAX_CHARS);
+  if (log_line_count < LOG_BUFFER_MAX_LINES) {
+    log_line_count++;
+  } else {
+    log_line_start = (log_line_start + 1) % LOG_BUFFER_MAX_LINES;
+  }
+  log_overlay_needs_redraw = 1;
+}
+
+// SDL log output function that mirrors to our in-app buffer in addition to the default handler
+static void sdl_log_capture(void *userdata, int category, SDL_LogPriority priority,
+                            const char *message) {
+  (void)userdata;
+  (void)category;
+  (void)priority;
+
+  char formatted[LOG_LINE_MAX_CHARS];
+  SDL_snprintf(formatted, sizeof(formatted), ">%s", message ? message : "");
+
+  // Copy the formatted message into our buffer
+  log_buffer_append_line(formatted);
+
+  // Forward to the previous output function so messages still hit the console
+  if (prev_log_output_fn != NULL) {
+    prev_log_output_fn(prev_log_output_userdata, category, priority, message);
+  }
+}
+
+void renderer_log_init(void) {
+  // Preserve the existing output function and install our capture wrapper
+  SDL_GetLogOutputFunction(&prev_log_output_fn, &prev_log_output_userdata);
+  SDL_SetLogOutputFunction(sdl_log_capture, NULL);
+}
+
+void renderer_toggle_log_overlay(void) {
+  log_overlay_visible = !log_overlay_visible;
+  // Force redraw next present
+  dirty = 1;
+  log_overlay_needs_redraw = 1;
+}
+
+// Render the log buffer into a texture for overlay display
+static void render_log_overlay_texture(void) {
+  if (!log_overlay_visible) {
+    return;
+  }
+  if (log_texture == NULL) {
+    log_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
+                                    texture_width, texture_height);
+    if (log_texture == NULL) {
+      SDL_LogError(SDL_LOG_CATEGORY_RENDER, "Couldn't create log texture: %s", SDL_GetError());
+      return;
+    }
+    // Ensure overlay blends and scales consistently with the main texture
+    SDL_SetTextureBlendMode(log_texture, SDL_BLENDMODE_BLEND);
+    SDL_SetTextureScaleMode(log_texture, texture_scaling_mode);
+  }
+
+  if (!log_overlay_needs_redraw) {
+    return;
+  }
+  log_overlay_needs_redraw = 0;
+
+  SDL_Texture *prev_target = SDL_GetRenderTarget(rend);
+  SDL_SetRenderTarget(rend, log_texture);
+
+  // Semi-transparent background rectangle
+  SDL_SetRenderDrawColor(rend, 0, 0, 0, 220);
+  SDL_RenderClear(rend);
+
+  // Use small font to fit more lines
+  const int prev_font_mode = font_mode;
+  inline_font_close();
+  inline_font_initialize(fonts[0]);
+
+  const int line_height = fonts[0]->glyph_y + 1;
+  const int margin_x = 2;
+  const int usable_width = texture_width - (margin_x * 2);
+  const int cols = SDL_max(1, usable_width / (fonts[0]->glyph_x + 1));
+
+  const Uint32 fg = 0xFFFFFF; // light grey
+  const Uint32 bg = 0xFFFFFF; // inprint translates same bg as fg to transparent
+
+  // Compute how many text rows fit
+  const int max_rows = texture_height / line_height - 1;
+  int rows_needed = max_rows;
+
+  // Determine start line and character offset so the overlay shows the most recent rows
+  int newest_idx =
+      (log_line_start + log_line_count - 1 + LOG_BUFFER_MAX_LINES) % LOG_BUFFER_MAX_LINES;
+  int start_idx = log_line_start;
+  size_t start_char_offset = 0;
+
+  if (log_line_count > 0) {
+    for (int n = 0; n < log_line_count && rows_needed > 0; n++) {
+      const int idx = (newest_idx - n + LOG_BUFFER_MAX_LINES) % LOG_BUFFER_MAX_LINES;
+      const size_t len = SDL_strlen(log_lines[idx]);
+      const int rows_for_line = SDL_max(1, (int)((len + cols - 1) / cols));
+      if (rows_for_line >= rows_needed) {
+        int offset = (int)len - (rows_needed * cols);
+        if (offset < 0) {
+          offset = 0;
+        }
+        start_idx = idx;
+        start_char_offset = (size_t)offset;
+        rows_needed = 0;
+        break;
+      } else {
+        rows_needed -= rows_for_line;
+        start_idx = idx;
+        start_char_offset = 0;
+      }
+    }
+  }
+
+  // Render forward from the computed start to the newest
+  int y = 0;
+  if (log_line_count > 0) {
+    int cur = start_idx;
+    const int last = newest_idx;
+    size_t offset = start_char_offset;
+    while (1) {
+      const char *s = log_lines[cur];
+      const size_t len = SDL_strlen(s);
+      for (size_t pos = offset; pos < len && y < texture_height;) {
+        size_t remaining = len - pos;
+        size_t take = (size_t)cols < remaining ? (size_t)cols : remaining;
+        char buf[LOG_LINE_MAX_CHARS];
+        if (take >= sizeof(buf)) {
+          take = sizeof(buf) - 1;
+        }
+        SDL_memcpy(buf, s + pos, take);
+        buf[take] = '\0';
+        inprint(rend, buf, margin_x, y, fg, bg);
+        y += line_height;
+        pos += take;
+      }
+      if (cur == last || y >= texture_height) {
+        break;
+      }
+      cur = (cur + 1) % LOG_BUFFER_MAX_LINES;
+      offset = 0;
+    }
+  }
+
+  // Restore previous font
+  inline_font_close();
+  inline_font_initialize(fonts[prev_font_mode]);
+
+  SDL_SetRenderTarget(rend, prev_target);
+}
+
 static void check_and_adjust_window_and_texture_size(const int new_width, const int new_height) {
 
   if (texture_width == new_width && texture_height == new_height) {
@@ -157,6 +332,12 @@ static void check_and_adjust_window_and_texture_size(const int new_width, const 
 
   if (main_texture != NULL) {
     SDL_DestroyTexture(main_texture);
+  }
+
+  // Drop log texture so it can be recreated with correct size
+  if (log_texture != NULL) {
+    SDL_DestroyTexture(log_texture);
+    log_texture = NULL;
   }
 
   main_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
@@ -205,6 +386,9 @@ void renderer_close(void) {
   }
   if (hd_texture != NULL) {
     SDL_DestroyTexture(hd_texture);
+  }
+  if (log_texture != NULL) {
+    SDL_DestroyTexture(log_texture);
   }
   SDL_DestroyRenderer(rend);
   SDL_DestroyWindow(win);
@@ -421,7 +605,8 @@ int renderer_initialize(config_params_s *conf) {
   renderer_set_font_mode(0);
 
   SDL_SetHint(SDL_HINT_IOS_HIDE_HOME_INDICATOR, "1");
-  renderer_fix_texture_scaling_after_window_resize(conf); // iOS needs this, doesn't hurt on others either
+  renderer_fix_texture_scaling_after_window_resize(
+      conf); // iOS needs this, doesn't hurt on others either
 
   dirty = 1;
 
@@ -527,6 +712,14 @@ void render_screen(config_params_s *conf) {
     } else {
       // Window and texture aspect ratios match
       SDL_RenderTexture(rend, hd_texture, NULL, NULL);
+    }
+  }
+
+  // Ensure log overlay is up to date, then composite it if visible before present
+  if (log_overlay_visible) {
+    render_log_overlay_texture();
+    if (log_texture) {
+      SDL_RenderTexture(rend, log_texture, NULL, NULL);
     }
   }
 

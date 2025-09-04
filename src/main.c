@@ -18,7 +18,8 @@
 #include "gamepads.h"
 #include "render.h"
 
-// On MacOS TARGET_OS_IOS is defined as 0, so make sure that it's consistent on other platforms as well
+// On MacOS TARGET_OS_IOS is defined as 0, so make sure that it's consistent on other platforms as
+// well
 #ifndef TARGET_OS_IOS
 #define TARGET_OS_IOS 0
 #endif
@@ -95,7 +96,7 @@ static config_params_s initialize_config(int argc, char *argv[], char **preferre
 
   if (TARGET_OS_IOS == 1) {
     // Predefined settings for iOS
-    conf.init_fullscreen=1;
+    conf.init_fullscreen = 1;
   } else {
     // On other platforms, read config normally
     config_read(&conf);
@@ -165,6 +166,9 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 // Initialize the app: initialize context, configs, renderer controllers and attempt to find M8
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
   char *config_filename = NULL;
+
+  // Initialize in-app log capture/overlay
+  renderer_log_init();
 
   // Process the application's main callback roughly at 120 Hz
   SDL_SetHint(SDL_HINT_MAIN_CALLBACK_RATE, "120");

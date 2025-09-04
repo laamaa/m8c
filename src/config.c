@@ -33,8 +33,8 @@ config_params_s config_initialize(char *filename) {
   c.idle_ms = 10;        // default to high performance
   c.wait_for_device = 1; // default to exit if device disconnected
   c.wait_packets = 256;  // amount of empty command queue reads before assuming device disconnected
-  c.audio_enabled = 0;        // route M8 audio to default output
-  c.audio_buffer_size = 0; // requested audio buffer size in samples: 0 = let SDL decide
+  c.audio_enabled = 0;   // route M8 audio to default output
+  c.audio_buffer_size = 0;    // requested audio buffer size in samples: 0 = let SDL decide
   c.audio_device_name = NULL; // Use this device, leave NULL to use the default output device
 
   c.key_up = SDL_SCANCODE_UP;
@@ -56,6 +56,7 @@ config_params_s config_initialize(char *filename) {
   c.key_jazz_inc_velocity = SDL_SCANCODE_KP_MINUS;
   c.key_jazz_dec_velocity = SDL_SCANCODE_KP_PLUS;
   c.key_toggle_audio = SDL_SCANCODE_F12;
+  c.key_toggle_log = SDL_SCANCODE_GRAVE; // default to ` key
 
   c.gamepad_up = SDL_GAMEPAD_BUTTON_DPAD_UP;
   c.gamepad_left = SDL_GAMEPAD_BUTTON_DPAD_LEFT;
@@ -90,8 +91,8 @@ void write_config(const config_params_s *conf) {
 
   SDL_Log("Writing config file to %s", config_path);
 
-  #define INI_LINE_COUNT 50
-  #define INI_LINE_LENGTH 50
+#define INI_LINE_COUNT 50
+#define INI_LINE_LENGTH 50
 
   // Entries for the config file
   char ini_values[INI_LINE_COUNT][INI_LINE_LENGTH];
@@ -108,11 +109,13 @@ void write_config(const config_params_s *conf) {
   snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "[audio]\n");
   snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "audio_enabled=%s\n",
            conf->audio_enabled ? "true" : "false");
-  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "audio_buffer_size=%d\n", conf->audio_buffer_size);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "audio_buffer_size=%d\n",
+           conf->audio_buffer_size);
   snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "audio_device_name=%s\n",
            conf->audio_device_name ? conf->audio_device_name : "Default");
   snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "[keyboard]\n");
-  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, ";Ref: https://wiki.libsdl.org/SDL2/SDL_Scancode\n");
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH,
+           ";Ref: https://wiki.libsdl.org/SDL2/SDL_Scancode\n");
   snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_up=%d\n", conf->key_up);
   snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_left=%d\n", conf->key_left);
   snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_down=%d\n", conf->key_down);
@@ -135,7 +138,9 @@ void write_config(const config_params_s *conf) {
            conf->key_jazz_inc_velocity);
   snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_jazz_dec_velocity=%d\n",
            conf->key_jazz_dec_velocity);
-  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_toggle_audio=%d\n", conf->key_toggle_audio);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_toggle_audio=%d\n",
+           conf->key_toggle_audio);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_toggle_log=%d\n", conf->key_toggle_log);
   snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "[gamepad]\n");
   snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "gamepad_up=%d\n", conf->gamepad_up);
   snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "gamepad_left=%d\n", conf->gamepad_left);
@@ -285,6 +290,7 @@ void read_key_config(const ini_t *ini, config_params_s *conf) {
   const char *key_jazz_inc_velocity = ini_get(ini, "keyboard", "key_jazz_inc_velocity");
   const char *key_jazz_dec_velocity = ini_get(ini, "keyboard", "key_jazz_dec_velocity");
   const char *key_toggle_audio = ini_get(ini, "keyboard", "key_toggle_audio");
+  const char *key_toggle_log = ini_get(ini, "keyboard", "key_toggle_log");
 
   if (key_up)
     conf->key_up = SDL_atoi(key_up);
@@ -324,6 +330,8 @@ void read_key_config(const ini_t *ini, config_params_s *conf) {
     conf->key_jazz_dec_velocity = SDL_atoi(key_jazz_dec_velocity);
   if (key_toggle_audio)
     conf->key_toggle_audio = SDL_atoi(key_toggle_audio);
+  if (key_toggle_log)
+    conf->key_toggle_log = SDL_atoi(key_toggle_log);
 }
 
 void read_gamepad_config(const ini_t *ini, config_params_s *conf) {
