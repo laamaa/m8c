@@ -232,6 +232,7 @@ static void render_log_overlay_texture(void) {
 
   const int line_height = fonts[0]->glyph_y + 1;
   const int margin_x = 2;
+  const int margin_y = 1;
   const int usable_width = texture_width - (margin_x * 2);
   const int cols = SDL_max(1, usable_width / (fonts[0]->glyph_x + 1));
 
@@ -239,11 +240,11 @@ static void render_log_overlay_texture(void) {
   const Uint32 bg = 0xFFFFFF; // inprint translates same bg as fg to transparent
 
   // Compute how many text rows fit
-  const int max_rows = texture_height / line_height - 1;
+  const int max_rows = (texture_height - margin_y * 2) / line_height;
   int rows_needed = max_rows;
 
   // Determine start line and character offset so the overlay shows the most recent rows
-  int newest_idx =
+  const int newest_idx =
       (log_line_start + log_line_count - 1 + LOG_BUFFER_MAX_LINES) % LOG_BUFFER_MAX_LINES;
   int start_idx = log_line_start;
   size_t start_char_offset = 0;
@@ -254,25 +255,23 @@ static void render_log_overlay_texture(void) {
       const size_t len = SDL_strlen(log_lines[idx]);
       const int rows_for_line = SDL_max(1, (int)((len + cols - 1) / cols));
       if (rows_for_line >= rows_needed) {
-        int offset = (int)len - (rows_needed * cols);
+        int offset = (int)len - rows_needed * cols;
         if (offset < 0) {
           offset = 0;
         }
         start_idx = idx;
         start_char_offset = (size_t)offset;
-        rows_needed = 0;
         break;
-      } else {
-        rows_needed -= rows_for_line;
-        start_idx = idx;
-        start_char_offset = 0;
       }
+      rows_needed -= rows_for_line;
+      start_idx = idx;
+      start_char_offset = 0;
     }
   }
 
   // Render forward from the computed start to the newest
-  int y = 0;
   if (log_line_count > 0) {
+    int y = 1;
     int cur = start_idx;
     const int last = newest_idx;
     size_t offset = start_char_offset;
@@ -334,7 +333,7 @@ static void check_and_adjust_window_and_texture_size(const int new_width, const 
     SDL_DestroyTexture(main_texture);
   }
 
-  // Drop log texture so it can be recreated with correct size
+  // Drop log texture so it can be recreated with the correct size
   if (log_texture != NULL) {
     SDL_DestroyTexture(log_texture);
     log_texture = NULL;
