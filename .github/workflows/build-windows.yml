@@ -14,6 +14,7 @@ jobs:
         include:
           - { sys: mingw32, env: i686, win: win32 }
           - { sys: mingw64, env: x86_64, win: win64 }
+          - { sys: mingw64, env: x86_64, win: win64-rtmidi, cmake_flags: "-DUSE_RTMIDI=1" }
     name: ${{ matrix.win }}
     defaults:
       run:
@@ -95,7 +96,7 @@ jobs:
 
     - name: 'Build package'
       run: |
-        cmake . -G Ninja -DCMAKE_PREFIX_PATH=C:/Libraries -DCMAKE_BUILD_TYPE=Release
+        cmake . -G Ninja -DCMAKE_PREFIX_PATH=C:/Libraries -DCMAKE_BUILD_TYPE=Release ${{ matrix.cmake_flags }}
         cmake --build .
         strip -g m8c.exe
         if [ ${{ matrix.win }} == "win32" ]
@@ -133,6 +134,18 @@ jobs:
           m8c.exe
           SDL3.dll
           libserialport-0.dll
+          gamecontrollerdb.txt
+          LICENSE
+          README.md
+          AUDIOGUIDE.md
+    - name: 'Upload artifact (win64-rtmidi)'
+      if: matrix.win == 'win64-rtmidi'
+      uses: actions/upload-artifact@v4
+      with:
+        name: m8c-${{ env.NOW }}-${{ matrix.win }}-rtmidi
+        path: |
+          m8c.exe
+          SDL3.dll
           gamecontrollerdb.txt
           LICENSE
           README.md
