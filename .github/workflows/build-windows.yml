@@ -38,7 +38,7 @@ jobs:
       with:
         msystem: ${{ matrix.sys }}
         update: true
-        install: mingw-w64-${{ matrix.env }}-toolchain make mingw-w64-${{ matrix.env }}-cmake zip dos2unix autoconf automake-wrapper libtool make unzip mingw-w64-rtmidi
+        install: mingw-w64-${{ matrix.env }}-toolchain make mingw-w64-${{ matrix.env }}-cmake zip dos2unix autoconf automake-wrapper libtool make unzip rtmidi
 
     - name: 'Cache SDL3 files'
       id: cache-sdl3-files
