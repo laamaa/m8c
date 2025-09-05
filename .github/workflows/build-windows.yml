@@ -38,7 +38,7 @@ jobs:
       with:
         msystem: ${{ matrix.sys }}
         update: true
-        install: mingw-w64-${{ matrix.env }}-toolchain make mingw-w64-${{ matrix.env }}-cmake zip dos2unix autoconf automake-wrapper libtool make unzip
+        install: mingw-w64-${{ matrix.env }}-toolchain mingw-w64-rtmidi make mingw-w64-${{ matrix.env }}-cmake zip dos2unix autoconf automake-wrapper libtool make unzip
 
     - name: 'Cache SDL3 files'
       id: cache-sdl3-files
@@ -108,6 +108,7 @@ jobs:
         else
           cp C:/Libraries/bin/SDL3.dll .
           cp /mingw64/bin/libserialport-0.dll .
+          cp /mingw64/bin/librtmidi-7.dll .
         fi
         unix2dos README.md LICENSE AUDIOGUIDE.md
     - name: 'Upload artifact (win32)'
@@ -146,6 +147,7 @@ jobs:
         path: |
           m8c.exe
           SDL3.dll
+          librtmidi-7.dll
           gamecontrollerdb.txt
           LICENSE
           README.md
