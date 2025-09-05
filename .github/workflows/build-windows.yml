@@ -96,11 +96,13 @@ jobs:
 
     - name: 'Build package'
       run: |
-        # For the RtMidi build, append its linker flags at the end to avoid order issues
         if [ "${{ matrix.win }}" = "win64-rtmidi" ]; then
-          EXTRA_LDFLAGS="$(pkg-config --libs rtmidi)"
-          echo "Using EXTRA_LDFLAGS: ${EXTRA_LDFLAGS}"
-          cmake . -G Ninja -DCMAKE_PREFIX_PATH=C:/Libraries -DCMAKE_BUILD_TYPE=Release ${{ matrix.cmake_flags }} -DCMAKE_EXE_LINKER_FLAGS="${EXTRA_LDFLAGS}"
+          # RtMidi needs to be at the very end of the link line for MinGW.
+          # CMAKE_C_STANDARD_LIBRARIES is appended at the end by CMake's C linker rule.
+          RTMIDI_LIBS="$(pkg-config --libs rtmidi)"
+          # Preserve the standard Windows libs CMake appends by default for C targets:
+          WIN_SYS_LIBS="-lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32"
+          cmake . -G Ninja -DCMAKE_PREFIX_PATH=C:/Libraries -DCMAKE_BUILD_TYPE=Release ${{ matrix.cmake_flags }} -DCMAKE_C_STANDARD_LIBRARIES="${RTMIDI_LIBS} ${WIN_SYS_LIBS}"
         else
           cmake . -G Ninja -DCMAKE_PREFIX_PATH=C:/Libraries -DCMAKE_BUILD_TYPE=Release ${{ matrix.cmake_flags }}
         fi
@@ -116,6 +118,8 @@ jobs:
         then
           cp C:/Libraries/bin/SDL3.dll .
           cp /mingw64/bin/librtmidi-*.dll .
+          cp /mingw64/bin/libstdc++-6.dll .
+          cp /mingw64/bin/libwinpthread-1.dll .
         else
           cp C:/Libraries/bin/SDL3.dll .
           cp /mingw64/bin/libserialport-0.dll .
@@ -158,6 +162,8 @@ jobs:
           m8c.exe
           SDL3.dll
           librtmidi-*.dll
+          libstdc++-6.dll
+          libwinpthread-1.dll
           gamecontrollerdb.txt
           LICENSE
           README.md
