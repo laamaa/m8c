@@ -188,6 +188,12 @@ void input_handle_key_down_event(struct app_context *ctx, const SDL_Event *event
     return;
   }
 
+  // Toggle in-app log overlay using config-defined key
+  if (event->key.scancode == ctx->conf.key_toggle_log) {
+    renderer_toggle_log_overlay();
+    return;
+  }
+
   if (event->key.scancode == ctx->conf.key_toggle_audio && ctx->device_connected) {
     ctx->conf.audio_enabled = !ctx->conf.audio_enabled;
     audio_toggle(ctx->conf.audio_device_name, ctx->conf.audio_buffer_size);
@@ -280,8 +286,8 @@ void input_handle_gamepad_button(struct app_context *ctx, const SDL_GamepadButto
  * @param negative_key   The key to activate when the axis value is below a negative threshold
  * @param positive_key   The key to activate when the axis value is above a positive threshold
  */
-static void update_button_state_from_axis(Sint16 axis_value, int threshold,
-                                         int negative_key, int positive_key) {
+static void update_button_state_from_axis(Sint16 axis_value, int threshold, int negative_key,
+                                          int positive_key) {
   if (axis_value < -threshold) {
     gamepad_state.current_buttons |= negative_key;
   } else if (axis_value > threshold) {
@@ -301,7 +307,7 @@ static void update_button_state_from_axis(Sint16 axis_value, int threshold,
  * @param value The analog value of the axis, typically ranging from -32768 to 32767.
  */
 void input_handle_gamepad_axis(const struct app_context *ctx, const SDL_GamepadAxis axis,
-                             const Sint16 value) {
+                               const Sint16 value) {
   const config_params_s *conf = &ctx->conf;
   gamepad_state.analog_values[axis] = value;
 

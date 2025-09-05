@@ -19,14 +19,13 @@ static Uint16 selected_font_w, selected_font_h;
 
 void inline_font_initialize(struct inline_font *font) {
 
+  if (inline_font != NULL) {
+    return;
+  }
+
   selected_font_w = font->width;
   selected_font_h = font->height;
   selected_inline_font = font;
-
-  if (inline_font != NULL) {
-    selected_font = inline_font;
-    return;
-  }
 
   SDL_IOStream *font_bmp =
       SDL_IOFromConstMem(selected_inline_font->image_data, selected_inline_font->image_size);
@@ -119,8 +118,7 @@ void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y, const Uint3
 
     if (bgcolor != fgcolor) {
       SDL_SetRenderDrawColor(selected_renderer, (bgcolor & 0x00FF0000) >> 16,
-                             (bgcolor & 0x0000FF00) >> 8, bgcolor & 0x000000FF,
-                             0xFF);
+                             (bgcolor & 0x0000FF00) >> 8, bgcolor & 0x000000FF, 0xFF);
       bg_rect = d_rect;
       bg_rect.w = (float)selected_inline_font->glyph_x;
       bg_rect.h = (float)selected_inline_font->glyph_y;

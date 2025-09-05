@@ -27,6 +27,10 @@ void display_keyjazz_overlay(uint8_t show, uint8_t base_octave, uint8_t velocity
 
 void show_error_message(const char *message);
 
+// Log overlay controls
+void renderer_log_init(void);
+void renderer_toggle_log_overlay(void);
+
 int screensaver_init(void);
 void screensaver_draw(void);
 void screensaver_destroy(void);

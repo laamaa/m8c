@@ -156,6 +156,7 @@ Additional controls:
 * Esc = toggle keyjazz on/off
 * r / select+start+opt+edit = reset display (if glitches appear on the screen, use this)
 * F12 = toggle audio routing on / off
+* ` (grave) = toggle in-app log overlay
 
 ### Keyjazz
 
@@ -209,6 +210,14 @@ m8c --config alternate_config.ini
 
 This looks for a config file with the given name in the same directory as the default config. If you specify a config
 file that does not exist, a new default config file with the specified name will be created, which you can then edit.
+
+### Log overlay
+
+An in-app log overlay is available for platforms where reading console output is inconvenient.
+
+- Default toggle key: \` (grave). You can change it in `config.ini` under `[keyboard]` using `key_toggle_log=<SDL_SCANCODE>`.
+- The overlay shows recent `SDL_Log*` messages.
+- Long lines are wrapped to fit; the view tails the most recent output.
 
 Enjoy making some nice music!
 
