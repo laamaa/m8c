@@ -96,7 +96,14 @@ jobs:
 
     - name: 'Build package'
       run: |
-        cmake . -G Ninja -DCMAKE_PREFIX_PATH=C:/Libraries -DCMAKE_BUILD_TYPE=Release ${{ matrix.cmake_flags }}
+        # For the RtMidi build, append its linker flags at the end to avoid order issues
+        if [ "${{ matrix.win }}" = "win64-rtmidi" ]; then
+          EXTRA_LDFLAGS="$(pkg-config --libs rtmidi)"
+          echo "Using EXTRA_LDFLAGS: ${EXTRA_LDFLAGS}"
+          cmake . -G Ninja -DCMAKE_PREFIX_PATH=C:/Libraries -DCMAKE_BUILD_TYPE=Release ${{ matrix.cmake_flags }} -DCMAKE_EXE_LINKER_FLAGS="${EXTRA_LDFLAGS}"
+        else
+          cmake . -G Ninja -DCMAKE_PREFIX_PATH=C:/Libraries -DCMAKE_BUILD_TYPE=Release ${{ matrix.cmake_flags }}
+        fi
         cmake --build .
         strip -g m8c.exe
         if [ ${{ matrix.win }} == "win32" ]
@@ -105,10 +112,13 @@ jobs:
           cp /mingw32/bin/libgcc_s_dw2-1.dll .
           cp /mingw32/bin/libserialport-0.dll .
           cp /mingw32/bin/libwinpthread-1.dll .
+        elif [ ${{ matrix.win }} == "win64-rtmidi" ]
+        then
+          cp C:/Libraries/bin/SDL3.dll .
+          cp /mingw64/bin/librtmidi-*.dll .
         else
           cp C:/Libraries/bin/SDL3.dll .
           cp /mingw64/bin/libserialport-0.dll .
-          cp /mingw64/bin/librtmidi-7.dll .
         fi
         unix2dos README.md LICENSE AUDIOGUIDE.md
     - name: 'Upload artifact (win32)'
@@ -147,7 +157,7 @@ jobs:
         path: |
           m8c.exe
           SDL3.dll
-          librtmidi-7.dll
+          librtmidi-*.dll
           gamecontrollerdb.txt
           LICENSE
           README.md
