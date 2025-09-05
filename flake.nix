@@ -26,7 +26,7 @@
       # Make sure new dependencies are added. Runtime deps go to buildInputs and
       # compile-time deps go to nativeBuildInputs. Use the nixpkgs manual for help
       pname = "m8c";
-      version = "1.7.10";
+      version = "2.1.0";
       m8c-package =
         { stdenv
         , gnumake
@@ -42,7 +42,7 @@
             owner = "laamaa";
             repo = pname;
             rev = "v${version}";
-            hash = "sha256:18bx6jf0jbgnd6cfydh4iknh25rrpyc8awma4a1hkia57fyjy2gi";
+            hash = "sha256-grShHkCkBqgPHTLYwqQUnvIRzUxW1ENU0dYO4TOpYO8=";
           };
 
           installFlags = [ "PREFIX=$(out)" ];
