@@ -94,7 +94,7 @@ void setup_hd_texture_scaling(void) {
 }
 
 // Creates an intermediate texture dynamically based on window size
-static void create_hd_texture() {
+static void create_hd_texture(void) {
   int window_width, window_height;
 
   // Get the current window size
@@ -739,7 +739,9 @@ int screensaver_init(void) {
   }
   SDL_SetRenderTarget(rend, main_texture);
   renderer_set_font_mode(1);
-  global_background_color.r = 0, global_background_color.g = 0, global_background_color.b = 0;
+  global_background_color.r = 0;
+  global_background_color.g = 0;
+  global_background_color.b = 0;
   fx_cube_init(rend, (SDL_Color){255, 255, 255, 255}, texture_width, texture_height,
                fonts[font_mode]->glyph_x);
   SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Screensaver initialized");
