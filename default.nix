@@ -14,5 +14,5 @@ let
     }).defaultNix.packages.${builtins.currentSystem};
 in
 {
-  inherit (pkgs) m8c-stable m8c-dev;
+  inherit (pkgs) m8c;
 }
