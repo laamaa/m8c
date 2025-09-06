@@ -5,6 +5,8 @@
    CFLAGS=-DDEBUG_MSG` */
 // #define DEBUG_MSG
 
+#define APP_VERSION "v2.1.1"
+
 #include <SDL3/SDL.h>
 #define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL_main.h>
@@ -113,16 +115,6 @@ static config_params_s initialize_config(int argc, char *argv[], char **preferre
  * @return An unsigned char indicating the connection state of the device.
  *         Returns 1 if the device is connected successfully, or 0 if not connected.
  */
-static unsigned char handle_m8_connection_init(const unsigned char wait_for_device,
-                                               const char *preferred_device) {
-  const unsigned char device_connected = m8_initialize(1, preferred_device);
-  if (!wait_for_device && device_connected == 0) {
-    SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected!");
-    exit(EXIT_FAILURE);
-  }
-  return device_connected;
-}
-
 // Main callback loop - read inputs, process data from the device, render screen
 SDL_AppResult SDL_AppIterate(void *appstate) {
   if (appstate == NULL) {
@@ -137,9 +129,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     break;
 
   case WAIT_FOR_DEVICE:
-    if (ctx->conf.wait_for_device) {
-      do_wait_for_device(ctx);
-    }
+    do_wait_for_device(ctx);
     break;
 
   case RUN: {
@@ -165,10 +155,21 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
 // Initialize the app: initialize context, configs, renderer controllers and attempt to find M8
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
+  SDL_SetAppMetadata("M8C",APP_VERSION,"fi.laamaa.m8c");
+
   char *config_filename = NULL;
 
   // Initialize in-app log capture/overlay
   renderer_log_init();
+
+#ifndef NDEBUG
+  // Show debug messages in the application log
+  SDL_SetLogPriorities(SDL_LOG_PRIORITY_DEBUG);
+  SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "Running a Debug build");
+#else
+  // Show debug messages in the application log
+  SDL_SetLogPriorities(SDL_LOG_PRIORITY_INFO);
+#endif
 
   // Process the application's main callback roughly at 120 Hz
   SDL_SetHint(SDL_HINT_MAIN_CALLBACK_RATE, "120");
@@ -182,22 +183,14 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
   *appstate = ctx;
   ctx->app_state = INITIALIZE;
   ctx->conf = initialize_config(argc, argv, &ctx->preferred_device, &config_filename);
-  ctx->device_connected =
-      handle_m8_connection_init(ctx->conf.wait_for_device, ctx->preferred_device);
 
   if (!renderer_initialize(&ctx->conf)) {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to initialize renderer.");
     return SDL_APP_FAILURE;
   }
 
-#ifndef NDEBUG
-  // Show debug messages in the application log
-  SDL_SetLogPriorities(SDL_LOG_PRIORITY_DEBUG);
-  SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "Running a Debug build");
-#else
-  // Show debug messages in the application log
-  SDL_SetLogPriorities(SDL_LOG_PRIORITY_INFO);
-#endif
+  ctx->device_connected =
+      m8_initialize(1, ctx->preferred_device);
 
   if (gamepads_initialize() < 0) {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to initialize game controllers.");
@@ -210,11 +203,10 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
     }
     ctx->app_state = RUN;
     render_screen(&ctx->conf);
-    m8_reset_display(); // Second reset to avoid display glitches.
   } else {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected.");
     ctx->device_connected = 0;
-    ctx->app_state = ctx->conf.wait_for_device ? WAIT_FOR_DEVICE : QUIT;
+    ctx->app_state = WAIT_FOR_DEVICE;
   }
 
   return SDL_APP_CONTINUE;

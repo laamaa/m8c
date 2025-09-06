@@ -10,8 +10,6 @@ typedef struct config_params_s {
   char *filename;
   unsigned int init_fullscreen;
   unsigned int integer_scaling;
-  unsigned int idle_ms;
-  unsigned int wait_for_device;
   unsigned int wait_packets;
   unsigned int audio_enabled;
   unsigned int audio_buffer_size;
