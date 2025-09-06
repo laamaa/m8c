@@ -120,6 +120,7 @@ jobs:
           cp /mingw64/bin/librtmidi-*.dll .
           cp /mingw64/bin/libstdc++-6.dll .
           cp /mingw64/bin/libwinpthread-1.dll .
+          cp /mingw64/bin/libgcc_s_seh-1.dll .
         else
           cp C:/Libraries/bin/SDL3.dll .
           cp /mingw64/bin/libserialport-0.dll .
@@ -164,6 +165,7 @@ jobs:
           librtmidi-*.dll
           libstdc++-6.dll
           libwinpthread-1.dll
+          libgcc_s_seh-1.dll
           gamecontrollerdb.txt
           LICENSE
           README.md
