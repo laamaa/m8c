@@ -106,15 +106,6 @@ static config_params_s initialize_config(int argc, char *argv[], char **preferre
   return conf;
 }
 
-/**
- * Handles the initialization of a device and verifies its connection state.
- *
- * @param wait_for_device A flag indicating whether the system should wait for the device to
- * connect. If set to 0 and the device is not detected, the application exits.
- * @param preferred_device A string representing the preferred device to initialize.
- * @return An unsigned char indicating the connection state of the device.
- *         Returns 1 if the device is connected successfully, or 0 if not connected.
- */
 // Main callback loop - read inputs, process data from the device, render screen
 SDL_AppResult SDL_AppIterate(void *appstate) {
   if (appstate == NULL) {

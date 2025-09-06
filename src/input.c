@@ -21,7 +21,7 @@ static struct {
   int analog_values[SDL_GAMEPAD_AXIS_COUNT];
 } gamepad_state = {0};
 
-static unsigned char toggle_input_keyjazz() {
+static unsigned char toggle_input_keyjazz(void) {
   keyjazz_enabled = !keyjazz_enabled;
   SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, keyjazz_enabled ? "Keyjazz enabled" : "Keyjazz disabled");
   return keyjazz_enabled;

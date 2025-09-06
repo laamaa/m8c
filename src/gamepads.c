@@ -22,7 +22,7 @@ SDL_Gamepad *game_controllers[MAX_CONTROLLERS];
  * @return The number of successfully initialized game controllers. Returns -1 if an error occurs
  *         during the initialization process.
  */
-int gamepads_initialize() {
+int gamepads_initialize(void) {
 
   int num_joysticks = 0;
   SDL_JoystickID *joystick_ids = NULL;
@@ -92,7 +92,7 @@ int gamepads_initialize() {
 }
 
 // Closes all open game controllers
-void gamepads_close() {
+void gamepads_close(void) {
 
   for (int i = 0; i < MAX_CONTROLLERS; i++) {
     if (game_controllers[i])
