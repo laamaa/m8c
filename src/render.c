@@ -9,6 +9,7 @@
 #include "command.h"
 #include "config.h"
 #include "fx_cube.h"
+#include "settings.h"
 
 #include "fonts/font1.h"
 #include "fonts/font2.h"
@@ -342,6 +343,9 @@ static void check_and_adjust_window_and_texture_size(const int new_width, const 
                                    texture_width, texture_height);
   SDL_SetTextureScaleMode(main_texture, texture_scaling_mode);
   SDL_SetRenderTarget(rend, main_texture);
+
+  // Notify settings overlay about logical render size change so it can recreate its cache
+  settings_on_texture_size_change(rend);
 }
 
 // Set the M8 hardware model in use. 0 = MK1, 1 = MK2
@@ -615,8 +619,8 @@ int renderer_initialize(config_params_s *conf) {
 }
 
 void render_screen(config_params_s *conf) {
-  if (!dirty) {
-    // No draw commands have been issued since the last function call, do nothing
+  if (!dirty && !settings_is_open()) {
+    // No draw commands and settings overlay not active, skip rendering
     return;
   }
 
@@ -719,6 +723,11 @@ void render_screen(config_params_s *conf) {
     if (log_texture) {
       SDL_RenderTexture(rend, log_texture, NULL, NULL);
     }
+  }
+
+  // Settings overlay composited last
+  if (settings_is_open()) {
+    settings_render_overlay(rend, conf, texture_width, texture_height);
   }
 
   if (!SDL_RenderPresent(rend)) {

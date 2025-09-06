@@ -65,4 +65,7 @@ void read_graphics_config(const ini_t *ini, config_params_s *conf);
 void read_key_config(const ini_t *ini, config_params_s *conf);
 void read_gamepad_config(const ini_t *ini, config_params_s *conf);
 
+// Expose write so settings UI can persist changes
+void write_config(const config_params_s *conf);
+
 #endif

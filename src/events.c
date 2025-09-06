@@ -4,6 +4,7 @@
 #include "gamepads.h"
 #include "input.h"
 #include "render.h"
+#include "settings.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
 
@@ -57,22 +58,48 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     break;
 
   case SDL_EVENT_KEY_DOWN:
+    // Toggle settings with F1
+    if (event->key.key == SDLK_F1 && event->key.repeat == 0) {
+      settings_toggle_open();
+      return ret_val;
+    }
+    // Route to settings if open
+    if (settings_is_open()) {
+      settings_handle_event(ctx, event);
+      return ret_val;
+    }
     input_handle_key_down_event(ctx, event);
     break;
 
   case SDL_EVENT_KEY_UP:
+    if (settings_is_open()) {
+      settings_handle_event(ctx, event);
+      return ret_val;
+    }
     input_handle_key_up_event(ctx, event);
     break;
 
   case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
+    if (settings_is_open()) {
+      settings_handle_event(ctx, event);
+      return ret_val;
+    }
     input_handle_gamepad_button(ctx, event->gbutton.button, true);
     break;
 
   case SDL_EVENT_GAMEPAD_BUTTON_UP:
+    if (settings_is_open()) {
+      settings_handle_event(ctx, event);
+      return ret_val;
+    }
     input_handle_gamepad_button(ctx, event->gbutton.button, false);
     break;
 
   case SDL_EVENT_GAMEPAD_AXIS_MOTION:
+    if (settings_is_open()) {
+      settings_handle_event(ctx, event);
+      return ret_val;
+    }
     input_handle_gamepad_axis(ctx, event->gaxis.axis, event->gaxis.value);
     break;
 
