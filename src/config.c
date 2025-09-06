@@ -30,8 +30,6 @@ config_params_s config_initialize(char *filename) {
 
   c.init_fullscreen = 0; // default fullscreen state at load
   c.integer_scaling = 0; // use integer scaling for the user interface
-  c.idle_ms = 10;        // default to high performance
-  c.wait_for_device = 1; // default to exit if device disconnected
   c.wait_packets = 256;  // amount of empty command queue reads before assuming device disconnected
   c.audio_enabled = 0;   // route M8 audio to default output
   c.audio_buffer_size = 0;    // requested audio buffer size in samples: 0 = let SDL decide
@@ -91,7 +89,7 @@ void write_config(const config_params_s *conf) {
 
   SDL_Log("Writing config file to %s", config_path);
 
-#define INI_LINE_COUNT 51
+#define INI_LINE_COUNT 49
 #define INI_LINE_LENGTH 50
 
   // Entries for the config file
@@ -100,9 +98,6 @@ void write_config(const config_params_s *conf) {
   snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "[graphics]\n");
   snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "fullscreen=%s\n",
            conf->init_fullscreen ? "true" : "false");
-  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "idle_ms=%d\n", conf->idle_ms);
-  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "wait_for_device=%s\n",
-           conf->wait_for_device ? "true" : "false");
   snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "wait_packets=%d\n", conf->wait_packets);
   snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "integer_scaling=%s\n",
            conf->integer_scaling ? "true" : "false");
@@ -237,8 +232,6 @@ void read_audio_config(const ini_t *ini, config_params_s *conf) {
 
 void read_graphics_config(const ini_t *ini, config_params_s *conf) {
   const char *param_fs = ini_get(ini, "graphics", "fullscreen");
-  const char *idle_ms = ini_get(ini, "graphics", "idle_ms");
-  const char *param_wait = ini_get(ini, "graphics", "wait_for_device");
   const char *wait_packets = ini_get(ini, "graphics", "wait_packets");
   const char *integer_scaling = ini_get(ini, "graphics", "integer_scaling");
 
@@ -248,16 +241,6 @@ void read_graphics_config(const ini_t *ini, config_params_s *conf) {
     conf->init_fullscreen = 0;
   }
 
-  if (idle_ms != NULL)
-    conf->idle_ms = SDL_atoi(idle_ms);
-
-  if (param_wait != NULL) {
-    if (strcmpci(param_wait, "true") == 0) {
-      conf->wait_for_device = 1;
-    } else {
-      conf->wait_for_device = 0;
-    }
-  }
   if (wait_packets != NULL)
     conf->wait_packets = SDL_atoi(wait_packets);
 

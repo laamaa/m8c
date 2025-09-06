@@ -231,8 +231,14 @@ int m8_reset_display(void) {
 int m8_enable_display(const unsigned char reset_display) {
   SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Sending enable command sysex");
   rtmidi_in_set_callback(midi_in, midi_callback, NULL);
+  const unsigned char disconnect_sysex[8] = {0xF0, 0x00, 0x02, 0x61, 0x00, 0x00, 'D', 0xF7};
+  int result =
+      rtmidi_out_send_message(midi_out, &disconnect_sysex[0], sizeof(disconnect_sysex));
+  if (result != 0) {
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to send disconnect");
+  }
   const unsigned char enable_sysex[8] = {0xF0, 0x00, 0x02, 0x61, 0x00, 0x00, 'E', 0xF7};
-  const int result = rtmidi_out_send_message(midi_out, &enable_sysex[0], sizeof(enable_sysex));
+  result = rtmidi_out_send_message(midi_out, &enable_sysex[0], sizeof(enable_sysex));
   if (result != 0) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to send remote display enable command");
     return 0;
