@@ -12,13 +12,13 @@ on:
 jobs:
  
   build-linux:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     name: linux-x86_64
     steps:
       - name: 'Install dependencies'
         run: |
-          sudo apt-get update
-          sudo apt-get install --fix-missing build-essential libserialport-dev zip git make pkg-config cmake ninja-build gnome-desktop-testing libasound2-dev libpulse-dev libaudio-dev libjack-dev libsndio-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libpipewire-0.3-dev libwayland-dev libdecor-0-dev
+          sudo apt-get update -y
+          sudo apt-get install -y --fix-missing build-essential libserialport-dev zip git make pkg-config cmake ninja-build gnome-desktop-testing libasound2-dev libpulse-dev libaudio-dev libjack-dev libsndio-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libpipewire-0.3-dev libwayland-dev libdecor-0-dev
 
       - name: 'Checkout'
         uses: actions/checkout@v4
@@ -80,3 +80,27 @@ jobs:
           name: m8c-${{ env.NOW }}-linux-x86_64.AppImage
           path: |
             m8c*.AppImage
+
+  build-linux-with-nix:
+    runs-on: ubuntu-latest
+    name: with-nix-linux-x86_64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set current date as env variable
+        run: echo "NOW=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      - name: Set up Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: 'Build binary'
+        run: nix-build
+
+      - name: 'Upload artifact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: m8c-${{ env.NOW }}-with-nix-linux-x86_64
+          path: result
