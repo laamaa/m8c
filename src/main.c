@@ -5,6 +5,8 @@
    CFLAGS=-DDEBUG_MSG` */
 // #define DEBUG_MSG
 
+#define APP_VERSION "v2.1.1"
+
 #include <SDL3/SDL.h>
 #define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL_main.h>
@@ -153,6 +155,8 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
 // Initialize the app: initialize context, configs, renderer controllers and attempt to find M8
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
+  SDL_SetAppMetadata("M8C",APP_VERSION,"fi.laamaa.m8c");
+
   char *config_filename = NULL;
 
   // Initialize in-app log capture/overlay
