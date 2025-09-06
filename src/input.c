@@ -369,21 +369,3 @@ int input_process_and_send(const struct app_context *ctx) {
   }
   return 1;
 }
-
-// Touch screen double tap: switch between integer scaling / full screen scaling
-void input_handle_finger_down(struct app_context *ctx, const SDL_Event *event) {
-  (void)event; // Suppress unused parameter warning
-  static Uint64 last_finger_down_time = 0;
-  SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "Finger down");
-  const Uint64 current_time = SDL_GetTicks();
-  const Uint64 time_diff = current_time - last_finger_down_time;
-  // Check if the screen has been double-tapped and change the scaling mode
-  if (time_diff > 70 && time_diff < 500) {
-    ctx->conf.integer_scaling = !ctx->conf.integer_scaling;
-    renderer_fix_texture_scaling_after_window_resize(&ctx->conf);
-    SDL_Log("integer scaling: %d", ctx->conf.integer_scaling);
-    last_finger_down_time = 0;
-  } else {
-    last_finger_down_time = current_time;
-  }
-}
