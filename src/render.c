@@ -111,7 +111,7 @@ static void create_hd_texture() {
   const int new_hd_texture_height = texture_height * scale_factor;
   if (hd_texture != NULL && new_hd_texture_width == hd_texture_width &&
       new_hd_texture_height == hd_texture_height) {
-    // Texture exists and there is no change in the size, carry on
+    // Texture exists, and there is no change in the size, carry on
     SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "HD texture size not changed, skipping");
     return;
   }
@@ -151,7 +151,7 @@ static void change_font(struct inline_font *font) {
 
 // Append a formatted line to the circular log buffer
 static void log_buffer_append_line(const char *line) {
-  if (line == NULL || line[0] == '\0') {
+  if (line[0] == '\0') {
     return;
   }
   const int index = (log_line_start + log_line_count) % LOG_BUFFER_MAX_LINES;
@@ -196,7 +196,7 @@ void renderer_toggle_log_overlay(void) {
   log_overlay_needs_redraw = 1;
 }
 
-// Render the log buffer into a texture for overlay display
+// Render the log buffer into a texture for the overlay display
 static void render_log_overlay_texture(void) {
   if (!log_overlay_visible) {
     return;
@@ -225,7 +225,7 @@ static void render_log_overlay_texture(void) {
   SDL_SetRenderDrawColor(rend, 0, 0, 0, 220);
   SDL_RenderClear(rend);
 
-  // Use small font to fit more lines
+  // Use a small font to fit more lines
   const int prev_font_mode = font_mode;
   inline_font_close();
   inline_font_initialize(fonts[0]);
@@ -235,9 +235,6 @@ static void render_log_overlay_texture(void) {
   const int margin_y = 1;
   const int usable_width = texture_width - (margin_x * 2);
   const int cols = SDL_max(1, usable_width / (fonts[0]->glyph_x + 1));
-
-  const Uint32 fg = 0xFFFFFF; // light grey
-  const Uint32 bg = 0xFFFFFF; // inprint translates same bg as fg to transparent
 
   // Compute how many text rows fit
   const int max_rows = (texture_height - margin_y * 2) / line_height;
@@ -279,7 +276,9 @@ static void render_log_overlay_texture(void) {
       const char *s = log_lines[cur];
       const size_t len = SDL_strlen(s);
       for (size_t pos = offset; pos < len && y < texture_height;) {
-        size_t remaining = len - pos;
+        const Uint32 bg = 0xFFFFFF;
+        const Uint32 fg = 0xFFFFFF;
+        const size_t remaining = len - pos;
         size_t take = (size_t)cols < remaining ? (size_t)cols : remaining;
         char buf[LOG_LINE_MAX_CHARS];
         if (take >= sizeof(buf)) {
@@ -558,7 +557,7 @@ int renderer_initialize(config_params_s *conf) {
     return 0;
   }
 
-  if (!SDL_CreateWindowAndRenderer("m8c", texture_width * 2, texture_height * 2,
+  if (!SDL_CreateWindowAndRenderer("M8C", texture_width * 2, texture_height * 2,
                                    SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY |
                                        SDL_WINDOW_OPENGL | conf->init_fullscreen,
                                    &win, &rend)) {
