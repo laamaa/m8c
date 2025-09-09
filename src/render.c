@@ -127,11 +127,13 @@ static void create_hd_texture(void) {
     SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't create HD texture: %s", SDL_GetError());
   }
 
-  // Optionally, set a linear scaling mode for smoother rendering
+  // Set a linear scaling mode for smoother rendering
   if (!SDL_SetTextureScaleMode(hd_texture, SDL_SCALEMODE_LINEAR)) {
     SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't set HD texture scale mode: %s",
                     SDL_GetError());
   }
+
+  SDL_SetTextureBlendMode(hd_texture,SDL_BLENDMODE_BLEND);
 
   setup_hd_texture_scaling();
 }
@@ -390,11 +392,11 @@ void renderer_close(void) {
   SDL_DestroyWindow(win);
 }
 
-void toggle_fullscreen(void) {
+int toggle_fullscreen(config_params_s *conf) {
 
   const unsigned long fullscreen_state = SDL_GetWindowFlags(win) & SDL_WINDOW_FULLSCREEN;
-
   SDL_SetWindowFullscreen(win, fullscreen_state ? false : true);
+  conf->init_fullscreen = (unsigned int)!fullscreen_state;
   SDL_SyncWindow(win);
   if (fullscreen_state) {
     // Show cursor when in a windowed state
@@ -404,6 +406,7 @@ void toggle_fullscreen(void) {
   }
 
   dirty = 1;
+  return (int)conf->init_fullscreen;
 }
 
 int draw_character(struct draw_character_command *command) {
@@ -640,6 +643,25 @@ void render_screen(config_params_s *conf) {
   }
 
   if (conf->integer_scaling) {
+    SDL_SetRenderTarget(rend, main_texture);
+    // Ensure the log overlay is up to date, then composite it if visible before present
+    if (log_overlay_visible) {
+      render_log_overlay_texture();
+      if (log_texture) {
+        if (!SDL_RenderTexture(rend, log_texture, NULL, NULL)) {
+          SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't render log overlay texture to HD texture: %s",
+                        SDL_GetError());
+        }
+      }
+    }
+
+    // Settings overlay composited last
+    if (settings_is_open()) {
+      settings_render_overlay(rend, conf, texture_width, texture_height);
+    }
+
+    SDL_SetRenderTarget(rend, NULL);
+
     // Direct rendering with integer scaling
     if (!SDL_RenderTexture(rend, main_texture, NULL, NULL)) {
       SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't render texture: %s", SDL_GetError());
@@ -677,7 +699,23 @@ void render_screen(config_params_s *conf) {
     if (!SDL_RenderTexture(rend, main_texture, NULL, NULL)) {
       SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't render main texture to HD texture: %s",
                       SDL_GetError());
-    };
+    }
+
+    // Ensure the log overlay is up to date, then composite it if visible before present
+    if (log_overlay_visible) {
+      render_log_overlay_texture();
+      if (log_texture) {
+        if (!SDL_RenderTexture(rend, log_texture, NULL, NULL)) {
+          SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't render log overlay texture to HD texture: %s",
+                        SDL_GetError());
+        }
+      }
+    }
+
+    // Settings overlay composited last
+    if (settings_is_open()) {
+      settings_render_overlay(rend, conf, texture_width, texture_height);
+    }
 
     // Switch the render target back to the window
     if (!SDL_SetRenderTarget(rend, NULL)) {
@@ -709,19 +747,6 @@ void render_screen(config_params_s *conf) {
       // Window and texture aspect ratios match
       SDL_RenderTexture(rend, hd_texture, NULL, NULL);
     }
-  }
-
-  // Ensure log overlay is up to date, then composite it if visible before present
-  if (log_overlay_visible) {
-    render_log_overlay_texture();
-    if (log_texture) {
-      SDL_RenderTexture(rend, log_texture, NULL, NULL);
-    }
-  }
-
-  // Settings overlay composited last
-  if (settings_is_open()) {
-    settings_render_overlay(rend, conf, texture_width, texture_height);
   }
 
   if (!SDL_RenderPresent(rend)) {

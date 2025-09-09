@@ -199,8 +199,8 @@ static void settings_activate(struct app_context *ctx, const setting_item_s *ite
     unsigned int *val = it->target;
     *val = *val ? 0 : 1;
     if (it->target == &conf->init_fullscreen) {
-      extern void toggle_fullscreen(void);
-      toggle_fullscreen();
+      extern int toggle_fullscreen(config_params_s *config);
+      toggle_fullscreen(conf);
     }
     if (it->target == &conf->integer_scaling) {
       extern void renderer_fix_texture_scaling_after_window_resize(config_params_s * config);

@@ -176,7 +176,7 @@ void input_handle_key_down_event(struct app_context *ctx, const SDL_Event *event
   }
 
   if (event->key.key == SDLK_RETURN && (event->key.mod & SDL_KMOD_ALT) > 0) {
-    toggle_fullscreen();
+    toggle_fullscreen(&ctx->conf);
     return;
   }
   if (event->key.key == SDLK_F4 && (event->key.mod & SDL_KMOD_ALT) > 0) {
