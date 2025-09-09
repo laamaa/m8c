@@ -1,7 +1,7 @@
 #ifndef FONT4_H_
 #define FONT4_H_
 
-#include "inline_font.h"
+#include "fonts.h"
 
 struct inline_font font_v2_large = {
     940,

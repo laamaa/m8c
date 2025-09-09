@@ -2,7 +2,7 @@
 // https://github.com/driedfruit/SDL_inprint Released into public domain.
 // Modified to support multiple fonts & adding a background to text.
 
-#include "fonts/inline_font.h"
+#include "fonts/fonts.h"
 #include <SDL3/SDL.h>
 
 #define CHARACTERS_PER_ROW 94
@@ -14,18 +14,18 @@ static const int font_offset = 127 - CHARACTERS_PER_ROW * CHARACTERS_PER_COLUMN;
 static SDL_Renderer *selected_renderer = NULL;
 static SDL_Texture *inline_font = NULL;
 static SDL_Texture *selected_font = NULL;
-static struct inline_font *selected_inline_font;
+static const struct inline_font *selected_inline_font;
 static Uint16 selected_font_w, selected_font_h;
 
-void inline_font_initialize(struct inline_font *font) {
+void inline_font_initialize(const struct inline_font *font) {
 
   if (inline_font != NULL) {
     return;
   }
 
-  selected_font_w = font->width;
-  selected_font_h = font->height;
   selected_inline_font = font;
+  selected_font_w = selected_inline_font->width;
+  selected_font_h = selected_inline_font->height;
 
   SDL_IOStream *font_bmp =
       SDL_IOFromConstMem(selected_inline_font->image_data, selected_inline_font->image_size);
@@ -132,4 +132,7 @@ void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y, const Uint3
     d_rect.x += (float)selected_inline_font->glyph_x + 1;
   }
 }
-SDL_Texture *get_inline_font(void) { return selected_font; }
+
+const struct inline_font *inline_font_get_current(void) {
+  return selected_inline_font;
+}

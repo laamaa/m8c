@@ -25,6 +25,11 @@ void settings_render_overlay(SDL_Renderer *rend, const config_params_s *conf, in
 // Notify settings overlay that logical render size changed; drops cached texture
 void settings_on_texture_size_change(SDL_Renderer *rend);
 
+// Set the font (SDL_Texture*) to be used while rendering the settings menu.
+// Pass NULL to use the current global font.
+void settings_set_font(SDL_Texture *font);
+
+
 #endif // SETTINGS_H_
 
 
