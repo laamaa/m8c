@@ -61,13 +61,19 @@ static void build_menu(const config_params_s *conf, setting_item_s *items, int *
     add_item(items, count, "Graphics       ", ITEM_HEADER, NULL, 0, 0, 0);
     add_item(items, count, "Integer scaling", ITEM_TOGGLE_BOOL, (void *)&conf->integer_scaling, 0,
              0, 0);
-    add_item(items, count, "Fullscreen     ", ITEM_TOGGLE_BOOL, (void *)&conf->init_fullscreen, 0,
-             0, 0);
+    // SDL apps are always full screen on iOS, hide the option
+    if (TARGET_OS_IOS == 0) {
+      add_item(items, count, "Fullscreen     ", ITEM_TOGGLE_BOOL, (void *)&conf->init_fullscreen, 0,
+               0, 0);
+    }
     add_item(items, count, "", ITEM_HEADER, NULL, 0, 0, 0);
-    add_item(items, count, "Audio          ", ITEM_HEADER, NULL, 0, 0, 0);
-    add_item(items, count, "Audio enabled  ", ITEM_TOGGLE_BOOL, (void *)&conf->audio_enabled, 0, 0,
-             0);
-    add_item(items, count, "", ITEM_HEADER, NULL, 0, 0, 0);
+    // Audio routing does not work on iOS, hide the items when building for that
+    if (TARGET_OS_IOS == 0) {
+      add_item(items, count, "Audio          ", ITEM_HEADER, NULL, 0, 0, 0);
+      add_item(items, count, "Audio enabled  ", ITEM_TOGGLE_BOOL, (void *)&conf->audio_enabled, 0, 0,
+               0);
+      add_item(items, count, "", ITEM_HEADER, NULL, 0, 0, 0);
+    }
     add_item(items, count, "Bindings       ", ITEM_HEADER, NULL, 0, 0, 0);
     add_item(items, count, "Keyboard bindings   >", ITEM_SUBMENU, NULL, 0, 0, 0);
     add_item(items, count, "Gamepad bindings    >", ITEM_SUBMENU, NULL, 0, 0, 0);
@@ -408,8 +414,8 @@ void settings_render_overlay(SDL_Renderer *rend, const config_params_s *conf, in
   const Uint32 selected_item_bg = 0x00FFFF;
   const Uint32 title = 0xFF0000;
   const Uint32 section_header = 0xAAAAFF;
-  const int margin_x_unselected = 2;
-  const int margin_x_selected = 2;
+  const int margin_x_unselected = fonts_get(0)->glyph_x+1;
+  const int margin_x_selected = fonts_get(0)->glyph_x+1;
   int x = 8;
   int y = 8;
 
