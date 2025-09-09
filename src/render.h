@@ -22,7 +22,7 @@ int draw_character(struct draw_character_command *command);
 void set_m8_model(unsigned int model);
 
 void render_screen(config_params_s *conf);
-void toggle_fullscreen(void);
+int toggle_fullscreen(config_params_s *conf);
 void display_keyjazz_overlay(uint8_t show, uint8_t base_octave, uint8_t velocity);
 
 void show_error_message(const char *message);
