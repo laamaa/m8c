@@ -1,7 +1,7 @@
 #ifndef FONT5_H_
 #define FONT5_H_
 
-#include "inline_font.h"
+#include "fonts.h"
 
 struct inline_font font_v2_huge = {
     1128,

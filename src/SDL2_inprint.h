@@ -4,10 +4,10 @@
 #ifndef SDL2_inprint_h
 #define SDL2_inprint_h
 
-#include "fonts/inline_font.h"
+#include "fonts/fonts.h"
 #include <SDL3/SDL.h>
 
-extern void inline_font_initialize(struct inline_font *font);
+extern void inline_font_initialize(const struct inline_font *font);
 extern void inline_font_close(void);
 
 extern void inline_font_set_renderer(SDL_Renderer *renderer);
@@ -17,6 +17,6 @@ extern void incolor(Uint32 color); /* Color must be in 0x00RRGGBB format ! */
 extern void inprint(SDL_Renderer *dst, const char *str, Uint32 x, Uint32 y, Uint32 fgcolor,
                     Uint32 bgcolor);
 
-extern SDL_Texture *get_inline_font(void);
+const struct inline_font *inline_font_get_current(void);
 
 #endif /* SDL2_inprint_h */

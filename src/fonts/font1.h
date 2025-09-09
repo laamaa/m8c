@@ -1,7 +1,7 @@
 #ifndef FONT1_H_
 #define FONT1_H_
 
-#include "inline_font.h"
+#include "fonts.h"
 
 struct inline_font font_v1_small = {
     470,
