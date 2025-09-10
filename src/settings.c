@@ -345,6 +345,105 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
     }
   }
 
+  // Gamepad navigation and cancel/back handling
+  if (e->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN) {
+    SDL_GamepadButton btn = e->gbutton.button;
+
+    // Cancel capture or go back/close with B/Back
+    if (btn == SDL_GAMEPAD_BUTTON_EAST || btn == SDL_GAMEPAD_BUTTON_BACK) {
+      if (g_capture_mode != CAPTURE_NONE) {
+        g_capture_mode = CAPTURE_NONE;
+        g_capture_target = NULL;
+        g_needs_redraw = 1;
+        return;
+      }
+      if (g_view != VIEW_ROOT) {
+        g_view = VIEW_ROOT;
+        g_selected_index = 1;
+        g_needs_redraw = 1;
+        return;
+      }
+      settings_toggle_open();
+      return;
+    }
+
+    // If capturing a button, let the capture handler below process it
+    if (g_capture_mode == CAPTURE_NONE) {
+      // D-pad navigation
+      if (btn == SDL_GAMEPAD_BUTTON_DPAD_UP) {
+        settings_move(&ctx->conf, -1);
+        return;
+      }
+      if (btn == SDL_GAMEPAD_BUTTON_DPAD_DOWN) {
+        settings_move(&ctx->conf, 1);
+        return;
+      }
+      if (btn == SDL_GAMEPAD_BUTTON_DPAD_LEFT || btn == SDL_GAMEPAD_BUTTON_DPAD_RIGHT) {
+        setting_item_s items[64];
+        int count = 0;
+        build_menu(&ctx->conf, items, &count);
+        if (g_selected_index > 0 && g_selected_index < count) {
+          setting_item_s *it = &items[g_selected_index];
+          if (it->type == ITEM_INT_ADJ && it->target != NULL) {
+            int *val = (int *)it->target;
+            int delta = (btn == SDL_GAMEPAD_BUTTON_DPAD_LEFT ? -it->step : it->step);
+            int newv = *val + delta;
+            if (newv < it->min_val)
+              newv = it->min_val;
+            if (newv > it->max_val)
+              newv = it->max_val;
+            *val = newv;
+            g_needs_redraw = 1;
+            return;
+          }
+        }
+      }
+      // Activate/select with A
+      if (btn == SDL_GAMEPAD_BUTTON_SOUTH) {
+        setting_item_s items[64];
+        int count = 0;
+        build_menu(&ctx->conf, items, &count);
+        // Handle entering submenus from root based on item type
+        if (g_view == VIEW_ROOT) {
+          const setting_item_s *it = &items[g_selected_index];
+          if (it->type == ITEM_SUBMENU && it->label &&
+              SDL_strstr(it->label, "Keyboard bindings") == it->label) {
+            g_view = VIEW_KEYS;
+            g_selected_index = 1;
+            g_needs_redraw = 1;
+            return;
+          }
+          if (it->type == ITEM_SUBMENU && it->label &&
+              SDL_strstr(it->label, "Gamepad bindings") == it->label) {
+            g_view = VIEW_GAMEPAD;
+            g_selected_index = 1;
+            g_needs_redraw = 1;
+            return;
+          }
+          if (it->type == ITEM_SUBMENU && it->label &&
+              SDL_strstr(it->label, "Gamepad analog axis") == it->label) {
+            g_view = VIEW_ANALOG;
+            g_selected_index = 1;
+            g_needs_redraw = 1;
+            return;
+          }
+        }
+        // Back item in submenus
+        if (g_view != VIEW_ROOT) {
+          const setting_item_s *it = &items[g_selected_index];
+          if (it->type == ITEM_CLOSE && it->label && SDL_strcmp(it->label, "Back") == 0) {
+            g_view = VIEW_ROOT;
+            g_selected_index = 1;
+            g_needs_redraw = 1;
+            return;
+          }
+        }
+        settings_activate(ctx, items, count);
+        return;
+      }
+    }
+  }
+
   // Capture gamepad button
   if (g_capture_mode == CAPTURE_BUTTON && e->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN) {
     if (g_capture_target != NULL) {
