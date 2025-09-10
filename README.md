@@ -55,14 +55,17 @@ to open it from the Applications Folder via Control+Click > Open then select Ope
 
 ### Linux
 
-There are packages available for Fedora Linux and NixOS, or you can build the program from source.
+There are packages available for NixOS, an AppImage for easy installation, or you can build the program from source.
 
-#### Fedora
+#### AppImage
 
-```sh
-sudo dnf copr enable laamaa/m8c
-sudo dnf install m8c
-```
+An AppImage is available for Linux in the [releases section](https://github.com/laamaa/m8c/releases/). To use it:
+
+1. Download the `.AppImage` file from the releases
+2. Make it executable: `chmod +x m8c-*.AppImage`
+3. Run it: `./m8c-*.AppImage`
+
+The AppImage is portable and doesn't require installation - just download and run.
 
 #### NixOS
 
