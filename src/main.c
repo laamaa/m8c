@@ -19,12 +19,7 @@
 #include "config.h"
 #include "gamepads.h"
 #include "render.h"
-
-// On MacOS TARGET_OS_IOS is defined as 0, so make sure that it's consistent on other platforms as
-// well
-#ifndef TARGET_OS_IOS
-#define TARGET_OS_IOS 0
-#endif
+#include "log_overlay.h"
 
 static void do_wait_for_device(struct app_context *ctx) {
   static Uint64 ticks_poll_device = 0;
@@ -151,7 +146,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
   char *config_filename = NULL;
 
   // Initialize in-app log capture/overlay
-  renderer_log_init();
+  log_overlay_init();
 
 #ifndef NDEBUG
   // Show debug messages in the application log

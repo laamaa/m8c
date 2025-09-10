@@ -6,6 +6,7 @@
 #include "backends/m8.h"
 #include "common.h"
 #include "render.h"
+#include "log_overlay.h"
 #include <SDL3/SDL.h>
 
 static unsigned char keyjazz_enabled = 0;
@@ -184,13 +185,15 @@ void input_handle_key_down_event(struct app_context *ctx, const SDL_Event *event
     return;
   }
   if (event->key.key == SDLK_ESCAPE) {
-    display_keyjazz_overlay(toggle_input_keyjazz(), keyjazz_base_octave, keyjazz_velocity);
+    if (ctx->app_state == RUN) {
+      display_keyjazz_overlay(toggle_input_keyjazz(), keyjazz_base_octave, keyjazz_velocity);
+    }
     return;
   }
 
   // Toggle in-app log overlay using config-defined key
   if (event->key.scancode == ctx->conf.key_toggle_log) {
-    renderer_toggle_log_overlay();
+    log_overlay_toggle();
     return;
   }
 
