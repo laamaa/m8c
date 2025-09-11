@@ -8,7 +8,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
 
-static Uint64 g_guide_pressed_at = 0;
+static Uint64 g_back_pressed_at = 0;
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
   struct app_context *ctx = appstate;
@@ -83,8 +83,8 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 
   case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
     // Start measuring hold time for GUIDE; trigger handled on button up after 1s hold
-    if (event->gbutton.button == SDL_GAMEPAD_BUTTON_GUIDE) {
-      g_guide_pressed_at = SDL_GetTicks();
+    if (event->gbutton.button == SDL_GAMEPAD_BUTTON_BACK) {
+      g_back_pressed_at = SDL_GetTicks();
       return ret_val;
     }
 
@@ -97,12 +97,12 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 
   case SDL_EVENT_GAMEPAD_BUTTON_UP:
     // Handle GUIDE release: toggle settings if held for at least 1 second
-    if (event->gbutton.button == SDL_GAMEPAD_BUTTON_GUIDE) {
-      Uint64 now = SDL_GetTicks();
-      if (g_guide_pressed_at != 0 && (now - g_guide_pressed_at) >= 1000) {
+    if (event->gbutton.button == SDL_GAMEPAD_BUTTON_BACK) {
+      const Uint64 now = SDL_GetTicks();
+      if (g_back_pressed_at != 0 && (now - g_back_pressed_at) >= 2000) {
         settings_toggle_open();
       }
-      g_guide_pressed_at = 0;
+      g_back_pressed_at = 0;
       return ret_val;
     }
 

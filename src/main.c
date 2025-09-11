@@ -94,10 +94,9 @@ static config_params_s initialize_config(int argc, char *argv[], char **preferre
   if (TARGET_OS_IOS == 1) {
     // Predefined settings for iOS
     conf.init_fullscreen = 1;
-  } else {
-    // On other platforms, read config normally
-    config_read(&conf);
   }
+  config_read(&conf);
+
   return conf;
 }
 
