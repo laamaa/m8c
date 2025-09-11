@@ -236,7 +236,7 @@ You can change the most common options without editing `config.ini` using the in
 
 - **How to open:**
   - Keyboard: press F1.
-  - Gamepad: hold the Guide/Home button for about 1 second.
+  - Gamepad: hold the Back/Select button for about 2 seconds.
 - **How to navigate:**
   - Move: Up/Down arrows or D‑pad.
   - Activate/enter: Enter/Space or South/A.
