@@ -181,8 +181,9 @@ Additional controls:
 * Delete = opt+edit (deletes a row)
 * Esc = toggle keyjazz on/off
 * r / select+start+opt+edit = reset display (if glitches appear on the screen, use this)
+* F1 = open config editor
+* F2 = toggle in-app log overlay
 * F12 = toggle audio routing on / off
-* ` (grave) = toggle in-app log overlay
 
 ### Keyjazz
 
@@ -272,7 +273,7 @@ file that does not exist, a new default config file with the specified name will
 
 An in-app log overlay is available for platforms where reading console output is inconvenient.
 
-- Default toggle key: ` (grave). You can change it in `config.ini` under `[keyboard]` using `key_toggle_log=<SDL_SCANCODE>`.
+- Default toggle key: F2. You can change it in `config.ini` under `[keyboard]` using `key_toggle_log=<SDL_SCANCODE>`.
 - The overlay shows recent `SDL_Log*` messages.
 - Long lines are wrapped to fit; the view tails the most recent output.
 
