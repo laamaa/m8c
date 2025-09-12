@@ -54,7 +54,7 @@ config_params_s config_initialize(char *filename) {
   c.key_jazz_inc_velocity = SDL_SCANCODE_KP_MINUS;
   c.key_jazz_dec_velocity = SDL_SCANCODE_KP_PLUS;
   c.key_toggle_audio = SDL_SCANCODE_F12;
-  c.key_toggle_log = SDL_SCANCODE_GRAVE; // default to ` key
+  c.key_toggle_log = SDL_SCANCODE_F2;
 
   c.gamepad_up = SDL_GAMEPAD_BUTTON_DPAD_UP;
   c.gamepad_left = SDL_GAMEPAD_BUTTON_DPAD_LEFT;
