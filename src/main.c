@@ -5,7 +5,7 @@
    CFLAGS=-DDEBUG_MSG` */
 // #define DEBUG_MSG
 
-#define APP_VERSION "v2.1.1"
+#define APP_VERSION "v2.2.0"
 
 #include <SDL3/SDL.h>
 #define SDL_MAIN_USE_CALLBACKS
@@ -19,12 +19,7 @@
 #include "config.h"
 #include "gamepads.h"
 #include "render.h"
-
-// On MacOS TARGET_OS_IOS is defined as 0, so make sure that it's consistent on other platforms as
-// well
-#ifndef TARGET_OS_IOS
-#define TARGET_OS_IOS 0
-#endif
+#include "log_overlay.h"
 
 static void do_wait_for_device(struct app_context *ctx) {
   static Uint64 ticks_poll_device = 0;
@@ -99,10 +94,9 @@ static config_params_s initialize_config(int argc, char *argv[], char **preferre
   if (TARGET_OS_IOS == 1) {
     // Predefined settings for iOS
     conf.init_fullscreen = 1;
-  } else {
-    // On other platforms, read config normally
-    config_read(&conf);
   }
+  config_read(&conf);
+
   return conf;
 }
 
@@ -151,7 +145,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
   char *config_filename = NULL;
 
   // Initialize in-app log capture/overlay
-  renderer_log_init();
+  log_overlay_init();
 
 #ifndef NDEBUG
   // Show debug messages in the application log

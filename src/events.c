@@ -4,8 +4,11 @@
 #include "gamepads.h"
 #include "input.h"
 #include "render.h"
+#include "settings.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
+
+static Uint64 g_back_pressed_at = 0;
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
   struct app_context *ctx = appstate;
@@ -57,22 +60,64 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     break;
 
   case SDL_EVENT_KEY_DOWN:
+    // Toggle settings with F1
+    if (event->key.key == SDLK_F1 && event->key.repeat == 0) {
+      settings_toggle_open();
+      return ret_val;
+    }
+    // Route to settings if open
+    if (settings_is_open()) {
+      settings_handle_event(ctx, event);
+      return ret_val;
+    }
     input_handle_key_down_event(ctx, event);
     break;
 
   case SDL_EVENT_KEY_UP:
+    if (settings_is_open()) {
+      settings_handle_event(ctx, event);
+      return ret_val;
+    }
     input_handle_key_up_event(ctx, event);
     break;
 
   case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
+    // Start measuring hold time for GUIDE; trigger handled on button up after 1s hold
+    if (event->gbutton.button == SDL_GAMEPAD_BUTTON_BACK) {
+      g_back_pressed_at = SDL_GetTicks();
+      return ret_val;
+    }
+
+    if (settings_is_open()) {
+      settings_handle_event(ctx, event);
+      return ret_val;
+    }
     input_handle_gamepad_button(ctx, event->gbutton.button, true);
     break;
 
   case SDL_EVENT_GAMEPAD_BUTTON_UP:
+    // Handle GUIDE release: toggle settings if held for at least 1 second
+    if (event->gbutton.button == SDL_GAMEPAD_BUTTON_BACK) {
+      const Uint64 now = SDL_GetTicks();
+      if (g_back_pressed_at != 0 && (now - g_back_pressed_at) >= 2000) {
+        settings_toggle_open();
+      }
+      g_back_pressed_at = 0;
+      return ret_val;
+    }
+
+    if (settings_is_open()) {
+      settings_handle_event(ctx, event);
+      return ret_val;
+    }
     input_handle_gamepad_button(ctx, event->gbutton.button, false);
     break;
 
   case SDL_EVENT_GAMEPAD_AXIS_MOTION:
+    if (settings_is_open()) {
+      settings_handle_event(ctx, event);
+      return ret_val;
+    }
     input_handle_gamepad_axis(ctx, event->gaxis.axis, event->gaxis.value);
     break;
 

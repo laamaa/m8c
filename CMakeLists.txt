@@ -15,7 +15,7 @@ if (NOT USE_LIBUSB AND NOT USE_RTMIDI)
 endif ()
 
 
-file(GLOB m8c_SRC "src/*.h" "src/*.c" "src/backends/*.h" "src/backends/*.c" "src/fonts/*.h")
+file(GLOB m8c_SRC "src/*.h" "src/*.c" "src/backends/*.h" "src/backends/*.c" "src/fonts/*.h" "src/fonts/*.c")
 
 set(MACOS_CONTENTS "${CMAKE_CURRENT_SOURCE_DIR}/package/macos/m8c.app/Contents")
 set(MACOS_ENTITLEMENTS_FILE "${CMAKE_CURRENT_SOURCE_DIR}/package/macos/Entitlements.plist")

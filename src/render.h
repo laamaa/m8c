@@ -22,14 +22,10 @@ int draw_character(struct draw_character_command *command);
 void set_m8_model(unsigned int model);
 
 void render_screen(config_params_s *conf);
-void toggle_fullscreen(void);
+int toggle_fullscreen(config_params_s *conf);
 void display_keyjazz_overlay(uint8_t show, uint8_t base_octave, uint8_t velocity);
 
 void show_error_message(const char *message);
-
-// Log overlay controls
-void renderer_log_init(void);
-void renderer_toggle_log_overlay(void);
 
 int screensaver_init(void);
 void screensaver_draw(void);
