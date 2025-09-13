@@ -70,7 +70,7 @@ The AppImage is portable and doesn't require installation - just download and ru
 #### NixOS
 
 ```sh
-nix-env -iA m8c-stable -f https://github.com/laamaa/m8c/archive/refs/heads/main.tar.gz
+nix-env -iA m8c -f https://github.com/laamaa/m8c/archive/refs/heads/main.tar.gz
 ```
 
 Or if you're using flakes and the nix command, you can run the app directly with:
