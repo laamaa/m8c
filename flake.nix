@@ -15,7 +15,7 @@
   outputs = { self, nixpkgs, systems, treefmt-nix, ... }:
     let
       pname = "m8c";
-      version = "2.1.0-dev";
+      version = "2.1.0";
       m8c-package =
         { stdenv
         , cmake
@@ -33,8 +33,10 @@
           buildInputs = [ sdl3 libserialport ];
 
           postInstall = ''
-            install -Dm 644 $src/package/appimage/icon.svg \
-                $out/share/icons/hicolor/scalable/apps/${pname}.svg
+            for size in 32x32 128x128 256x256 512x512 1024x1024; do
+              install -Dm 644 $src/package/icons/hicolor/$size/apps/m8c.png \
+                  $out/share/icons/hicolor/$size/apps/${pname}.png
+            done
           '';
 
           desktopItems = [
