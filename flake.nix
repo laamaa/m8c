@@ -19,8 +19,6 @@
       m8c-package =
         { stdenv
         , cmake
-        , copyDesktopItems
-        , makeDesktopItem
         , pkg-config
         , sdl3
         , libserialport
@@ -29,25 +27,8 @@
           inherit pname version;
           src = ./.;
 
-          nativeBuildInputs = [ cmake copyDesktopItems pkg-config ];
+          nativeBuildInputs = [ cmake pkg-config ];
           buildInputs = [ sdl3 libserialport ];
-
-          postInstall = ''
-            for size in 32x32 128x128 256x256 512x512 1024x1024; do
-              install -Dm 644 $src/package/icons/hicolor/$size/apps/m8c.png \
-                  $out/share/icons/hicolor/$size/apps/${pname}.png
-            done
-          '';
-
-          desktopItems = [
-            (makeDesktopItem {
-              name = pname;
-              exec = pname;
-              icon = pname;
-              desktopName = pname;
-              categories = [ "Audio" "AudioVideo" ];
-            })
-          ];
         };
       eachSystem = f: nixpkgs.lib.genAttrs (import systems) (system: f
         (import nixpkgs { inherit system; })
