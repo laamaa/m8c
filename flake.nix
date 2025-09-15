@@ -19,6 +19,7 @@
       m8c-package =
         { stdenv
         , cmake
+        , copyDesktopItems
         , pkg-config
         , sdl3
         , libserialport
@@ -27,7 +28,7 @@
           inherit pname version;
           src = ./.;
 
-          nativeBuildInputs = [ cmake pkg-config ];
+          nativeBuildInputs = [ cmake copyDesktopItems pkg-config ];
           buildInputs = [ sdl3 libserialport ];
         };
       eachSystem = f: nixpkgs.lib.genAttrs (import systems) (system: f
