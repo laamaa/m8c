@@ -85,12 +85,17 @@ static void handle_keyjazz_settings(const SDL_Event *event, const config_params_
     if (keyjazz_velocity > (is_fine_adjustment ? KEYJAZZ_MIN_VELOCITY + step : step)) {
       keyjazz_velocity -= step;
       display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
+    } else if (keyjazz_velocity - step < KEYJAZZ_MIN_VELOCITY) {
+      keyjazz_velocity = KEYJAZZ_MIN_VELOCITY;
+      display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
     }
   } else if (scancode == conf->key_jazz_inc_velocity) {
     const int step = is_fine_adjustment ? KEYJAZZ_FINE_VELOCITY_STEP : KEYJAZZ_COARSE_VELOCITY_STEP;
-    const int max = is_fine_adjustment ? KEYJAZZ_MAX_VELOCITY : (KEYJAZZ_MAX_VELOCITY - step);
-    if (keyjazz_velocity < max) {
+    if (keyjazz_velocity <= (KEYJAZZ_MAX_VELOCITY - step)) {
       keyjazz_velocity += step;
+      display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
+    } else if (keyjazz_velocity + step >= KEYJAZZ_MAX_VELOCITY) {
+      keyjazz_velocity = KEYJAZZ_MAX_VELOCITY;
       display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
     }
   }
@@ -103,7 +108,6 @@ static input_msg_s handle_keyjazz(const SDL_Event *event, unsigned char keyvalue
   // Check if this is a note key
   const int note_value = get_note_for_scancode(event->key.scancode);
   if (note_value >= 0) {
-    SDL_Log("vel %d", keyjazz_velocity);
     key.value = note_value;
     return key;
   }

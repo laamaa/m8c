@@ -51,8 +51,8 @@ config_params_s config_initialize(char *filename) {
   c.key_reset = SDL_SCANCODE_R;
   c.key_jazz_inc_octave = SDL_SCANCODE_KP_MULTIPLY;
   c.key_jazz_dec_octave = SDL_SCANCODE_KP_DIVIDE;
-  c.key_jazz_inc_velocity = SDL_SCANCODE_KP_MINUS;
-  c.key_jazz_dec_velocity = SDL_SCANCODE_KP_PLUS;
+  c.key_jazz_inc_velocity = SDL_SCANCODE_KP_PLUS;
+  c.key_jazz_dec_velocity = SDL_SCANCODE_KP_MINUS;
   c.key_toggle_audio = SDL_SCANCODE_F12;
   c.key_toggle_log = SDL_SCANCODE_F2;
 
