@@ -345,12 +345,15 @@ int m8_reset_display() {
 int m8_enable_display(const unsigned char reset_display) {
   SDL_Log("Enabling and resetting M8 display");
 
-  const char buf[1] = {'E'};
-  int result = sp_blocking_write(m8_port, buf, 1, 5);
+  const char buf_enable[1] = {'E'};
+  int result = sp_blocking_write(m8_port, buf_enable, 1, 5);
   if (result != 1) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error enabling M8 display, code %d", result);
     return 0;
   }
+
+  // Wait for things to warm up
+  SDL_Delay(500);
 
   if (reset_display) {
     result = m8_reset_display();
