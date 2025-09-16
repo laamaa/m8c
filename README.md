@@ -194,8 +194,9 @@ and the velocity can be set
 
 * Numpad asterisk (*): increase base octave
 * Numpad divide (/): decrease base octave
-* Numpad plus (+): increase velocity
-* Numpad minus (-): decrease velocity
+* Numpad plus (+): increase velocity by 10
+* Numpad minus (-): decrease velocity by 10
+* Holding the ALT key while changing velocity increases/decreases the value in steps of 1 instead of the default.
 
 ## Gamepads
 
