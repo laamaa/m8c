@@ -14,7 +14,7 @@ static uint16_t decodeInt16(const uint8_t *data, const uint8_t start) {
 
 enum m8_command_bytes {
   draw_rectangle_command = 0xFE,
-  draw_rectangle_command_pos_only_datalength = 5,
+  draw_rectangle_command_pos_datalength = 5,
   draw_rectangle_command_pos_color_datalength = 8,
   draw_rectangle_command_pos_size_datalength = 9,
   draw_rectangle_command_pos_size_color_datalength = 12,
@@ -41,13 +41,13 @@ int process_command(const uint8_t *recv_buf, uint32_t size) {
   switch (recv_buf[0]) {
 
   case draw_rectangle_command: {
-    if (size != draw_rectangle_command_pos_only_datalength &&
+    if (size != draw_rectangle_command_pos_datalength &&
         size != draw_rectangle_command_pos_color_datalength &&
         size != draw_rectangle_command_pos_size_datalength &&
         size != draw_rectangle_command_pos_size_color_datalength) {
       SDL_LogError(SDL_LOG_CATEGORY_ERROR,
                    "Invalid draw rectangle packet: expected length of %d, %d, %d or %d, got %d",
-                   draw_rectangle_command_pos_only_datalength,
+                   draw_rectangle_command_pos_datalength,
                    draw_rectangle_command_pos_color_datalength,
                    draw_rectangle_command_pos_size_datalength,
                    draw_rectangle_command_pos_size_color_datalength, size);
@@ -65,7 +65,7 @@ int process_command(const uint8_t *recv_buf, uint32_t size) {
     rectcmd.pos.y = decodeInt16(recv_buf, 3);
 
     switch (size) {
-    case draw_rectangle_command_pos_only_datalength:
+    case draw_rectangle_command_pos_datalength:
       rectcmd.size.width = 1;
       rectcmd.size.height = 1;
       break;
