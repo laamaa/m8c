@@ -5,16 +5,21 @@
 
 #include "command.h"
 #include "render.h"
+#include <assert.h>
+
+#define ArrayCount(x) sizeof(x) / sizeof((x)[1])
 
 // Convert 2 little-endian 8bit bytes to a 16bit integer
 static uint16_t decodeInt16(const uint8_t *data, const uint8_t start) {
-  return data[start] | (uint16_t)data[start + 1] << 8;
+  return data[start] | (((uint16_t)data[start + 1] << 8) & UINT16_MAX);
 }
 
 enum m8_command_bytes {
   draw_rectangle_command = 0xFE,
-  draw_rectangle_command_min_datalength = 5,
-  draw_rectangle_command_max_datalength = 12,
+  draw_rectangle_command_pos_datalength = 5,
+  draw_rectangle_command_pos_color_datalength = 8,
+  draw_rectangle_command_pos_size_datalength = 9,
+  draw_rectangle_command_pos_size_color_datalength = 12,
   draw_character_command = 0xFD,
   draw_character_command_datalength = 12,
   draw_oscilloscope_waveform_command = 0xFC,
@@ -33,22 +38,21 @@ static void dump_packet(const uint32_t size, const uint8_t *recv_buf) {
   SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "\n");
 }
 
-int process_command(uint8_t *data, uint32_t size) {
-
-  uint8_t recv_buf[size + 1];
-
-  memcpy(recv_buf, data, size);
-  recv_buf[size] = 0;
+int process_command(const uint8_t *recv_buf, uint32_t size) {
 
   switch (recv_buf[0]) {
 
   case draw_rectangle_command: {
-    if (size < draw_rectangle_command_min_datalength ||
-        size > draw_rectangle_command_max_datalength) {
+    if (size != draw_rectangle_command_pos_datalength &&
+        size != draw_rectangle_command_pos_color_datalength &&
+        size != draw_rectangle_command_pos_size_datalength &&
+        size != draw_rectangle_command_pos_size_color_datalength) {
       SDL_LogError(SDL_LOG_CATEGORY_ERROR,
-                   "Invalid draw rectangle packet: expected length between %d and %d, got %d",
-                   draw_rectangle_command_min_datalength, draw_rectangle_command_max_datalength,
-                   size);
+                   "Invalid draw rectangle packet: expected length of %d, %d, %d or %d, got %d",
+                   draw_rectangle_command_pos_datalength,
+                   draw_rectangle_command_pos_color_datalength,
+                   draw_rectangle_command_pos_size_datalength,
+                   draw_rectangle_command_pos_size_color_datalength, size);
       dump_packet(size, recv_buf);
       return 0;
     }
@@ -63,28 +67,31 @@ int process_command(uint8_t *data, uint32_t size) {
     rectcmd.pos.y = decodeInt16(recv_buf, 3);
 
     switch (size) {
-    case 5:
+    case draw_rectangle_command_pos_datalength:
       rectcmd.size.width = 1;
       rectcmd.size.height = 1;
       break;
-    case 8:
+    case draw_rectangle_command_pos_color_datalength:
       rectcmd.size.width = 1;
       rectcmd.size.height = 1;
       rectcmd.color.r = recv_buf[5];
       rectcmd.color.g = recv_buf[6];
       rectcmd.color.b = recv_buf[7];
       break;
-    case 9:
+    case draw_rectangle_command_pos_size_datalength:
       rectcmd.size.width = decodeInt16(recv_buf, 5);
       rectcmd.size.height = decodeInt16(recv_buf, 7);
       break;
-    default:
+    case draw_rectangle_command_pos_size_color_datalength:
       rectcmd.size.width = decodeInt16(recv_buf, 5);
       rectcmd.size.height = decodeInt16(recv_buf, 7);
       rectcmd.color.r = recv_buf[9];
       rectcmd.color.g = recv_buf[10];
       rectcmd.color.b = recv_buf[11];
       break;
+    default:
+      assert(0 && "Unreachable");
+      return 0;
     }
 
     draw_rectangle(&rectcmd);
@@ -118,12 +125,12 @@ int process_command(uint8_t *data, uint32_t size) {
       dump_packet(size, recv_buf);
       return 0;
     }
-    struct draw_oscilloscope_waveform_command osccmd;
+    struct draw_oscilloscope_waveform_command osccmd = {0};
 
     osccmd.color = (struct color){recv_buf[1], recv_buf[2], recv_buf[3]}; // color r/g/b
     memcpy(osccmd.waveform, &recv_buf[4], size - 4);
 
-    osccmd.waveform_size = size - 4;
+    osccmd.waveform_size = (size & UINT16_MAX) - 4;
 
     draw_waveform(&osccmd);
     return 1;
@@ -157,8 +164,9 @@ int process_command(uint8_t *data, uint32_t size) {
     static int system_info_printed = 0;
 
     if (system_info_printed == 0) {
-      SDL_Log("** Hardware info ** Device type: %s, Firmware ver %d.%d.%d", hwtype[recv_buf[1]],
-              recv_buf[2], recv_buf[3], recv_buf[4]);
+      const char *hwname = recv_buf[1] < ArrayCount(hwtype) ? hwtype[recv_buf[1]] : "Unknown";
+      SDL_Log("** Hardware info ** Device type: %s, Firmware ver %d.%d.%d", hwname, recv_buf[2],
+              recv_buf[3], recv_buf[4]);
       system_info_printed = 1;
     }
 
