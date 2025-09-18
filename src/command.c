@@ -7,6 +7,8 @@
 #include "render.h"
 #include <assert.h>
 
+#define ArrayCount(x) sizeof(x) / sizeof((x)[1])
+
 // Convert 2 little-endian 8bit bytes to a 16bit integer
 static uint16_t decodeInt16(const uint8_t *data, const uint8_t start) {
   return data[start] | (((uint16_t)data[start + 1] << 8) & UINT16_MAX);
@@ -162,7 +164,7 @@ int process_command(const uint8_t *recv_buf, uint32_t size) {
     static int system_info_printed = 0;
 
     if (system_info_printed == 0) {
-      const char *hwname = recv_buf[1] < sizeof(hwtype) ? hwtype[recv_buf[1]] : "Unknown";
+      const char *hwname = recv_buf[1] < ArrayCount(hwtype) ? hwtype[recv_buf[1]] : "Unknown";
       SDL_Log("** Hardware info ** Device type: %s, Firmware ver %d.%d.%d", hwname, recv_buf[2],
               recv_buf[3], recv_buf[4]);
       system_info_printed = 1;
