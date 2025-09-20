@@ -54,6 +54,7 @@ config_params_s config_initialize(char *filename) {
   c.key_jazz_inc_velocity = SDL_SCANCODE_KP_PLUS;
   c.key_jazz_dec_velocity = SDL_SCANCODE_KP_MINUS;
   c.key_toggle_audio = SDL_SCANCODE_F12;
+  c.key_toggle_settings = SDL_SCANCODE_F1;
   c.key_toggle_log = SDL_SCANCODE_F2;
 
   c.gamepad_up = SDL_GAMEPAD_BUTTON_DPAD_UP;
@@ -89,7 +90,7 @@ void write_config(const config_params_s *conf) {
 
   SDL_Log("Writing config file to %s", config_path);
 
-#define INI_LINE_COUNT 49
+#define INI_LINE_COUNT 50
 #define INI_LINE_LENGTH 50
 
   // Entries for the config file
@@ -135,6 +136,7 @@ void write_config(const config_params_s *conf) {
            conf->key_jazz_dec_velocity);
   snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_toggle_audio=%d\n",
            conf->key_toggle_audio);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_toggle_settings=%d\n", conf->key_toggle_settings);
   snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "key_toggle_log=%d\n", conf->key_toggle_log);
   snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "[gamepad]\n");
   snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "gamepad_up=%d\n", conf->gamepad_up);
@@ -273,6 +275,7 @@ void read_key_config(const ini_t *ini, config_params_s *conf) {
   const char *key_jazz_inc_velocity = ini_get(ini, "keyboard", "key_jazz_inc_velocity");
   const char *key_jazz_dec_velocity = ini_get(ini, "keyboard", "key_jazz_dec_velocity");
   const char *key_toggle_audio = ini_get(ini, "keyboard", "key_toggle_audio");
+  const char *key_toggle_settings = ini_get(ini, "keyboard", "key_toggle_settings");
   const char *key_toggle_log = ini_get(ini, "keyboard", "key_toggle_log");
 
   if (key_up)
@@ -313,6 +316,8 @@ void read_key_config(const ini_t *ini, config_params_s *conf) {
     conf->key_jazz_dec_velocity = SDL_atoi(key_jazz_dec_velocity);
   if (key_toggle_audio)
     conf->key_toggle_audio = SDL_atoi(key_toggle_audio);
+  if (key_toggle_settings)
+    conf->key_toggle_log = SDL_atoi(key_toggle_settings);
   if (key_toggle_log)
     conf->key_toggle_log = SDL_atoi(key_toggle_log);
 }

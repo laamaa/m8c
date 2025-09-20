@@ -61,7 +61,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 
   case SDL_EVENT_KEY_DOWN:
     // Toggle settings with F1
-    if (event->key.key == SDLK_F1 && event->key.repeat == 0) {
+    if (event->key.scancode == ctx->conf.key_toggle_settings && event->key.repeat == 0) {
       settings_toggle_open();
       return ret_val;
     }

@@ -34,6 +34,7 @@ typedef struct config_params_s {
   unsigned int key_jazz_inc_velocity;
   unsigned int key_jazz_dec_velocity;
   unsigned int key_toggle_audio;
+  unsigned int key_toggle_settings;
   unsigned int key_toggle_log;
 
   int gamepad_up;
