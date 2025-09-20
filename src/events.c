@@ -85,7 +85,6 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     // Start measuring hold time for GUIDE; trigger handled on button up after 1s hold
     if (event->gbutton.button == SDL_GAMEPAD_BUTTON_BACK) {
       g_back_pressed_at = SDL_GetTicks();
-      return ret_val;
     }
 
     if (settings_is_open()) {

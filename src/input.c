@@ -316,21 +316,22 @@ static void update_button_state_from_axis(Sint16 axis_value, int threshold, int 
 void input_handle_gamepad_axis(const struct app_context *ctx, const SDL_GamepadAxis axis,
                                const Sint16 value) {
   const config_params_s *conf = &ctx->conf;
-  gamepad_state.analog_values[axis] = value;
+  const Sint16 effective_value = conf->gamepad_analog_invert ? (Sint16)(-value) : value;
+  gamepad_state.analog_values[axis] = effective_value;
 
   // Process directional axes and update button states
   if (axis == conf->gamepad_analog_axis_updown) {
-    update_button_state_from_axis(value, conf->gamepad_analog_threshold, key_up, key_down);
+    update_button_state_from_axis(effective_value, conf->gamepad_analog_threshold, key_up, key_down);
   } else if (axis == conf->gamepad_analog_axis_leftright) {
-    update_button_state_from_axis(value, conf->gamepad_analog_threshold, key_left, key_right);
+    update_button_state_from_axis(effective_value, conf->gamepad_analog_threshold, key_left, key_right);
   } else if (axis == conf->gamepad_analog_axis_select) {
-    update_button_state_from_axis(value, conf->gamepad_analog_threshold, key_select, key_select);
+    update_button_state_from_axis(effective_value, conf->gamepad_analog_threshold, key_select, key_select);
   } else if (axis == conf->gamepad_analog_axis_opt) {
-    update_button_state_from_axis(value, conf->gamepad_analog_threshold, key_opt, key_opt);
+    update_button_state_from_axis(effective_value, conf->gamepad_analog_threshold, key_opt, key_opt);
   } else if (axis == conf->gamepad_analog_axis_start) {
-    update_button_state_from_axis(value, conf->gamepad_analog_threshold, key_start, key_start);
+    update_button_state_from_axis(effective_value, conf->gamepad_analog_threshold, key_start, key_start);
   } else if (axis == conf->gamepad_analog_axis_edit) {
-    update_button_state_from_axis(value, conf->gamepad_analog_threshold, key_edit, key_edit);
+    update_button_state_from_axis(effective_value, conf->gamepad_analog_threshold, key_edit, key_edit);
   }
 
   keycode = gamepad_state.current_buttons;
