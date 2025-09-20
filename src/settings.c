@@ -8,7 +8,7 @@
 #include "fonts/fonts.h"
 #include <SDL3/SDL.h>
 
-// Internal state
+// Constants for the UI
 #define SETTINGS_MAX_ITEMS 64
 #define SETTINGS_MAX_LINE_LENGTH 160
 static const int SETTINGS_LINE_HEIGHT = 12;
@@ -46,6 +46,7 @@ typedef struct setting_item_s {
 
 typedef enum settings_view_t { VIEW_ROOT, VIEW_KEYS, VIEW_GAMEPAD, VIEW_ANALOG } settings_view_t;
 
+// Internal state
 typedef struct settings_ui_state {
   int is_open;
   int selected_index;
@@ -69,10 +70,11 @@ static settings_ui_state g_settings = {
   .capture_target = NULL,
   .view = VIEW_ROOT,
 };
+
 extern SDL_Gamepad *game_controllers[4];
 
-static void add_item(setting_item_s *items, int *count, const char *label, item_type_t type,
-                     void *target, int step, int min_val, int max_val) {
+static void add_item(setting_item_s *items, int *count, const char *label, const item_type_t type,
+                     void *target, const int step, const int min_val, const int max_val) {
   items[*count] = (setting_item_s){label, type, target, step, min_val, max_val};
   (*count)++;
 }
@@ -82,12 +84,10 @@ static void build_menu(const config_params_s *conf, setting_item_s *items, int *
   switch (g_settings.view) {
   case VIEW_ROOT:
     add_item(items, count, "Graphics       ", ITEM_HEADER, NULL, 0, 0, 0);
-    add_item(items, count, "Integer scaling", ITEM_TOGGLE_BOOL, (void *)&conf->integer_scaling, 0,
-             0, 0);
+    add_item(items, count, "Integer scaling", ITEM_TOGGLE_BOOL, (void *)&conf->integer_scaling, 0,0, 0);
     // SDL apps are always full screen on iOS, hide the option
     if (TARGET_OS_IOS == 0) {
-      add_item(items, count, "Fullscreen     ", ITEM_TOGGLE_BOOL, (void *)&conf->init_fullscreen, 0,
-               0, 0);
+      add_item(items, count, "Fullscreen     ", ITEM_TOGGLE_BOOL, (void *)&conf->init_fullscreen, 0,0, 0);
     }
     add_item(items, count, "", ITEM_HEADER, NULL, 0, 0, 0);
     // Audio routing does not work on iOS, hide the items when building for that
@@ -147,31 +147,40 @@ static void build_menu(const config_params_s *conf, setting_item_s *items, int *
     break;
   case VIEW_ANALOG:
     add_item(items, count, "Gamepad analog axis", ITEM_HEADER, NULL, 0, 0, 0);
-    add_item(items, count, "Invert analog   ", ITEM_TOGGLE_BOOL, (void *)&conf->gamepad_analog_invert, 0,
-             0, 0);
-    add_item(items, count, "Deadzone       ", ITEM_INT_ADJ, (void *)&conf->gamepad_analog_threshold, 1000,
-             1000, 32767);
-    add_item(items, count, "Axis Up/Down   ", ITEM_BIND_AXIS,
-             (void *)&conf->gamepad_analog_axis_updown, 0, 0, 0);
-    add_item(items, count, "Axis Left/Right", ITEM_BIND_AXIS,
-             (void *)&conf->gamepad_analog_axis_leftright, 0, 0, 0);
-    add_item(items, count, "Axis Select    ", ITEM_BIND_AXIS,
-             (void *)&conf->gamepad_analog_axis_select, 0, 0, 0);
-    add_item(items, count, "Axis Start     ", ITEM_BIND_AXIS,
-             (void *)&conf->gamepad_analog_axis_start, 0, 0, 0);
-    add_item(items, count, "Axis Opt       ", ITEM_BIND_AXIS,
-             (void *)&conf->gamepad_analog_axis_opt, 0, 0, 0);
-    add_item(items, count, "Axis Edit      ", ITEM_BIND_AXIS,
-             (void *)&conf->gamepad_analog_axis_edit, 0, 0, 0);
+    add_item(items, count, "Invert analog   ", ITEM_TOGGLE_BOOL, (void *)&conf->gamepad_analog_invert, 0,0, 0);
+    add_item(items, count, "Deadzone       ", ITEM_INT_ADJ, (void *)&conf->gamepad_analog_threshold, 1000,1000, 32767);
+    add_item(items, count, "Axis Up/Down   ", ITEM_BIND_AXIS, (void *)&conf->gamepad_analog_axis_updown, 0, 0, 0);
+    add_item(items, count, "Axis Left/Right", ITEM_BIND_AXIS, (void *)&conf->gamepad_analog_axis_leftright, 0, 0, 0);
+    add_item(items, count, "Axis Select    ", ITEM_BIND_AXIS, (void *)&conf->gamepad_analog_axis_select, 0, 0, 0);
+    add_item(items, count, "Axis Start     ", ITEM_BIND_AXIS, (void *)&conf->gamepad_analog_axis_start, 0, 0, 0);
+    add_item(items, count, "Axis Opt       ", ITEM_BIND_AXIS, (void *)&conf->gamepad_analog_axis_opt, 0, 0, 0);
+    add_item(items, count, "Axis Edit      ", ITEM_BIND_AXIS, (void *)&conf->gamepad_analog_axis_edit, 0, 0, 0);
     add_item(items, count, "", ITEM_HEADER, NULL, 0, 0, 0);
     add_item(items, count, "Back", ITEM_CLOSE, NULL, 0, 0, 0);
     break;
   }
 }
 
-// Compute viewport slice and adjust scroll offset.
-// Returns visible_lines, start_i, end_i via out params and may adjust scroll_offset_io.
-static void compute_viewport(int texture_h, int list_y_top, int total_count, int selected_index,
+/**
+* @brief Compute the visible slice of the settings list and adjust scrolling.
+*
+* Ensures the selected item is visible and, when possible, pulls a preceding
+* section header into view without pushing the selection out.
+*
+* @param texture_h Render-target texture height in pixels.
+* @param list_y_top Top Y of the list in pixels (first row’s top).
+* @param total_count Total number of items (including headers).
+* @param selected_index Currently selected item index [0, total_count).
+* @param[in,out] scroll_offset_io Index of the first visible item; may be clamped/adjusted.
+* @param[out] visible_lines_out Number of list rows that fit (>= 1).
+* @param[out] start_index_out First item index to draw (inclusive).
+* @param[out] end_index_out One past the last item index to draw (exclusive).
+* @param items Items array (used to detect and include a preceding header when it fits).
+*
+* @note Line height and paddings are derived from UI constants.
+*/
+static void compute_viewport(const int texture_h, const int list_y_top, const int total_count,
+                             const int selected_index,
                              int *scroll_offset_io, int *visible_lines_out, int *start_index_out,
                              int *end_index_out, const setting_item_s *items) {
   const int max_y = texture_h - SETTINGS_BOTTOM_PADDING;
@@ -179,7 +188,7 @@ static void compute_viewport(int texture_h, int list_y_top, int total_count, int
   if (visible_lines < 1)
     visible_lines = 1;
 
-  int max_scroll = (total_count > visible_lines) ? (total_count - visible_lines) : 0;
+  const int max_scroll = total_count > visible_lines ? total_count - visible_lines : 0;
   if (*scroll_offset_io > max_scroll)
     *scroll_offset_io = max_scroll;
   if (*scroll_offset_io < 0)
@@ -191,7 +200,7 @@ static void compute_viewport(int texture_h, int list_y_top, int total_count, int
   if (selected_index >= *scroll_offset_io + visible_lines)
     *scroll_offset_io = selected_index - visible_lines + 1;
 
-  // If previous item is a header, include it if it doesn't push selection out
+  // If the previous item is a header, include it if it doesn't push selection out
   if (*scroll_offset_io > 0 && items[*scroll_offset_io - 1].type == ITEM_HEADER) {
     const int candidate_start = *scroll_offset_io - 1;
     const int candidate_end_inclusive = candidate_start + visible_lines - 1;
@@ -200,9 +209,9 @@ static void compute_viewport(int texture_h, int list_y_top, int total_count, int
     }
   }
 
-  int start_i = *scroll_offset_io;
+  const int start_i = *scroll_offset_io;
   int end_i = total_count;
-  if (visible_lines >= 0 && start_i + visible_lines < end_i)
+  if (start_i + visible_lines < end_i)
     end_i = start_i + visible_lines;
 
   *visible_lines_out = visible_lines;
@@ -240,7 +249,7 @@ static void settings_move(const config_params_s *conf, int delta) {
     idx += step;
   }
 
-  // Ensure we don't select before first actionable item
+  // Ensure we don't select before the first actionable item
   if (idx < 1)
     idx = 1;
 
@@ -298,30 +307,26 @@ static void settings_activate(struct app_context *ctx, const setting_item_s *ite
     g_settings.capture_target = it->target;
     g_settings.needs_redraw = 1;
     break;
-  case ITEM_INT_ADJ:
-  case ITEM_HEADER:
-    break;
   default:
     break;
   }
 }
 
 // Shared helpers for handling back/cancel, adjust, and enter/select
-static int settings_handle_back(void) {
+static void settings_handle_back(void) {
   if (g_settings.capture_mode != CAPTURE_NONE) {
     g_settings.capture_mode = CAPTURE_NONE;
     g_settings.capture_target = NULL;
     g_settings.needs_redraw = 1;
-    return 1;
+    return;
   }
   if (g_settings.view != VIEW_ROOT) {
     g_settings.view = VIEW_ROOT;
     g_settings.selected_index = 1;
     g_settings.needs_redraw = 1;
-    return 1;
+    return;
   }
   settings_toggle_open();
-  return 1;
 }
 
 static int settings_adjust_selected(const config_params_s *conf, int direction) {
@@ -331,14 +336,14 @@ static int settings_adjust_selected(const config_params_s *conf, int direction) 
   if (g_settings.selected_index > 0 && g_settings.selected_index < count) {
     setting_item_s *it = &items[g_settings.selected_index];
     if (it->type == ITEM_INT_ADJ && it->target != NULL) {
-      int *val = (int *)it->target;
-      int delta = (direction < 0 ? -it->step : it->step);
-      int newv = *val + delta;
-      if (newv < it->min_val)
-        newv = it->min_val;
-      if (newv > it->max_val)
-        newv = it->max_val;
-      *val = newv;
+      int *val = it->target;
+      const int delta = (direction < 0 ? -it->step : it->step);
+      int new_val = *val + delta;
+      if (new_val < it->min_val)
+        new_val = it->min_val;
+      if (new_val > it->max_val)
+        new_val = it->max_val;
+      *val = new_val;
       g_settings.needs_redraw = 1;
       return 1;
     }
@@ -346,11 +351,11 @@ static int settings_adjust_selected(const config_params_s *conf, int direction) 
   return 0;
 }
 
-static int settings_handle_enter(struct app_context *ctx) {
+static void settings_handle_enter(struct app_context *ctx) {
   setting_item_s items[SETTINGS_MAX_ITEMS];
   int count = 0;
   build_menu(&ctx->conf, items, &count);
-  // Handle entering submenus from root based on item type
+  // Handle entering submenus from root based on the item type
   if (g_settings.view == VIEW_ROOT) {
     const setting_item_s *it = &items[g_settings.selected_index];
     if (it->type == ITEM_SUBMENU && it->label &&
@@ -359,7 +364,7 @@ static int settings_handle_enter(struct app_context *ctx) {
       g_settings.selected_index = 1;
       g_settings.scroll_offset = 0;
       g_settings.needs_redraw = 1;
-      return 1;
+      return;
     }
     if (it->type == ITEM_SUBMENU && it->label &&
         SDL_strstr(it->label, "Gamepad bindings") == it->label) {
@@ -367,7 +372,7 @@ static int settings_handle_enter(struct app_context *ctx) {
       g_settings.selected_index = 1;
       g_settings.scroll_offset = 0;
       g_settings.needs_redraw = 1;
-      return 1;
+      return;
     }
     if (it->type == ITEM_SUBMENU && it->label &&
         SDL_strstr(it->label, "Gamepad analog axis") == it->label) {
@@ -375,7 +380,7 @@ static int settings_handle_enter(struct app_context *ctx) {
       g_settings.selected_index = 1;
       g_settings.scroll_offset = 0;
       g_settings.needs_redraw = 1;
-      return 1;
+      return;
     }
   }
   // Back item in submenus
@@ -386,11 +391,10 @@ static int settings_handle_enter(struct app_context *ctx) {
       g_settings.selected_index = 1;
       g_settings.scroll_offset = 0;
       g_settings.needs_redraw = 1;
-      return 1;
+      return;
     }
   }
   settings_activate(ctx, items, count);
-  return 1;
 }
 
 void settings_toggle_open(void) {
@@ -410,8 +414,8 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
 
   if (e->type == SDL_EVENT_KEY_DOWN) {
     if (e->key.key == SDLK_ESCAPE || e->key.key == SDLK_F1) {
-      if (settings_handle_back())
-        return;
+      settings_handle_back();
+      return;
     }
     // Capture key remap
     if (g_settings.capture_mode == CAPTURE_KEY) {
@@ -437,8 +441,8 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
         return;
     }
     if (e->key.key == SDLK_RETURN || e->key.key == SDLK_SPACE) {
-      if (settings_handle_enter(ctx))
-        return;
+      settings_handle_enter(ctx);
+      return;
     }
   }
 
@@ -448,8 +452,8 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
 
     // Cancel capture or go back/close with B/Back
     if (btn == SDL_GAMEPAD_BUTTON_EAST || btn == SDL_GAMEPAD_BUTTON_BACK) {
-      if (settings_handle_back())
-        return;
+      settings_handle_back();
+      return;
     }
 
     // If capturing a button, let the capture handler below process it
@@ -469,8 +473,8 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
       }
       // Activate/select with A
       if (btn == SDL_GAMEPAD_BUTTON_SOUTH) {
-        if (settings_handle_enter(ctx))
-          return;
+        settings_handle_enter(ctx);
+        return;
       }
     }
   }
@@ -582,7 +586,7 @@ void settings_render_overlay(SDL_Renderer *rend, const config_params_s *conf, in
   // Draw scroll indicators when more content exists above/below
   if (visible_lines > 0) {
     const int arrow_x = texture_w - SETTINGS_MARGIN_X - (int)fonts_get(0)->glyph_x;
-    // Show up-arrow only when there are real items above beyond a header
+    // Show up-arrow only when there are selectable items above
     int has_above = g_settings.scroll_offset > 0;
     if (has_above && items[g_settings.scroll_offset - 1].type == ITEM_HEADER && g_settings.scroll_offset == 1) {
       has_above = 0;
