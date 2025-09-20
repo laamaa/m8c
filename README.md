@@ -7,15 +7,15 @@ keyboard/gamepad control, and can route audio to your computer—useful for reco
 or alternative input methods. The application is cross‑platform and can be built on Linux, Windows (MSYS2/MINGW64), and
 macOS.
 
-The [Dirtywave M8 Tracker](https://dirtywave.com/products/m8-tracker) is a portable sequencer and synthesizer featuring
-8 tracks of assignable instruments (using engines like FM, waveform synthesis, virtual analog, sample playback, and MIDI output). 
+The Dirtywave M8 Tracker is a portable sequencer and synthesizer featuring 8 tracks of assignable instruments
+(using engines like FM, waveform synthesis, virtual analog, sample playback, and MIDI output). 
 It is inspired by the Game Boy tracker [Little Sound DJ](https://www.littlesounddj.com/lsd/index.php).
 
-m8c works with the official M8 hardware over USB. It also supports the [M8 Headless](https://github.com/Dirtywave/M8HeadlessFirmware)
+m8c works with the M8 hardware over USB. It also supports the [M8 Headless](https://github.com/Dirtywave/M8HeadlessFirmware)
 firmware running on a [Teensy](https://www.pjrc.com/teensy/) microcontroller. If you enjoy the M8 and its
 tracker workflow, please support [Dirtywave](https://dirtywave.com/) by purchasing the hardware. You can check
 availability [here](https://dirtywave.com/products/m8-tracker-model-02). You can also
-support the creator, [Trash80](https://github.com/trash80) via [Patreon](https://www.patreon.com/trash80).
+support the creator, Trash80 via [Patreon](https://www.patreon.com/trash80).
 
 Many thanks to:
 
