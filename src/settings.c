@@ -14,6 +14,7 @@ static int g_selected_index = 0;
 static int g_needs_redraw = 1;
 static int g_config_saved = 0;
 static SDL_Texture *g_settings_texture = NULL;
+static int g_scroll_offset = 0; // topmost visible item index
 
 
 typedef enum capture_mode_t {
@@ -92,11 +93,19 @@ static void build_menu(const config_params_s *conf, setting_item_s *items, int *
     add_item(items, count, "Down        ", ITEM_BIND_KEY, (void *)&conf->key_down, 0, 0, 0);
     add_item(items, count, "Right       ", ITEM_BIND_KEY, (void *)&conf->key_right, 0, 0, 0);
     add_item(items, count, "Select      ", ITEM_BIND_KEY, (void *)&conf->key_select, 0, 0, 0);
+    add_item(items, count, "Select (Alt)", ITEM_BIND_KEY, (void *)&conf->key_select_alt, 0, 0, 0);
     add_item(items, count, "Start       ", ITEM_BIND_KEY, (void *)&conf->key_start, 0, 0, 0);
+    add_item(items, count, "Start (Alt) ", ITEM_BIND_KEY, (void *)&conf->key_start_alt, 0, 0, 0);
     add_item(items, count, "Opt         ", ITEM_BIND_KEY, (void *)&conf->key_opt, 0, 0, 0);
+    add_item(items, count, "Opt (Alt)   ", ITEM_BIND_KEY, (void *)&conf->key_opt_alt, 0, 0, 0);
     add_item(items, count, "Edit        ", ITEM_BIND_KEY, (void *)&conf->key_edit, 0, 0, 0);
+    add_item(items, count, "Edit (Alt)  ", ITEM_BIND_KEY, (void *)&conf->key_edit_alt, 0, 0, 0);
     add_item(items, count, "Delete      ", ITEM_BIND_KEY, (void *)&conf->key_delete, 0, 0, 0);
     add_item(items, count, "Reset       ", ITEM_BIND_KEY, (void *)&conf->key_reset, 0, 0, 0);
+    add_item(items, count, "Jazz +Oct   ", ITEM_BIND_KEY, (void *)&conf->key_jazz_inc_octave, 0, 0, 0);
+    add_item(items, count, "Jazz -Oct   ", ITEM_BIND_KEY, (void *)&conf->key_jazz_dec_octave, 0, 0, 0);
+    add_item(items, count, "Jazz +Vel   ", ITEM_BIND_KEY, (void *)&conf->key_jazz_inc_velocity, 0, 0, 0);
+    add_item(items, count, "Jazz -Vel   ", ITEM_BIND_KEY, (void *)&conf->key_jazz_dec_velocity, 0, 0, 0);
     add_item(items, count, "Toggle audio", ITEM_BIND_KEY, (void *)&conf->key_toggle_audio, 0, 0, 0);
     add_item(items, count, "Toggle log  ", ITEM_BIND_KEY, (void *)&conf->key_toggle_log, 0, 0, 0);
     add_item(items, count, "", ITEM_HEADER, NULL, 0, 0, 0);
@@ -119,7 +128,9 @@ static void build_menu(const config_params_s *conf, setting_item_s *items, int *
     break;
   case VIEW_ANALOG:
     add_item(items, count, "Gamepad analog axis", ITEM_HEADER, NULL, 0, 0, 0);
-    add_item(items, count, "Deadzone", ITEM_INT_ADJ, (void *)&conf->gamepad_analog_threshold, 1000,
+    add_item(items, count, "Invert analog   ", ITEM_TOGGLE_BOOL, (void *)&conf->gamepad_analog_invert, 0,
+             0, 0);
+    add_item(items, count, "Deadzone       ", ITEM_INT_ADJ, (void *)&conf->gamepad_analog_threshold, 1000,
              1000, 32767);
     add_item(items, count, "Axis Up/Down   ", ITEM_BIND_AXIS,
              (void *)&conf->gamepad_analog_axis_updown, 0, 0, 0);
@@ -152,6 +163,7 @@ void settings_toggle_open(void) {
   g_selected_index = 1; // first actionable item
   g_capture_mode = CAPTURE_NONE;
   g_capture_target = NULL;
+  g_scroll_offset = 0;
   g_needs_redraw = 1;
 }
 
@@ -316,6 +328,7 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
             SDL_strstr(it->label, "Keyboard bindings") == it->label) {
           g_view = VIEW_KEYS;
           g_selected_index = 1;
+          g_scroll_offset = 0;
           g_needs_redraw = 1;
           return;
         }
@@ -323,6 +336,7 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
             SDL_strstr(it->label, "Gamepad bindings") == it->label) {
           g_view = VIEW_GAMEPAD;
           g_selected_index = 1;
+          g_scroll_offset = 0;
           g_needs_redraw = 1;
           return;
         }
@@ -330,6 +344,7 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
             SDL_strstr(it->label, "Gamepad analog axis") == it->label) {
           g_view = VIEW_ANALOG;
           g_selected_index = 1;
+          g_scroll_offset = 0;
           g_needs_redraw = 1;
           return;
         }
@@ -340,6 +355,7 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
         if (it->type == ITEM_CLOSE && it->label && SDL_strcmp(it->label, "Back") == 0) {
           g_view = VIEW_ROOT;
           g_selected_index = 1;
+          g_scroll_offset = 0;
           g_needs_redraw = 1;
           return;
         }
@@ -472,6 +488,23 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
       return;
     }
   }
+
+  // Mouse wheel scrolling
+  if (e->type == SDL_EVENT_MOUSE_WHEEL) {
+    int delta = (int)e->wheel.y; // positive up, negative down
+    if (delta != 0) {
+      setting_item_s items[64];
+      int count = 0;
+      build_menu(&ctx->conf, items, &count);
+      g_scroll_offset -= delta; // invert so wheel down scrolls down
+      if (g_scroll_offset < 0)
+        g_scroll_offset = 0;
+      if (g_scroll_offset >= count)
+        g_scroll_offset = (count > 0) ? count - 1 : 0;
+      g_needs_redraw = 1;
+    }
+    return;
+  }
 }
 
 void settings_render_overlay(SDL_Renderer *rend, const config_params_s *conf, int texture_w,
@@ -544,8 +577,63 @@ void settings_render_overlay(SDL_Renderer *rend, const config_params_s *conf, in
   }
   y += 12;
 
+  // Compute viewport and clamp scroll
+  const int line_height = 12;
+  const int bottom_padding = 8;
+  const int max_y = texture_h - bottom_padding;
+  const int list_y_top = y;
+  int visible_lines = (max_y - y) / line_height;
+  if (visible_lines < 1)
+    visible_lines = 1;
+  int max_scroll = (count > visible_lines) ? (count - visible_lines) : 0;
+  if (g_scroll_offset > max_scroll)
+    g_scroll_offset = max_scroll;
+  if (g_scroll_offset < 0)
+    g_scroll_offset = 0;
 
-  for (int i = 0; i < count; i++) {
+  // Ensure selection visible
+  if (g_selected_index < g_scroll_offset)
+    g_scroll_offset = g_selected_index;
+  if (g_selected_index >= g_scroll_offset + visible_lines)
+    g_scroll_offset = g_selected_index - visible_lines + 1;
+
+  // If the previous item before the first visible is a header, include it so
+  // the view starts at that header, but only if doing so doesn't push the
+  // selected item out of view.
+  if (g_scroll_offset > 0 && items[g_scroll_offset - 1].type == ITEM_HEADER) {
+    const int candidate_start = g_scroll_offset - 1;
+    const int candidate_end_inclusive = candidate_start + visible_lines - 1;
+    if (g_selected_index <= candidate_end_inclusive) {
+      g_scroll_offset = candidate_start;
+    }
+  }
+
+  // Render only visible slice
+  int start_i = g_scroll_offset;
+  int end_i = count;
+  if (visible_lines >= 0 && start_i + visible_lines < end_i)
+    end_i = start_i + visible_lines;
+
+  // Draw scroll indicators when more content exists above/below
+  if (visible_lines > 0) {
+    const int arrow_x = texture_w - 8 - (int)fonts_get(0)->glyph_x;
+    // Show up-arrow only when there are real items above beyond a header
+    int has_above = g_scroll_offset > 0;
+    if (has_above && items[g_scroll_offset - 1].type == ITEM_HEADER && g_scroll_offset == 1) {
+      has_above = 0;
+    }
+    if (has_above) {
+      inprint(rend, "+", arrow_x, list_y_top, selected_item_fg, selected_item_bg);
+    }
+    if (g_scroll_offset + visible_lines < count) {
+      int bottom_arrow_y = list_y_top + (visible_lines - 1) * line_height;
+      if (bottom_arrow_y > max_y - line_height)
+        bottom_arrow_y = max_y - line_height;
+      inprint(rend, "+", arrow_x, bottom_arrow_y, selected_item_fg, selected_item_bg);
+    }
+  }
+
+  for (int i = start_i; i < end_i; i++) {
     const int selected = (i == g_selected_index);
     const setting_item_s *it = &items[i];
     if (it->type == ITEM_HEADER) {
@@ -664,5 +752,6 @@ composite:
 // Handle renderer/size resets: drop the cached texture to recreate at new size on next frame
 void settings_on_texture_size_change(SDL_Renderer *rend) {
   settings_destroy_texture(rend);
+  g_scroll_offset = 0;
   g_needs_redraw = 1;
 }
