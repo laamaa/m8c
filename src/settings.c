@@ -132,16 +132,16 @@ static void build_menu(const config_params_s *conf, setting_item_s *items, int *
     break;
   case VIEW_GAMEPAD:
     add_item(items, count, "Gamepad bindings", ITEM_HEADER, NULL, 0, 0, 0);
-    add_item(items, count, "Up    ", ITEM_BIND_BUTTON, (void *)&conf->gamepad_up, 0, 0, 0);
-    add_item(items, count, "Left  ", ITEM_BIND_BUTTON, (void *)&conf->gamepad_left, 0, 0, 0);
-    add_item(items, count, "Down  ", ITEM_BIND_BUTTON, (void *)&conf->gamepad_down, 0, 0, 0);
-    add_item(items, count, "Right ", ITEM_BIND_BUTTON, (void *)&conf->gamepad_right, 0, 0, 0);
-    add_item(items, count, "Select", ITEM_BIND_BUTTON, (void *)&conf->gamepad_select, 0, 0, 0);
-    add_item(items, count, "Start ", ITEM_BIND_BUTTON, (void *)&conf->gamepad_start, 0, 0, 0);
-    add_item(items, count, "Opt   ", ITEM_BIND_BUTTON, (void *)&conf->gamepad_opt, 0, 0, 0);
-    add_item(items, count, "Edit  ", ITEM_BIND_BUTTON, (void *)&conf->gamepad_edit, 0, 0, 0);
-    add_item(items, count, "Quit  ", ITEM_BIND_BUTTON, (void *)&conf->gamepad_quit, 0, 0, 0);
-    add_item(items, count, "Reset ", ITEM_BIND_BUTTON, (void *)&conf->gamepad_reset, 0, 0, 0);
+    add_item(items, count, "Up              ", ITEM_BIND_BUTTON, (void *)&conf->gamepad_up, 0, 0, 0);
+    add_item(items, count, "Left            ", ITEM_BIND_BUTTON, (void *)&conf->gamepad_left, 0, 0, 0);
+    add_item(items, count, "Down            ", ITEM_BIND_BUTTON, (void *)&conf->gamepad_down, 0, 0, 0);
+    add_item(items, count, "Right           ", ITEM_BIND_BUTTON, (void *)&conf->gamepad_right, 0, 0, 0);
+    add_item(items, count, "Select          ", ITEM_BIND_BUTTON, (void *)&conf->gamepad_select, 0, 0, 0);
+    add_item(items, count, "Start           ", ITEM_BIND_BUTTON, (void *)&conf->gamepad_start, 0, 0, 0);
+    add_item(items, count, "Opt             ", ITEM_BIND_BUTTON, (void *)&conf->gamepad_opt, 0, 0, 0);
+    add_item(items, count, "Edit            ", ITEM_BIND_BUTTON, (void *)&conf->gamepad_edit, 0, 0, 0);
+    add_item(items, count, "Quit (Select +) ", ITEM_BIND_BUTTON, (void *)&conf->gamepad_quit, 0, 0, 0);
+    add_item(items, count, "Reset (Select +)", ITEM_BIND_BUTTON, (void *)&conf->gamepad_reset, 0, 0, 0);
     add_item(items, count, "", ITEM_HEADER, NULL, 0, 0, 0);
     add_item(items, count, "Back", ITEM_CLOSE, NULL, 0, 0, 0);
     break;
@@ -217,17 +217,6 @@ static void settings_destroy_texture(SDL_Renderer *rend) {
     g_settings.texture = NULL;
   }
 }
-
-void settings_toggle_open(void) {
-  g_settings.is_open = !g_settings.is_open;
-  g_settings.selected_index = 1; // first actionable item
-  g_settings.capture_mode = CAPTURE_NONE;
-  g_settings.capture_target = NULL;
-  g_settings.scroll_offset = 0;
-  g_settings.needs_redraw = 1;
-}
-
-bool settings_is_open(void) { return g_settings.is_open != 0; }
 
 static void settings_move(const config_params_s *conf, int delta) {
   if (!g_settings.is_open)
@@ -317,26 +306,112 @@ static void settings_activate(struct app_context *ctx, const setting_item_s *ite
   }
 }
 
+// Shared helpers for handling back/cancel, adjust, and enter/select
+static int settings_handle_back(void) {
+  if (g_settings.capture_mode != CAPTURE_NONE) {
+    g_settings.capture_mode = CAPTURE_NONE;
+    g_settings.capture_target = NULL;
+    g_settings.needs_redraw = 1;
+    return 1;
+  }
+  if (g_settings.view != VIEW_ROOT) {
+    g_settings.view = VIEW_ROOT;
+    g_settings.selected_index = 1;
+    g_settings.needs_redraw = 1;
+    return 1;
+  }
+  settings_toggle_open();
+  return 1;
+}
+
+static int settings_adjust_selected(const config_params_s *conf, int direction) {
+  setting_item_s items[SETTINGS_MAX_ITEMS];
+  int count = 0;
+  build_menu(conf, items, &count);
+  if (g_settings.selected_index > 0 && g_settings.selected_index < count) {
+    setting_item_s *it = &items[g_settings.selected_index];
+    if (it->type == ITEM_INT_ADJ && it->target != NULL) {
+      int *val = (int *)it->target;
+      int delta = (direction < 0 ? -it->step : it->step);
+      int newv = *val + delta;
+      if (newv < it->min_val)
+        newv = it->min_val;
+      if (newv > it->max_val)
+        newv = it->max_val;
+      *val = newv;
+      g_settings.needs_redraw = 1;
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int settings_handle_enter(struct app_context *ctx) {
+  setting_item_s items[SETTINGS_MAX_ITEMS];
+  int count = 0;
+  build_menu(&ctx->conf, items, &count);
+  // Handle entering submenus from root based on item type
+  if (g_settings.view == VIEW_ROOT) {
+    const setting_item_s *it = &items[g_settings.selected_index];
+    if (it->type == ITEM_SUBMENU && it->label &&
+        SDL_strstr(it->label, "Keyboard bindings") == it->label) {
+      g_settings.view = VIEW_KEYS;
+      g_settings.selected_index = 1;
+      g_settings.scroll_offset = 0;
+      g_settings.needs_redraw = 1;
+      return 1;
+    }
+    if (it->type == ITEM_SUBMENU && it->label &&
+        SDL_strstr(it->label, "Gamepad bindings") == it->label) {
+      g_settings.view = VIEW_GAMEPAD;
+      g_settings.selected_index = 1;
+      g_settings.scroll_offset = 0;
+      g_settings.needs_redraw = 1;
+      return 1;
+    }
+    if (it->type == ITEM_SUBMENU && it->label &&
+        SDL_strstr(it->label, "Gamepad analog axis") == it->label) {
+      g_settings.view = VIEW_ANALOG;
+      g_settings.selected_index = 1;
+      g_settings.scroll_offset = 0;
+      g_settings.needs_redraw = 1;
+      return 1;
+    }
+  }
+  // Back item in submenus
+  if (g_settings.view != VIEW_ROOT) {
+    const setting_item_s *it = &items[g_settings.selected_index];
+    if (it->type == ITEM_CLOSE && it->label && SDL_strcmp(it->label, "Back") == 0) {
+      g_settings.view = VIEW_ROOT;
+      g_settings.selected_index = 1;
+      g_settings.scroll_offset = 0;
+      g_settings.needs_redraw = 1;
+      return 1;
+    }
+  }
+  settings_activate(ctx, items, count);
+  return 1;
+}
+
+void settings_toggle_open(void) {
+  g_settings.is_open = !g_settings.is_open;
+  g_settings.selected_index = 1; // first actionable item
+  g_settings.capture_mode = CAPTURE_NONE;
+  g_settings.capture_target = NULL;
+  g_settings.scroll_offset = 0;
+  g_settings.needs_redraw = 1;
+}
+
+bool settings_is_open(void) { return g_settings.is_open != 0; }
+
 void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
   if (!g_settings.is_open)
     return;
 
   if (e->type == SDL_EVENT_KEY_DOWN) {
     if (e->key.key == SDLK_ESCAPE || e->key.key == SDLK_F1) {
-      if (g_settings.capture_mode != CAPTURE_NONE) {
-        g_settings.capture_mode = CAPTURE_NONE;
-        g_settings.capture_target = NULL;
-        g_settings.needs_redraw = 1;
+      if (settings_handle_back())
         return;
-      }
-      if (g_settings.view != VIEW_ROOT) {
-        g_settings.view = VIEW_ROOT;
-        g_settings.selected_index = 1;
-        g_settings.needs_redraw = 1;
-        return;
-      }
-      settings_toggle_open();
-      return;
     }
     // Capture key remap
     if (g_settings.capture_mode == CAPTURE_KEY) {
@@ -358,70 +433,12 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
       return;
     }
     if (e->key.key == SDLK_LEFT || e->key.key == SDLK_RIGHT) {
-      setting_item_s items[SETTINGS_MAX_ITEMS];
-      int count = 0;
-      build_menu(&ctx->conf, items, &count);
-      if (g_settings.selected_index > 0 && g_settings.selected_index < count) {
-        setting_item_s *it = &items[g_settings.selected_index];
-        if (it->type == ITEM_INT_ADJ && it->target != NULL) {
-          int *val = (int *)it->target;
-          int delta = (e->key.key == SDLK_LEFT ? -it->step : it->step);
-          int newv = *val + delta;
-          if (newv < it->min_val)
-            newv = it->min_val;
-          if (newv > it->max_val)
-            newv = it->max_val;
-          *val = newv;
-          g_settings.needs_redraw = 1;
-          return;
-        }
-      }
+      if (settings_adjust_selected(&ctx->conf, e->key.key == SDLK_LEFT ? -1 : 1))
+        return;
     }
     if (e->key.key == SDLK_RETURN || e->key.key == SDLK_SPACE) {
-      setting_item_s items[SETTINGS_MAX_ITEMS];
-      int count = 0;
-      build_menu(&ctx->conf, items, &count);
-      // Handle entering submenus from root based on item type
-      if (g_settings.view == VIEW_ROOT) {
-        const setting_item_s *it = &items[g_settings.selected_index];
-        if (it->type == ITEM_SUBMENU && it->label &&
-            SDL_strstr(it->label, "Keyboard bindings") == it->label) {
-          g_settings.view = VIEW_KEYS;
-          g_settings.selected_index = 1;
-          g_settings.scroll_offset = 0;
-          g_settings.needs_redraw = 1;
-          return;
-        }
-        if (it->type == ITEM_SUBMENU && it->label &&
-            SDL_strstr(it->label, "Gamepad bindings") == it->label) {
-          g_settings.view = VIEW_GAMEPAD;
-          g_settings.selected_index = 1;
-          g_settings.scroll_offset = 0;
-          g_settings.needs_redraw = 1;
-          return;
-        }
-        if (it->type == ITEM_SUBMENU && it->label &&
-            SDL_strstr(it->label, "Gamepad analog axis") == it->label) {
-          g_settings.view = VIEW_ANALOG;
-          g_settings.selected_index = 1;
-          g_settings.scroll_offset = 0;
-          g_settings.needs_redraw = 1;
-          return;
-        }
-      }
-      // Back item in submenus
-      if (g_settings.view != VIEW_ROOT) {
-        const setting_item_s *it = &items[g_settings.selected_index];
-        if (it->type == ITEM_CLOSE && it->label && SDL_strcmp(it->label, "Back") == 0) {
-          g_settings.view = VIEW_ROOT;
-          g_settings.selected_index = 1;
-          g_settings.scroll_offset = 0;
-          g_settings.needs_redraw = 1;
-          return;
-        }
-      }
-      settings_activate(ctx, items, count);
-      return;
+      if (settings_handle_enter(ctx))
+        return;
     }
   }
 
@@ -431,20 +448,8 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
 
     // Cancel capture or go back/close with B/Back
     if (btn == SDL_GAMEPAD_BUTTON_EAST || btn == SDL_GAMEPAD_BUTTON_BACK) {
-      if (g_settings.capture_mode != CAPTURE_NONE) {
-        g_settings.capture_mode = CAPTURE_NONE;
-        g_settings.capture_target = NULL;
-        g_settings.needs_redraw = 1;
+      if (settings_handle_back())
         return;
-      }
-      if (g_settings.view != VIEW_ROOT) {
-        g_settings.view = VIEW_ROOT;
-        g_settings.selected_index = 1;
-        g_settings.needs_redraw = 1;
-        return;
-      }
-      settings_toggle_open();
-      return;
     }
 
     // If capturing a button, let the capture handler below process it
@@ -459,67 +464,13 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
         return;
       }
       if (btn == SDL_GAMEPAD_BUTTON_DPAD_LEFT || btn == SDL_GAMEPAD_BUTTON_DPAD_RIGHT) {
-        setting_item_s items[SETTINGS_MAX_ITEMS];
-        int count = 0;
-        build_menu(&ctx->conf, items, &count);
-        if (g_settings.selected_index > 0 && g_settings.selected_index < count) {
-          setting_item_s *it = &items[g_settings.selected_index];
-          if (it->type == ITEM_INT_ADJ && it->target != NULL) {
-            int *val = (int *)it->target;
-            int delta = (btn == SDL_GAMEPAD_BUTTON_DPAD_LEFT ? -it->step : it->step);
-            int newv = *val + delta;
-            if (newv < it->min_val)
-              newv = it->min_val;
-            if (newv > it->max_val)
-              newv = it->max_val;
-            *val = newv;
-            g_settings.needs_redraw = 1;
-            return;
-          }
-        }
+        if (settings_adjust_selected(&ctx->conf, btn == SDL_GAMEPAD_BUTTON_DPAD_LEFT ? -1 : 1))
+          return;
       }
       // Activate/select with A
       if (btn == SDL_GAMEPAD_BUTTON_SOUTH) {
-        setting_item_s items[SETTINGS_MAX_ITEMS];
-        int count = 0;
-        build_menu(&ctx->conf, items, &count);
-        // Handle entering submenus from root based on item type
-        if (g_settings.view == VIEW_ROOT) {
-          const setting_item_s *it = &items[g_settings.selected_index];
-          if (it->type == ITEM_SUBMENU && it->label &&
-              SDL_strstr(it->label, "Keyboard bindings") == it->label) {
-            g_settings.view = VIEW_KEYS;
-            g_settings.selected_index = 1;
-            g_settings.needs_redraw = 1;
-            return;
-          }
-          if (it->type == ITEM_SUBMENU && it->label &&
-              SDL_strstr(it->label, "Gamepad bindings") == it->label) {
-            g_settings.view = VIEW_GAMEPAD;
-            g_settings.selected_index = 1;
-            g_settings.needs_redraw = 1;
-            return;
-          }
-          if (it->type == ITEM_SUBMENU && it->label &&
-              SDL_strstr(it->label, "Gamepad analog axis") == it->label) {
-            g_settings.view = VIEW_ANALOG;
-            g_settings.selected_index = 1;
-            g_settings.needs_redraw = 1;
-            return;
-          }
-        }
-        // Back item in submenus
-        if (g_settings.view != VIEW_ROOT) {
-          const setting_item_s *it = &items[g_settings.selected_index];
-          if (it->type == ITEM_CLOSE && it->label && SDL_strcmp(it->label, "Back") == 0) {
-            g_settings.view = VIEW_ROOT;
-            g_settings.selected_index = 1;
-            g_settings.needs_redraw = 1;
-            return;
-          }
-        }
-        settings_activate(ctx, items, count);
-        return;
+        if (settings_handle_enter(ctx))
+          return;
       }
     }
   }
