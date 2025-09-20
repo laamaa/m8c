@@ -10,17 +10,11 @@
 
 // Internal state
 #define SETTINGS_MAX_ITEMS 64
+#define SETTINGS_MAX_LINE_LENGTH 160
 static const int SETTINGS_LINE_HEIGHT = 12;
 static const int SETTINGS_BOTTOM_PADDING = 8;
 static const int SETTINGS_MARGIN_X = 8;
 static const int SETTINGS_TITLE_SPACING = 24;
-static int g_settings_open = 0;
-static int g_selected_index = 0;
-static int g_needs_redraw = 1;
-static int g_config_saved = 0;
-static SDL_Texture *g_settings_texture = NULL;
-static int g_scroll_offset = 0; // topmost visible item index
-
 
 typedef enum capture_mode_t {
   CAPTURE_NONE,
@@ -28,9 +22,6 @@ typedef enum capture_mode_t {
   CAPTURE_BUTTON,
   CAPTURE_AXIS
 } capture_mode_t;
-
-static capture_mode_t g_capture_mode = CAPTURE_NONE;
-static void *g_capture_target = NULL; // points to conf field
 
 typedef enum item_type_t {
   ITEM_HEADER,
@@ -54,7 +45,30 @@ typedef struct setting_item_s {
 } setting_item_s;
 
 typedef enum settings_view_t { VIEW_ROOT, VIEW_KEYS, VIEW_GAMEPAD, VIEW_ANALOG } settings_view_t;
-static settings_view_t g_view = VIEW_ROOT;
+
+typedef struct settings_ui_state {
+  int is_open;
+  int selected_index;
+  int needs_redraw;
+  int config_saved;
+  SDL_Texture *texture;
+  int scroll_offset; // topmost visible item index
+  capture_mode_t capture_mode;
+  void *capture_target; // points to conf field
+  settings_view_t view;
+} settings_ui_state;
+
+static settings_ui_state g_settings = {
+  .is_open = 0,
+  .selected_index = 0,
+  .needs_redraw = 1,
+  .config_saved = 0,
+  .texture = NULL,
+  .scroll_offset = 0,
+  .capture_mode = CAPTURE_NONE,
+  .capture_target = NULL,
+  .view = VIEW_ROOT,
+};
 extern SDL_Gamepad *game_controllers[4];
 
 static void add_item(setting_item_s *items, int *count, const char *label, item_type_t type,
@@ -65,7 +79,7 @@ static void add_item(setting_item_s *items, int *count, const char *label, item_
 
 static void build_menu(const config_params_s *conf, setting_item_s *items, int *count) {
   *count = 0;
-  switch (g_view) {
+  switch (g_settings.view) {
   case VIEW_ROOT:
     add_item(items, count, "Graphics       ", ITEM_HEADER, NULL, 0, 0, 0);
     add_item(items, count, "Integer scaling", ITEM_TOGGLE_BOOL, (void *)&conf->integer_scaling, 0,
@@ -198,32 +212,32 @@ static void compute_viewport(int texture_h, int list_y_top, int total_count, int
 
 static void settings_destroy_texture(SDL_Renderer *rend) {
   (void)rend;
-  if (g_settings_texture != NULL) {
-    SDL_DestroyTexture(g_settings_texture);
-    g_settings_texture = NULL;
+  if (g_settings.texture != NULL) {
+    SDL_DestroyTexture(g_settings.texture);
+    g_settings.texture = NULL;
   }
 }
 
 void settings_toggle_open(void) {
-  g_settings_open = !g_settings_open;
-  g_selected_index = 1; // first actionable item
-  g_capture_mode = CAPTURE_NONE;
-  g_capture_target = NULL;
-  g_scroll_offset = 0;
-  g_needs_redraw = 1;
+  g_settings.is_open = !g_settings.is_open;
+  g_settings.selected_index = 1; // first actionable item
+  g_settings.capture_mode = CAPTURE_NONE;
+  g_settings.capture_target = NULL;
+  g_settings.scroll_offset = 0;
+  g_settings.needs_redraw = 1;
 }
 
-bool settings_is_open(void) { return g_settings_open != 0; }
+bool settings_is_open(void) { return g_settings.is_open != 0; }
 
 static void settings_move(const config_params_s *conf, int delta) {
-  if (!g_settings_open)
+  if (!g_settings.is_open)
     return;
 
   setting_item_s items[SETTINGS_MAX_ITEMS];
   int count = 0;
   build_menu(conf, items, &count);
 
-  int idx = g_selected_index + delta;
+  int idx = g_settings.selected_index + delta;
 
   // Clamp within bounds
   if (idx < 0)
@@ -245,14 +259,14 @@ static void settings_move(const config_params_s *conf, int delta) {
   if (idx >= count)
     idx = count - 1;
 
-  g_selected_index = idx;
-  g_needs_redraw = 1;
+  g_settings.selected_index = idx;
+  g_settings.needs_redraw = 1;
 }
 
 static void settings_activate(struct app_context *ctx, const setting_item_s *items, int count) {
-  if (g_selected_index < 1 || g_selected_index >= count)
+  if (g_settings.selected_index < 1 || g_settings.selected_index >= count)
     return;
-  const setting_item_s *it = &items[g_selected_index];
+  const setting_item_s *it = &items[g_settings.selected_index];
   config_params_s *conf = &ctx->conf;
 
   switch (it->type) {
@@ -268,32 +282,32 @@ static void settings_activate(struct app_context *ctx, const setting_item_s *ite
     if (it->target == &conf->audio_enabled && ctx->device_connected) {
       audio_toggle(ctx->conf.audio_device_name, ctx->conf.audio_buffer_size);
     }
-    g_needs_redraw = 1;
+    g_settings.needs_redraw = 1;
     break;
   }
   case ITEM_SAVE: {
     write_config(conf);
-    g_needs_redraw = 1;
-    g_config_saved = 1;
+    g_settings.needs_redraw = 1;
+    g_settings.config_saved = 1;
     break;
   }
   case ITEM_CLOSE:
     settings_toggle_open();
     break;
   case ITEM_BIND_KEY:
-    g_capture_mode = CAPTURE_KEY;
-    g_capture_target = it->target;
-    g_needs_redraw = 1;
+    g_settings.capture_mode = CAPTURE_KEY;
+    g_settings.capture_target = it->target;
+    g_settings.needs_redraw = 1;
     break;
   case ITEM_BIND_BUTTON:
-    g_capture_mode = CAPTURE_BUTTON;
-    g_capture_target = it->target;
-    g_needs_redraw = 1;
+    g_settings.capture_mode = CAPTURE_BUTTON;
+    g_settings.capture_target = it->target;
+    g_settings.needs_redraw = 1;
     break;
   case ITEM_BIND_AXIS:
-    g_capture_mode = CAPTURE_AXIS;
-    g_capture_target = it->target;
-    g_needs_redraw = 1;
+    g_settings.capture_mode = CAPTURE_AXIS;
+    g_settings.capture_target = it->target;
+    g_settings.needs_redraw = 1;
     break;
   case ITEM_INT_ADJ:
   case ITEM_HEADER:
@@ -304,35 +318,35 @@ static void settings_activate(struct app_context *ctx, const setting_item_s *ite
 }
 
 void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
-  if (!g_settings_open)
+  if (!g_settings.is_open)
     return;
 
   if (e->type == SDL_EVENT_KEY_DOWN) {
     if (e->key.key == SDLK_ESCAPE || e->key.key == SDLK_F1) {
-      if (g_capture_mode != CAPTURE_NONE) {
-        g_capture_mode = CAPTURE_NONE;
-        g_capture_target = NULL;
-        g_needs_redraw = 1;
+      if (g_settings.capture_mode != CAPTURE_NONE) {
+        g_settings.capture_mode = CAPTURE_NONE;
+        g_settings.capture_target = NULL;
+        g_settings.needs_redraw = 1;
         return;
       }
-      if (g_view != VIEW_ROOT) {
-        g_view = VIEW_ROOT;
-        g_selected_index = 1;
-        g_needs_redraw = 1;
+      if (g_settings.view != VIEW_ROOT) {
+        g_settings.view = VIEW_ROOT;
+        g_settings.selected_index = 1;
+        g_settings.needs_redraw = 1;
         return;
       }
       settings_toggle_open();
       return;
     }
     // Capture key remap
-    if (g_capture_mode == CAPTURE_KEY) {
-      if (g_capture_target != NULL) {
-        unsigned int *dst = g_capture_target;
+    if (g_settings.capture_mode == CAPTURE_KEY) {
+      if (g_settings.capture_target != NULL) {
+        unsigned int *dst = g_settings.capture_target;
         *dst = e->key.scancode;
       }
-      g_capture_mode = CAPTURE_NONE;
-      g_capture_target = NULL;
-      g_needs_redraw = 1;
+      g_settings.capture_mode = CAPTURE_NONE;
+      g_settings.capture_target = NULL;
+      g_settings.needs_redraw = 1;
       return;
     }
     if (e->key.key == SDLK_UP) {
@@ -347,8 +361,8 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
       setting_item_s items[SETTINGS_MAX_ITEMS];
       int count = 0;
       build_menu(&ctx->conf, items, &count);
-      if (g_selected_index > 0 && g_selected_index < count) {
-        setting_item_s *it = &items[g_selected_index];
+      if (g_settings.selected_index > 0 && g_settings.selected_index < count) {
+        setting_item_s *it = &items[g_settings.selected_index];
         if (it->type == ITEM_INT_ADJ && it->target != NULL) {
           int *val = (int *)it->target;
           int delta = (e->key.key == SDLK_LEFT ? -it->step : it->step);
@@ -358,7 +372,7 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
           if (newv > it->max_val)
             newv = it->max_val;
           *val = newv;
-          g_needs_redraw = 1;
+          g_settings.needs_redraw = 1;
           return;
         }
       }
@@ -368,41 +382,41 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
       int count = 0;
       build_menu(&ctx->conf, items, &count);
       // Handle entering submenus from root based on item type
-      if (g_view == VIEW_ROOT) {
-        const setting_item_s *it = &items[g_selected_index];
+      if (g_settings.view == VIEW_ROOT) {
+        const setting_item_s *it = &items[g_settings.selected_index];
         if (it->type == ITEM_SUBMENU && it->label &&
             SDL_strstr(it->label, "Keyboard bindings") == it->label) {
-          g_view = VIEW_KEYS;
-          g_selected_index = 1;
-          g_scroll_offset = 0;
-          g_needs_redraw = 1;
+          g_settings.view = VIEW_KEYS;
+          g_settings.selected_index = 1;
+          g_settings.scroll_offset = 0;
+          g_settings.needs_redraw = 1;
           return;
         }
         if (it->type == ITEM_SUBMENU && it->label &&
             SDL_strstr(it->label, "Gamepad bindings") == it->label) {
-          g_view = VIEW_GAMEPAD;
-          g_selected_index = 1;
-          g_scroll_offset = 0;
-          g_needs_redraw = 1;
+          g_settings.view = VIEW_GAMEPAD;
+          g_settings.selected_index = 1;
+          g_settings.scroll_offset = 0;
+          g_settings.needs_redraw = 1;
           return;
         }
         if (it->type == ITEM_SUBMENU && it->label &&
             SDL_strstr(it->label, "Gamepad analog axis") == it->label) {
-          g_view = VIEW_ANALOG;
-          g_selected_index = 1;
-          g_scroll_offset = 0;
-          g_needs_redraw = 1;
+          g_settings.view = VIEW_ANALOG;
+          g_settings.selected_index = 1;
+          g_settings.scroll_offset = 0;
+          g_settings.needs_redraw = 1;
           return;
         }
       }
       // Back item in submenus
-      if (g_view != VIEW_ROOT) {
-        const setting_item_s *it = &items[g_selected_index];
+      if (g_settings.view != VIEW_ROOT) {
+        const setting_item_s *it = &items[g_settings.selected_index];
         if (it->type == ITEM_CLOSE && it->label && SDL_strcmp(it->label, "Back") == 0) {
-          g_view = VIEW_ROOT;
-          g_selected_index = 1;
-          g_scroll_offset = 0;
-          g_needs_redraw = 1;
+          g_settings.view = VIEW_ROOT;
+          g_settings.selected_index = 1;
+          g_settings.scroll_offset = 0;
+          g_settings.needs_redraw = 1;
           return;
         }
       }
@@ -417,16 +431,16 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
 
     // Cancel capture or go back/close with B/Back
     if (btn == SDL_GAMEPAD_BUTTON_EAST || btn == SDL_GAMEPAD_BUTTON_BACK) {
-      if (g_capture_mode != CAPTURE_NONE) {
-        g_capture_mode = CAPTURE_NONE;
-        g_capture_target = NULL;
-        g_needs_redraw = 1;
+      if (g_settings.capture_mode != CAPTURE_NONE) {
+        g_settings.capture_mode = CAPTURE_NONE;
+        g_settings.capture_target = NULL;
+        g_settings.needs_redraw = 1;
         return;
       }
-      if (g_view != VIEW_ROOT) {
-        g_view = VIEW_ROOT;
-        g_selected_index = 1;
-        g_needs_redraw = 1;
+      if (g_settings.view != VIEW_ROOT) {
+        g_settings.view = VIEW_ROOT;
+        g_settings.selected_index = 1;
+        g_settings.needs_redraw = 1;
         return;
       }
       settings_toggle_open();
@@ -434,7 +448,7 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
     }
 
     // If capturing a button, let the capture handler below process it
-    if (g_capture_mode == CAPTURE_NONE) {
+    if (g_settings.capture_mode == CAPTURE_NONE) {
       // D-pad navigation
       if (btn == SDL_GAMEPAD_BUTTON_DPAD_UP) {
         settings_move(&ctx->conf, -1);
@@ -448,8 +462,8 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
         setting_item_s items[SETTINGS_MAX_ITEMS];
         int count = 0;
         build_menu(&ctx->conf, items, &count);
-        if (g_selected_index > 0 && g_selected_index < count) {
-          setting_item_s *it = &items[g_selected_index];
+        if (g_settings.selected_index > 0 && g_settings.selected_index < count) {
+          setting_item_s *it = &items[g_settings.selected_index];
           if (it->type == ITEM_INT_ADJ && it->target != NULL) {
             int *val = (int *)it->target;
             int delta = (btn == SDL_GAMEPAD_BUTTON_DPAD_LEFT ? -it->step : it->step);
@@ -459,7 +473,7 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
             if (newv > it->max_val)
               newv = it->max_val;
             *val = newv;
-            g_needs_redraw = 1;
+            g_settings.needs_redraw = 1;
             return;
           }
         }
@@ -470,37 +484,37 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
         int count = 0;
         build_menu(&ctx->conf, items, &count);
         // Handle entering submenus from root based on item type
-        if (g_view == VIEW_ROOT) {
-          const setting_item_s *it = &items[g_selected_index];
+        if (g_settings.view == VIEW_ROOT) {
+          const setting_item_s *it = &items[g_settings.selected_index];
           if (it->type == ITEM_SUBMENU && it->label &&
               SDL_strstr(it->label, "Keyboard bindings") == it->label) {
-            g_view = VIEW_KEYS;
-            g_selected_index = 1;
-            g_needs_redraw = 1;
+            g_settings.view = VIEW_KEYS;
+            g_settings.selected_index = 1;
+            g_settings.needs_redraw = 1;
             return;
           }
           if (it->type == ITEM_SUBMENU && it->label &&
               SDL_strstr(it->label, "Gamepad bindings") == it->label) {
-            g_view = VIEW_GAMEPAD;
-            g_selected_index = 1;
-            g_needs_redraw = 1;
+            g_settings.view = VIEW_GAMEPAD;
+            g_settings.selected_index = 1;
+            g_settings.needs_redraw = 1;
             return;
           }
           if (it->type == ITEM_SUBMENU && it->label &&
               SDL_strstr(it->label, "Gamepad analog axis") == it->label) {
-            g_view = VIEW_ANALOG;
-            g_selected_index = 1;
-            g_needs_redraw = 1;
+            g_settings.view = VIEW_ANALOG;
+            g_settings.selected_index = 1;
+            g_settings.needs_redraw = 1;
             return;
           }
         }
         // Back item in submenus
-        if (g_view != VIEW_ROOT) {
-          const setting_item_s *it = &items[g_selected_index];
+        if (g_settings.view != VIEW_ROOT) {
+          const setting_item_s *it = &items[g_settings.selected_index];
           if (it->type == ITEM_CLOSE && it->label && SDL_strcmp(it->label, "Back") == 0) {
-            g_view = VIEW_ROOT;
-            g_selected_index = 1;
-            g_needs_redraw = 1;
+            g_settings.view = VIEW_ROOT;
+            g_settings.selected_index = 1;
+            g_settings.needs_redraw = 1;
             return;
           }
         }
@@ -511,26 +525,26 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
   }
 
   // Capture gamepad button
-  if (g_capture_mode == CAPTURE_BUTTON && e->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN) {
-    if (g_capture_target != NULL) {
-      int *dst = (int *)g_capture_target;
+  if (g_settings.capture_mode == CAPTURE_BUTTON && e->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN) {
+    if (g_settings.capture_target != NULL) {
+      int *dst = (int *)g_settings.capture_target;
       *dst = e->gbutton.button;
     }
-    g_capture_mode = CAPTURE_NONE;
-    g_capture_target = NULL;
-    g_needs_redraw = 1;
+    g_settings.capture_mode = CAPTURE_NONE;
+    g_settings.capture_target = NULL;
+    g_settings.needs_redraw = 1;
     return;
   }
   // Capture axis on significant motion
-  if (g_capture_mode == CAPTURE_AXIS && e->type == SDL_EVENT_GAMEPAD_AXIS_MOTION) {
+  if (g_settings.capture_mode == CAPTURE_AXIS && e->type == SDL_EVENT_GAMEPAD_AXIS_MOTION) {
     if (SDL_abs(e->gaxis.value) > 16000) {
-      if (g_capture_target != NULL) {
-        int *dst = (int *)g_capture_target;
+      if (g_settings.capture_target != NULL) {
+        int *dst = (int *)g_settings.capture_target;
         *dst = e->gaxis.axis;
       }
-      g_capture_mode = CAPTURE_NONE;
-      g_capture_target = NULL;
-      g_needs_redraw = 1;
+      g_settings.capture_mode = CAPTURE_NONE;
+      g_settings.capture_target = NULL;
+      g_settings.needs_redraw = 1;
       return;
     }
   }
@@ -538,7 +552,7 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
 
 void settings_render_overlay(SDL_Renderer *rend, const config_params_s *conf, int texture_w,
                              int texture_h) {
-  if (!g_settings_open)
+  if (!g_settings.is_open)
     return;
 
   const struct inline_font *previous_font = inline_font_get_current();
@@ -548,25 +562,25 @@ void settings_render_overlay(SDL_Renderer *rend, const config_params_s *conf, in
     inline_font_initialize(fonts_get(0));
   }
 
-  if (g_settings_texture == NULL) {
-    g_settings_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
-                                           texture_w, texture_h);
-    if (g_settings_texture == NULL) {
+  if (g_settings.texture == NULL) {
+    g_settings.texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
+                                          texture_w, texture_h);
+    if (g_settings.texture == NULL) {
       inline_font_close();
       inline_font_initialize(previous_font);
       return;
     }
-    SDL_SetTextureBlendMode(g_settings_texture, SDL_BLENDMODE_BLEND);
-    SDL_SetTextureScaleMode(g_settings_texture, SDL_SCALEMODE_NEAREST);
-    g_needs_redraw = 1;
+    SDL_SetTextureBlendMode(g_settings.texture, SDL_BLENDMODE_BLEND);
+    SDL_SetTextureScaleMode(g_settings.texture, SDL_SCALEMODE_NEAREST);
+    g_settings.needs_redraw = 1;
   }
 
-  if (!g_needs_redraw)
+  if (!g_settings.needs_redraw)
     goto composite;
-  g_needs_redraw = 0;
+  g_settings.needs_redraw = 0;
 
   SDL_Texture *prev = SDL_GetRenderTarget(rend);
-  SDL_SetRenderTarget(rend, g_settings_texture);
+  SDL_SetRenderTarget(rend, g_settings.texture);
 
   // Background
   SDL_SetRenderDrawColor(rend, 0, 0, 0, 240);
@@ -590,19 +604,19 @@ void settings_render_overlay(SDL_Renderer *rend, const config_params_s *conf, in
   setting_item_s items[SETTINGS_MAX_ITEMS];
   int count = 0;
   build_menu(conf, items, &count);
-  if (g_selected_index >= count)
-    g_selected_index = count - 1;
+  if (g_settings.selected_index >= count)
+    g_settings.selected_index = count - 1;
 
-  if (g_capture_mode == CAPTURE_KEY) {
+  if (g_settings.capture_mode == CAPTURE_KEY) {
     inprint(rend, "Press a key... (Esc to cancel)", x, y, selected_item_fg, selected_item_fg);
-  } else if (g_capture_mode == CAPTURE_BUTTON) {
+  } else if (g_settings.capture_mode == CAPTURE_BUTTON) {
     inprint(rend, "Press a gamepad button...", x, y, selected_item_fg, selected_item_fg);
-  } else if (g_capture_mode == CAPTURE_AXIS) {
+  } else if (g_settings.capture_mode == CAPTURE_AXIS) {
     inprint(rend, "Move a gamepad axis...", x, y, selected_item_fg, selected_item_fg);
   }
-  if (g_config_saved) {
+  if (g_settings.config_saved) {
     inprint(rend, "Configuration saved", x, y, selected_item_fg, selected_item_fg);
-    g_config_saved = 0;
+    g_settings.config_saved = 0;
   }
   y += SETTINGS_LINE_HEIGHT;
 
@@ -611,21 +625,21 @@ void settings_render_overlay(SDL_Renderer *rend, const config_params_s *conf, in
   int visible_lines = 0;
   int start_i = 0;
   int end_i = 0;
-  compute_viewport(texture_h, list_y_top, count, g_selected_index, &g_scroll_offset,
+  compute_viewport(texture_h, list_y_top, count, g_settings.selected_index, &g_settings.scroll_offset,
                    &visible_lines, &start_i, &end_i, items);
 
   // Draw scroll indicators when more content exists above/below
   if (visible_lines > 0) {
     const int arrow_x = texture_w - SETTINGS_MARGIN_X - (int)fonts_get(0)->glyph_x;
     // Show up-arrow only when there are real items above beyond a header
-    int has_above = g_scroll_offset > 0;
-    if (has_above && items[g_scroll_offset - 1].type == ITEM_HEADER && g_scroll_offset == 1) {
+    int has_above = g_settings.scroll_offset > 0;
+    if (has_above && items[g_settings.scroll_offset - 1].type == ITEM_HEADER && g_settings.scroll_offset == 1) {
       has_above = 0;
     }
     if (has_above) {
       inprint(rend, "+", arrow_x, list_y_top, selected_item_fg, selected_item_bg);
     }
-    if (g_scroll_offset + visible_lines < count) {
+    if (g_settings.scroll_offset + visible_lines < count) {
       const int max_y = texture_h - SETTINGS_BOTTOM_PADDING;
       int bottom_arrow_y = list_y_top + (visible_lines - 1) * SETTINGS_LINE_HEIGHT;
       if (bottom_arrow_y > max_y - SETTINGS_LINE_HEIGHT)
@@ -635,20 +649,20 @@ void settings_render_overlay(SDL_Renderer *rend, const config_params_s *conf, in
   }
 
   for (int i = start_i; i < end_i; i++) {
-    const int selected = (i == g_selected_index);
+    const int selected = (i == g_settings.selected_index);
     const setting_item_s *it = &items[i];
     if (it->type == ITEM_HEADER) {
       inprint(rend, it->label, x, y, section_header, section_header);
-      y += 12;
+      y += SETTINGS_LINE_HEIGHT;
       continue;
     }
     if (it->type == ITEM_TOGGLE_BOOL) {
       const unsigned int *val = (const unsigned int *)it->target;
-      char line[160];
-      SDL_snprintf(line, sizeof line, "%s [%s]", it->label, (*val ? "On" : "Off"));
+      char line[SETTINGS_MAX_LINE_LENGTH];
+      SDL_snprintf(line, SETTINGS_MAX_LINE_LENGTH, "%s [%s]", it->label, (*val ? "On" : "Off"));
       inprint(rend, line, x + (selected ? margin_x_selected : margin_x_unselected), y,
               selected ? selected_item_fg : fg, selected ? selected_item_bg : bg);
-      y += 12;
+      y += SETTINGS_LINE_HEIGHT;
       continue;
     }
     if (it->type == ITEM_BIND_KEY) {
@@ -657,11 +671,11 @@ void settings_render_overlay(SDL_Renderer *rend, const config_params_s *conf, in
       if (name == NULL || name[0] == '\0') {
         name = "Unknown";
       }
-      char line[160];
-      SDL_snprintf(line, sizeof line, "%s: %s", it->label, name);
+      char line[SETTINGS_MAX_LINE_LENGTH];
+      SDL_snprintf(line, SETTINGS_MAX_LINE_LENGTH, "%s: %s", it->label, name);
       inprint(rend, line, x + (selected ? margin_x_selected : margin_x_unselected), y,
               selected ? selected_item_fg : fg, selected ? selected_item_bg : bg);
-      y += 12;
+      y += SETTINGS_LINE_HEIGHT;
       continue;
     }
     if (it->type == ITEM_BIND_BUTTON) {
@@ -689,61 +703,61 @@ void settings_render_overlay(SDL_Renderer *rend, const config_params_s *conf, in
         name = SDL_GetGamepadStringForButton((SDL_GamepadButton)v);
       }
 
-      char line[160];
+      char line[SETTINGS_MAX_LINE_LENGTH];
       if (name && name[0] != '\0') {
-        SDL_snprintf(line, sizeof line, "%s: %s", it->label, name);
+        SDL_snprintf(line, SETTINGS_MAX_LINE_LENGTH, "%s: %s", it->label, name);
       } else {
-        SDL_snprintf(line, sizeof line, "%s: %d", it->label, v);
+        SDL_snprintf(line, SETTINGS_MAX_LINE_LENGTH, "%s: %d", it->label, v);
       }
       inprint(rend, line, x + (selected ? margin_x_selected : margin_x_unselected), y,
               selected ? selected_item_fg : fg, selected ? selected_item_bg : bg);
-      y += 12;
+      y += SETTINGS_LINE_HEIGHT;
       continue;
     }
     if (it->type == ITEM_BIND_AXIS) {
       int v = *(int *)it->target;
       const char *name = SDL_GetGamepadStringForAxis((SDL_GamepadAxis)v);
 
-      char line[160];
+      char line[SETTINGS_MAX_LINE_LENGTH];
       if (name && name[0] != '\0') {
-        SDL_snprintf(line, sizeof line, "%s: %s", it->label, name);
+        SDL_snprintf(line, SETTINGS_MAX_LINE_LENGTH, "%s: %s", it->label, name);
       } else {
-        SDL_snprintf(line, sizeof line, "%s: %d", it->label, v);
+        SDL_snprintf(line, SETTINGS_MAX_LINE_LENGTH, "%s: %d", it->label, v);
       }
       inprint(rend, line, x + (selected ? margin_x_selected : margin_x_unselected), y,
               selected ? selected_item_fg : fg, selected ? selected_item_bg : bg);
-      y += 12;
+      y += SETTINGS_LINE_HEIGHT;
       continue;
     }
     if (it->type == ITEM_INT_ADJ) {
-      char line[160];
-      SDL_snprintf(line, sizeof line, "%s: %d  (Left/Right)", it->label, *(int *)it->target);
+      char line[SETTINGS_MAX_LINE_LENGTH];
+      SDL_snprintf(line, SETTINGS_MAX_LINE_LENGTH, "%s: %d  (Left/Right)", it->label, *(int *)it->target);
       inprint(rend, line, x + (selected ? margin_x_selected : margin_x_unselected), y,
               selected ? selected_item_fg : fg, selected ? selected_item_bg : bg);
-      y += 12;
+      y += SETTINGS_LINE_HEIGHT;
       continue;
     }
     if (it->type == ITEM_SAVE || it->type == ITEM_CLOSE) {
-      char line[160];
-      SDL_snprintf(line, sizeof line, "%s", it->label);
+      char line[SETTINGS_MAX_LINE_LENGTH];
+      SDL_snprintf(line, SETTINGS_MAX_LINE_LENGTH, "%s", it->label);
       inprint(rend, line, x + (selected ? margin_x_selected : margin_x_unselected), y,
               selected ? selected_item_fg : fg, selected ? selected_item_bg : bg);
-      y += 12;
+      y += SETTINGS_LINE_HEIGHT;
       continue;
     }
     if (it->type == ITEM_SUBMENU) {
-      char line[160];
-      SDL_snprintf(line, sizeof line, "%s", it->label);
+      char line[SETTINGS_MAX_LINE_LENGTH];
+      SDL_snprintf(line, SETTINGS_MAX_LINE_LENGTH, "%s", it->label);
       inprint(rend, line, x + (selected ? margin_x_selected : margin_x_unselected), y,
               selected ? selected_item_fg : fg, selected ? selected_item_bg : bg);
-      y += 12;
+      y += SETTINGS_LINE_HEIGHT;
     }
   }
 
   SDL_SetRenderTarget(rend, prev);
 
 composite:
-  SDL_RenderTexture(rend, g_settings_texture, NULL, NULL);
+  SDL_RenderTexture(rend, g_settings.texture, NULL, NULL);
   if (previous_font->glyph_x != fonts_get(0)->glyph_x) {
     inline_font_close();
     inline_font_initialize(previous_font);
@@ -753,6 +767,6 @@ composite:
 // Handle renderer/size resets: drop the cached texture to recreate at new size on next frame
 void settings_on_texture_size_change(SDL_Renderer *rend) {
   settings_destroy_texture(rend);
-  g_scroll_offset = 0;
-  g_needs_redraw = 1;
+  g_settings.scroll_offset = 0;
+  g_settings.needs_redraw = 1;
 }
