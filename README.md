@@ -151,11 +151,13 @@ Example output:
 2024-02-25 18:39:27.807 m8c[99838:4295527] INFO: Found M8 device: /dev/cu.usbmodem121136001
 ```
 
-And you can specify the preferred device by using
+You can specify the preferred device by using the `--dev` option:
 
 ```sh
 ./m8c --dev /dev/cu.usbmodem124709801
 ```
+
+**Note:** The `--dev` option can force detection of any serial device by name. This is useful if libserialport cannot get the correct USB identifiers, like on some Windows 11 setups for example. You may need to look up the correct device name from Device Manager for example if `--list` does not give you any results.
 
 -----------
 
