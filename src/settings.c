@@ -9,6 +9,11 @@
 #include <SDL3/SDL.h>
 
 // Internal state
+#define SETTINGS_MAX_ITEMS 64
+static const int SETTINGS_LINE_HEIGHT = 12;
+static const int SETTINGS_BOTTOM_PADDING = 8;
+static const int SETTINGS_MARGIN_X = 8;
+static const int SETTINGS_TITLE_SPACING = 24;
 static int g_settings_open = 0;
 static int g_selected_index = 0;
 static int g_needs_redraw = 1;
@@ -150,6 +155,47 @@ static void build_menu(const config_params_s *conf, setting_item_s *items, int *
   }
 }
 
+// Compute viewport slice and adjust scroll offset.
+// Returns visible_lines, start_i, end_i via out params and may adjust scroll_offset_io.
+static void compute_viewport(int texture_h, int list_y_top, int total_count, int selected_index,
+                             int *scroll_offset_io, int *visible_lines_out, int *start_index_out,
+                             int *end_index_out, const setting_item_s *items) {
+  const int max_y = texture_h - SETTINGS_BOTTOM_PADDING;
+  int visible_lines = (max_y - list_y_top) / SETTINGS_LINE_HEIGHT;
+  if (visible_lines < 1)
+    visible_lines = 1;
+
+  int max_scroll = (total_count > visible_lines) ? (total_count - visible_lines) : 0;
+  if (*scroll_offset_io > max_scroll)
+    *scroll_offset_io = max_scroll;
+  if (*scroll_offset_io < 0)
+    *scroll_offset_io = 0;
+
+  // Ensure selection visible
+  if (selected_index < *scroll_offset_io)
+    *scroll_offset_io = selected_index;
+  if (selected_index >= *scroll_offset_io + visible_lines)
+    *scroll_offset_io = selected_index - visible_lines + 1;
+
+  // If previous item is a header, include it if it doesn't push selection out
+  if (*scroll_offset_io > 0 && items[*scroll_offset_io - 1].type == ITEM_HEADER) {
+    const int candidate_start = *scroll_offset_io - 1;
+    const int candidate_end_inclusive = candidate_start + visible_lines - 1;
+    if (selected_index <= candidate_end_inclusive) {
+      *scroll_offset_io = candidate_start;
+    }
+  }
+
+  int start_i = *scroll_offset_io;
+  int end_i = total_count;
+  if (visible_lines >= 0 && start_i + visible_lines < end_i)
+    end_i = start_i + visible_lines;
+
+  *visible_lines_out = visible_lines;
+  *start_index_out = start_i;
+  *end_index_out = end_i;
+}
+
 static void settings_destroy_texture(SDL_Renderer *rend) {
   (void)rend;
   if (g_settings_texture != NULL) {
@@ -173,7 +219,7 @@ static void settings_move(const config_params_s *conf, int delta) {
   if (!g_settings_open)
     return;
 
-  setting_item_s items[64];
+  setting_item_s items[SETTINGS_MAX_ITEMS];
   int count = 0;
   build_menu(conf, items, &count);
 
@@ -298,7 +344,7 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
       return;
     }
     if (e->key.key == SDLK_LEFT || e->key.key == SDLK_RIGHT) {
-      setting_item_s items[64];
+      setting_item_s items[SETTINGS_MAX_ITEMS];
       int count = 0;
       build_menu(&ctx->conf, items, &count);
       if (g_selected_index > 0 && g_selected_index < count) {
@@ -318,7 +364,7 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
       }
     }
     if (e->key.key == SDLK_RETURN || e->key.key == SDLK_SPACE) {
-      setting_item_s items[64];
+      setting_item_s items[SETTINGS_MAX_ITEMS];
       int count = 0;
       build_menu(&ctx->conf, items, &count);
       // Handle entering submenus from root based on item type
@@ -399,7 +445,7 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
         return;
       }
       if (btn == SDL_GAMEPAD_BUTTON_DPAD_LEFT || btn == SDL_GAMEPAD_BUTTON_DPAD_RIGHT) {
-        setting_item_s items[64];
+        setting_item_s items[SETTINGS_MAX_ITEMS];
         int count = 0;
         build_menu(&ctx->conf, items, &count);
         if (g_selected_index > 0 && g_selected_index < count) {
@@ -420,7 +466,7 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
       }
       // Activate/select with A
       if (btn == SDL_GAMEPAD_BUTTON_SOUTH) {
-        setting_item_s items[64];
+        setting_item_s items[SETTINGS_MAX_ITEMS];
         int count = 0;
         build_menu(&ctx->conf, items, &count);
         // Handle entering submenus from root based on item type
@@ -488,23 +534,6 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
       return;
     }
   }
-
-  // Mouse wheel scrolling
-  if (e->type == SDL_EVENT_MOUSE_WHEEL) {
-    int delta = (int)e->wheel.y; // positive up, negative down
-    if (delta != 0) {
-      setting_item_s items[64];
-      int count = 0;
-      build_menu(&ctx->conf, items, &count);
-      g_scroll_offset -= delta; // invert so wheel down scrolls down
-      if (g_scroll_offset < 0)
-        g_scroll_offset = 0;
-      if (g_scroll_offset >= count)
-        g_scroll_offset = (count > 0) ? count - 1 : 0;
-      g_needs_redraw = 1;
-    }
-    return;
-  }
 }
 
 void settings_render_overlay(SDL_Renderer *rend, const config_params_s *conf, int texture_w,
@@ -552,13 +581,13 @@ void settings_render_overlay(SDL_Renderer *rend, const config_params_s *conf, in
   const Uint32 section_header = 0xAAAAFF;
   const int margin_x_unselected = fonts_get(0)->glyph_x+1;
   const int margin_x_selected = fonts_get(0)->glyph_x+1;
-  int x = 8;
+  int x = SETTINGS_MARGIN_X;
   int y = 8;
 
   inprint(rend, "M8C Config", x, y, title, title);
-  y += 24;
+  y += SETTINGS_TITLE_SPACING;
 
-  setting_item_s items[64];
+  setting_item_s items[SETTINGS_MAX_ITEMS];
   int count = 0;
   build_menu(conf, items, &count);
   if (g_selected_index >= count)
@@ -575,48 +604,19 @@ void settings_render_overlay(SDL_Renderer *rend, const config_params_s *conf, in
     inprint(rend, "Configuration saved", x, y, selected_item_fg, selected_item_fg);
     g_config_saved = 0;
   }
-  y += 12;
+  y += SETTINGS_LINE_HEIGHT;
 
   // Compute viewport and clamp scroll
-  const int line_height = 12;
-  const int bottom_padding = 8;
-  const int max_y = texture_h - bottom_padding;
   const int list_y_top = y;
-  int visible_lines = (max_y - y) / line_height;
-  if (visible_lines < 1)
-    visible_lines = 1;
-  int max_scroll = (count > visible_lines) ? (count - visible_lines) : 0;
-  if (g_scroll_offset > max_scroll)
-    g_scroll_offset = max_scroll;
-  if (g_scroll_offset < 0)
-    g_scroll_offset = 0;
-
-  // Ensure selection visible
-  if (g_selected_index < g_scroll_offset)
-    g_scroll_offset = g_selected_index;
-  if (g_selected_index >= g_scroll_offset + visible_lines)
-    g_scroll_offset = g_selected_index - visible_lines + 1;
-
-  // If the previous item before the first visible is a header, include it so
-  // the view starts at that header, but only if doing so doesn't push the
-  // selected item out of view.
-  if (g_scroll_offset > 0 && items[g_scroll_offset - 1].type == ITEM_HEADER) {
-    const int candidate_start = g_scroll_offset - 1;
-    const int candidate_end_inclusive = candidate_start + visible_lines - 1;
-    if (g_selected_index <= candidate_end_inclusive) {
-      g_scroll_offset = candidate_start;
-    }
-  }
-
-  // Render only visible slice
-  int start_i = g_scroll_offset;
-  int end_i = count;
-  if (visible_lines >= 0 && start_i + visible_lines < end_i)
-    end_i = start_i + visible_lines;
+  int visible_lines = 0;
+  int start_i = 0;
+  int end_i = 0;
+  compute_viewport(texture_h, list_y_top, count, g_selected_index, &g_scroll_offset,
+                   &visible_lines, &start_i, &end_i, items);
 
   // Draw scroll indicators when more content exists above/below
   if (visible_lines > 0) {
-    const int arrow_x = texture_w - 8 - (int)fonts_get(0)->glyph_x;
+    const int arrow_x = texture_w - SETTINGS_MARGIN_X - (int)fonts_get(0)->glyph_x;
     // Show up-arrow only when there are real items above beyond a header
     int has_above = g_scroll_offset > 0;
     if (has_above && items[g_scroll_offset - 1].type == ITEM_HEADER && g_scroll_offset == 1) {
@@ -626,9 +626,10 @@ void settings_render_overlay(SDL_Renderer *rend, const config_params_s *conf, in
       inprint(rend, "+", arrow_x, list_y_top, selected_item_fg, selected_item_bg);
     }
     if (g_scroll_offset + visible_lines < count) {
-      int bottom_arrow_y = list_y_top + (visible_lines - 1) * line_height;
-      if (bottom_arrow_y > max_y - line_height)
-        bottom_arrow_y = max_y - line_height;
+      const int max_y = texture_h - SETTINGS_BOTTOM_PADDING;
+      int bottom_arrow_y = list_y_top + (visible_lines - 1) * SETTINGS_LINE_HEIGHT;
+      if (bottom_arrow_y > max_y - SETTINGS_LINE_HEIGHT)
+        bottom_arrow_y = max_y - SETTINGS_LINE_HEIGHT;
       inprint(rend, "+", arrow_x, bottom_arrow_y, selected_item_fg, selected_item_bg);
     }
   }

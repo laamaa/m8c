@@ -15,12 +15,6 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
   SDL_AppResult ret_val = SDL_APP_CONTINUE;
 
   switch (event->type) {
-  case SDL_EVENT_MOUSE_WHEEL:
-    if (settings_is_open()) {
-      settings_handle_event(ctx, event);
-      return ret_val;
-    }
-    break;
 
   // --- System events ---
   case SDL_EVENT_QUIT:
