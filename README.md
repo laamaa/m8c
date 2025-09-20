@@ -2,33 +2,28 @@
 
 ## Introduction
 
-*m8c* is a client for Dirtywave M8 tracker's headless mode. The application should be cross-platform ready and can be
-built in Linux, Windows (with MSYS2/MINGW64) and macOS.
+*m8c* is a remote display client for the Dirtywave M8 Tracker. It mirrors the M8’s display, enables
+keyboard/gamepad control, and can route audio to your computer—useful for recording, streaming, larger screens,
+or alternative input methods. The application is cross‑platform and can be built on Linux, Windows (MSYS2/MINGW64), and
+macOS.
 
-The [Dirtywave M8 Tracker](https://dirtywave.com/products/m8-tracker) is a portable sequencer and synthesizer, featuring
-8 tracks of assignable instruments such as FM, waveform synthesis, virtual analog, sample playback, and MIDI output. It
-is powered by a [Teensy](https://www.pjrc.com/teensy/) micro-controller and inspired by the Gameboy
-tracker [Little Sound DJ](https://www.littlesounddj.com/lsd/index.php).
+The [Dirtywave M8 Tracker](https://dirtywave.com/products/m8-tracker) is a portable sequencer and synthesizer featuring
+8 tracks of assignable instruments (using engines like FM, waveform synthesis, virtual analog, sample playback, and MIDI output). 
+It is inspired by the Game Boy tracker [Little Sound DJ](https://www.littlesounddj.com/lsd/index.php).
 
-While Dirtywave makes new batches of units available on a regular basis, M8 is sometimes sold out due to the high demand of the unit. To fill this gap and to allow users to freely test this wonderful
-tracker, [Timothy Lamb](https://github.com/trash80) was kind enough to make
-the [M8 Headless](https://github.com/Dirtywave/M8HeadlessFirmware) available to everyone.
-
-If you like the M8 and you gel with the tracker workflow, please support [Dirtywave](https://dirtywave.com/) by
-purchasing the actual unit. You can check its availability [here](https://dirtywave.com/products/m8-tracker-model-02).
-Meanwhile, you can also subscribe to Timothy Lamb's [Patreon](https://www.patreon.com/trash80).
+m8c works with the official M8 hardware over USB. It also supports the [M8 Headless](https://github.com/Dirtywave/M8HeadlessFirmware)
+firmware running on a [Teensy](https://www.pjrc.com/teensy/) microcontroller. If you enjoy the M8 and its
+tracker workflow, please support [Dirtywave](https://dirtywave.com/) by purchasing the hardware. You can check
+availability [here](https://dirtywave.com/products/m8-tracker-model-02). You can also
+support the creator, [Trash80](https://github.com/trash80) via [Patreon](https://www.patreon.com/trash80).
 
 Many thanks to:
 
-* Trash80: For the great M8 hardware and the original fonts that were converted to a bitmap for use in the
-  program.
-* driedfruit: For a wonderful little routine to blit inline bitmap
-  fonts, [SDL_inprint](https://github.com/driedfruit/SDL_inprint/)
+* Trash80: For the great M8 hardware and the original fonts that were converted to a bitmap for use in the program.
+* driedfruit: For a wonderful little routine to blit inline bitmap fonts, [SDL_inprint](https://github.com/driedfruit/SDL_inprint/)
 * marcinbor85: For the slip handling routine, https://github.com/marcinbor85/slip
 * turbolent: For the great Golang-based g0m8 application, which I used as reference on how the M8 serial protocol works.
 * *Everyone who's contributed to m8c!*
-
-Disclaimer: I'm not a coder and hardly understand C, use at your own risk :)
 
 -------
 
@@ -44,11 +39,13 @@ Disclaimer: I'm not a coder and hardly understand C, use at your own risk :)
 
 There are prebuilt binaries available in the [releases section](https://github.com/laamaa/m8c/releases/) for Windows.
 
-When running the program for the first time on Windows, Windows Defender may show a warning about an unrecognized app. Click "More info" and then "Run anyway" to proceed.
+When running the program for the first time on Windows, Windows Defender may show a warning about an unrecognized app.
+Click "More info" and then "Run anyway" to proceed.
 
 ### macOS
 
-There are prebuilt binaries available in the [releases section](https://github.com/laamaa/m8c/releases/) for recent versions of macOS.
+There are prebuilt binaries available in the [releases section](https://github.com/laamaa/m8c/releases/) for recent
+versions of macOS.
 
 When running the program for the first time on macOS, it may not open as it is from an Unidentified Developer. You need
 to open it from the Applications Folder via Control+Click > Open then select Open from the popup menu.
@@ -148,6 +145,7 @@ get the list of devices by running
 ```
 
 Example output:
+
 ```
 2024-02-25 18:39:27.806 m8c[99838:4295527] INFO: Found M8 device: /dev/cu.usbmodem124709801
 2024-02-25 18:39:27.807 m8c[99838:4295527] INFO: Found M8 device: /dev/cu.usbmodem121136001
@@ -237,14 +235,15 @@ m8c supports audio routing from the M8 device to your computer's audio output.
 You can change the most common options without editing `config.ini` using the in-app settings overlay.
 
 - **How to open:**
-  - Keyboard: press F1.
-  - Gamepad: hold the Back/Select button for about 2 seconds.
+    - Keyboard: press F1.
+    - Gamepad: hold the Back/Select button for about 2 seconds.
 - **How to navigate:**
-  - Move: Up/Down arrows or D‑pad.
-  - Activate/enter: Enter/Space or South/A.
-  - Adjust values (sliders/integers): Left/Right arrows or D‑pad left/right.
-  - Back/close: Esc or F1; on gamepad use East/B or Back.
-  - While remapping inputs, the menu will prompt you; press the desired key/button or move an axis. Use Esc/B/Back to cancel a capture.
+    - Move: Up/Down arrows or D‑pad.
+    - Activate/enter: Enter/Space or South/A.
+    - Adjust values (sliders/integers): Left/Right arrows or D‑pad left/right.
+    - Back/close: Esc or F1; on gamepad use East/B or Back.
+    - While remapping inputs, the menu will prompt you; press the desired key/button or move an axis. Use Esc/B/Back to
+      cancel a capture.
 
 Changes take effect immediately; use Save if you want them persisted to disk.
 
@@ -320,14 +319,14 @@ hopefully fix the problem. Please see [this issue for more details](https://gith
 ### Device Not Found
 
 * The program starts but shows "No M8 device found":
-  - Ensure your M8 or Teensy is connected via USB
-  - Check that the headless firmware is properly installed
-  - Try running with `--list` to see detected devices
-  - On Linux, verify USB permissions (see permission issues above)
+    - Ensure your M8 or Teensy is connected via USB
+        - If using a Teensy, check that the headless firmware is properly installed
+    - Try running with `--list` to see detected devices
+    - On Linux, verify USB permissions (see permission issues above)
 
 ### Audio Issues
 
 * No audio output:
-  - Check that audio routing is enabled (F12)
-  - Verify audio device selection in config
-  - On macOS, ensure microphone permission is granted
+    - Check that audio routing is enabled (F12)
+    - Verify audio device selection in config
+    - On macOS, ensure microphone permission is granted
