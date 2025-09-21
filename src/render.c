@@ -476,7 +476,13 @@ void render_screen(config_params_s *conf) {
   }
 
   if (conf->integer_scaling) {
-    SDL_SetRenderTarget(rend, main_texture);
+    SDL_SetRenderTarget(rend, NULL);
+
+    // Direct rendering with integer scaling
+    if (!SDL_RenderTexture(rend, main_texture, NULL, NULL)) {
+      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't render texture: %s", SDL_GetError());
+    }
+
     // Render log overlay (composites if visible)
     log_overlay_render(rend, texture_width, texture_height, texture_scaling_mode, font_mode);
 
@@ -485,12 +491,6 @@ void render_screen(config_params_s *conf) {
       settings_render_overlay(rend, conf, texture_width, texture_height);
     }
 
-    SDL_SetRenderTarget(rend, NULL);
-
-    // Direct rendering with integer scaling
-    if (!SDL_RenderTexture(rend, main_texture, NULL, NULL)) {
-      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't render texture: %s", SDL_GetError());
-    }
   } else {
     int window_width, window_height;
     if (!SDL_GetWindowSizeInPixels(win, &window_width, &window_height)) {

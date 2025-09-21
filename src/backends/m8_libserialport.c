@@ -65,11 +65,19 @@ static int disconnect() {
   return result;
 }
 
-static int detect_m8_serial_device(const struct sp_port *m8_port) {
+static int detect_m8_serial_device(const struct sp_port *m8_port, const char *preferred_device) {
   // Check the connection method - we want USB serial devices
   const enum sp_transport transport = sp_get_port_transport(m8_port);
-
+ 
   if (transport == SP_TRANSPORT_USB) {
+    // If a preferred device is specified, check if this port matches it
+    if (preferred_device != NULL) {
+      const char *port_name = sp_get_port_name(m8_port);
+      if (strcmp(preferred_device, port_name) == 0) {
+        return 1;  // Force return 1 for preferred device
+      }
+    }
+    
     // Get the USB vendor and product IDs.
     int usb_vid, usb_pid;
     sp_get_port_usb_vid_pid(m8_port, &usb_vid, &usb_pid);
@@ -98,7 +106,7 @@ static int serial_port_connected() {
   for (int i = 0; port_list[i] != NULL; i++) {
     const struct sp_port *port = port_list[i];
 
-    if (detect_m8_serial_device(port)) {
+    if (detect_m8_serial_device(port, NULL)) {
       if (strcmp(sp_get_port_name(port), sp_get_port_name(m8_port)) == 0)
         device_found = 1;
     }
@@ -213,7 +221,7 @@ static int find_and_select_device(const char *preferred_device) {
   for (int i = 0; port_list[i] != NULL; i++) {
     const struct sp_port *port = port_list[i];
 
-    if (detect_m8_serial_device(port)) {
+    if (detect_m8_serial_device(port, preferred_device)) {
       char *port_name = sp_get_port_name(port);
       SDL_Log("Found M8 in %s", port_name);
       sp_copy_port(port, &m8_port);
@@ -318,12 +326,18 @@ int m8_list_devices() {
     return 1;
   }
 
+  int devices_found = 0;
   for (int i = 0; port_list[i] != NULL; i++) {
     const struct sp_port *port = port_list[i];
 
-    if (detect_m8_serial_device(port)) {
+    if (detect_m8_serial_device(port, NULL)) {
       SDL_Log("Found M8 device: %s", sp_get_port_name(port));
+      devices_found++;
     }
+  }
+  if (devices_found == 0) {
+    SDL_LogInfo(SDL_LOG_CATEGORY_SYSTEM, "No M8 devices found");
+    return 0;
   }
 
   sp_free_port_list(port_list);
