@@ -8,8 +8,6 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
 
-static Uint64 g_back_pressed_at = 0;
-
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
   struct app_context *ctx = appstate;
   SDL_AppResult ret_val = SDL_APP_CONTINUE;
@@ -82,29 +80,23 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     break;
 
   case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
-    // Start measuring hold time for GUIDE; trigger handled on button up after 1s hold
-    if (event->gbutton.button == SDL_GAMEPAD_BUTTON_BACK) {
-      g_back_pressed_at = SDL_GetTicks();
-    }
-
     if (settings_is_open()) {
       settings_handle_event(ctx, event);
       return ret_val;
     }
+
+    // Allow toggling the settings view using a gamepad only when the device is disconnected to
+    // avoid accidentally opening the screen while using the device
+    if (event->gbutton.button == SDL_GAMEPAD_BUTTON_BACK) {
+      if (ctx->app_state == WAIT_FOR_DEVICE && !settings_is_open()) {
+        settings_toggle_open();
+      }
+    }
+
     input_handle_gamepad_button(ctx, event->gbutton.button, true);
     break;
 
   case SDL_EVENT_GAMEPAD_BUTTON_UP:
-    // Handle GUIDE release: toggle settings if held for at least 1 second
-    if (event->gbutton.button == SDL_GAMEPAD_BUTTON_BACK) {
-      const Uint64 now = SDL_GetTicks();
-      if (g_back_pressed_at != 0 && (now - g_back_pressed_at) >= 2000) {
-        settings_toggle_open();
-      }
-      g_back_pressed_at = 0;
-      return ret_val;
-    }
-
     if (settings_is_open()) {
       settings_handle_event(ctx, event);
       return ret_val;
@@ -119,7 +111,6 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     }
     input_handle_gamepad_axis(ctx, event->gaxis.axis, event->gaxis.value);
     break;
-
 
   default:
     break;
