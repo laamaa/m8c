@@ -7,11 +7,12 @@ keyboard/gamepad control, and can route audio to your computer—useful for reco
 or alternative input methods. The application is cross‑platform and can be built on Linux, Windows (MSYS2/MINGW64), and
 macOS.
 
-The Dirtywave M8 Tracker is a portable sequencer and synthesizer featuring 8 tracks of assignable instruments
-(using engines like FM, waveform synthesis, virtual analog, sample playback, and MIDI output). 
+The Dirtywave M8 Tracker is a portable sequencer and synthesizer featuring eight tracks of assignable instruments
+(using engines like FM, waveform synthesis, virtual analog, sample playback, and MIDI output).
 It is inspired by the Game Boy tracker [Little Sound DJ](https://www.littlesounddj.com/lsd/index.php).
 
-m8c works with the M8 hardware over USB. It also supports the [M8 Headless](https://github.com/Dirtywave/M8HeadlessFirmware)
+m8c works with the M8 hardware over USB. It also supports
+the [M8 Headless](https://github.com/Dirtywave/M8HeadlessFirmware)
 firmware running on a [Teensy](https://www.pjrc.com/teensy/) microcontroller. If you enjoy the M8 and its
 tracker workflow, please support [Dirtywave](https://dirtywave.com/) by purchasing the hardware. You can check
 availability [here](https://dirtywave.com/products/m8-tracker-model-02). You can also
@@ -20,9 +21,11 @@ support the creator, Trash80 via [Patreon](https://www.patreon.com/trash80).
 Many thanks to:
 
 * Trash80: For the great M8 hardware and the original fonts that were converted to a bitmap for use in the program.
-* driedfruit: For a wonderful little routine to blit inline bitmap fonts, [SDL_inprint](https://github.com/driedfruit/SDL_inprint/)
+* driedfruit: For a wonderful little routine to blit inline bitmap
+  fonts, [SDL_inprint](https://github.com/driedfruit/SDL_inprint/)
 * marcinbor85: For the slip handling routine, https://github.com/marcinbor85/slip
-* turbolent: For the great Golang-based g0m8 application, which I used as reference on how the M8 serial protocol works.
+* turbolent: For the great Golang-based g0m8 application, which I used as a reference on how the M8 serial protocol
+  works.
 * *Everyone who's contributed to m8c!*
 
 -------
@@ -47,9 +50,6 @@ Click "More info" and then "Run anyway" to proceed.
 There are prebuilt binaries available in the [releases section](https://github.com/laamaa/m8c/releases/) for recent
 versions of macOS.
 
-When running the program for the first time on macOS, it may not open as it is from an Unidentified Developer. You need
-to open it from the Applications Folder via Control+Click > Open then select Open from the popup menu.
-
 ### Linux
 
 There are packages available for NixOS, an AppImage for easy installation, or you can build the program from source.
@@ -62,7 +62,7 @@ An AppImage is available for Linux in the [releases section](https://github.com/
 2. Make it executable: `chmod +x m8c-*.AppImage`
 3. Run it: `./m8c-*.AppImage`
 
-The AppImage is portable and doesn't require installation - just download and run.
+The AppImage is portable and doesn't require installation—it can be run directly from the file.
 
 #### NixOS
 
@@ -137,7 +137,7 @@ If the stars are aligned correctly, you should see the M8 screen.
 
 #### Choosing a preferred device
 
-When you have multiple M8 devices connected and you want to choose a specific one or launch m8c multiple times, you can
+When you have multiple M8 devices connected, and you want to choose a specific one or launch m8c multiple times, you can
 get the list of devices by running
 
 ```sh
@@ -157,7 +157,9 @@ You can specify the preferred device by using the `--dev` option:
 ./m8c --dev /dev/cu.usbmodem124709801
 ```
 
-**Note:** The `--dev` option can force detection of any serial device by name. This is useful if libserialport cannot get the correct USB identifiers, like on some Windows 11 setups for example. You may need to look up the correct device name from Device Manager for example if `--list` does not give you any results.
+**Note:** The `--dev` option can force detection of any serial device by name. This is useful if libserialport cannot
+get the correct USB identifiers, like on some Windows 11 setups, for example. You may need to look up the correct device
+name from Device Manager, if `--list` does not give you any results, for example.
 
 -----------
 
@@ -187,7 +189,7 @@ Additional controls:
 
 ### Keyjazz
 
-Keyjazz allows to enter notes with keyboard, oldschool tracker-style. The layout is two octaves, starting from keys Z
+Keyjazz allows entering notes with a keyboard, old school tracker-style. The layout is two octaves, starting from keys Z
 and Q.
 When keyjazz is active, regular a/s/z/x keys are disabled. The base octave can be adjusted with numpad star/divide keys
 and the velocity can be set
@@ -202,8 +204,8 @@ and the velocity can be set
 
 The program uses SDL's game controller system, which should make it work automatically with most gamepads. On startup,
 the program tries to load a SDL game controller database named `gamecontrollerdb.txt` from the same directory as the
-config file. If your joypad doesn't work out of the box, you might need to create custom bindings to this file, for
-example with [SDL2 Gamepad Tool](https://generalarcade.com/gamepadtool/).
+config file. If your joypad doesn't work out of the box, you might need to create custom bindings to this file,
+with [SDL2 Gamepad Tool](https://generalarcade.com/gamepadtool/), for example.
 
 ### Gamepad Configuration
 
@@ -238,13 +240,15 @@ You can change the most common options without editing `config.ini` using the in
 
 - **How to open:**
     - Keyboard: press F1.
-    - Gamepad: hold the Back/Select button for about 2 seconds.
+    - Gamepad: hold the Back/Select button for about 2 seconds (works only when the M8 is disconnected to avoid opening
+      the menu accidentally).
 - **How to navigate:**
     - Move: Up/Down arrows or D‑pad.
     - Activate/enter: Enter/Space or South/A.
     - Adjust values (sliders/integers): Left/Right arrows or D‑pad left/right.
     - Back/close: Esc or F1; on gamepad use East/B or Back.
-    - While remapping inputs, the menu will prompt you; press the desired key/button or move an axis. Use Esc/B/Back to
+    - While remapping inputs, the menu will prompt you; press the desired key/button or move an axis. Use Esc/East/Back
+      to
       cancel a capture.
 
 Changes take effect immediately; use Save if you want them persisted to disk.
@@ -275,7 +279,8 @@ file that does not exist, a new default config file with the specified name will
 
 An in-app log overlay is available for platforms where reading console output is inconvenient.
 
-- Default toggle key: F2. You can change it in `config.ini` under `[keyboard]` using `key_toggle_log=<SDL_SCANCODE>`.
+- Default toggle key: F2. You can change it in the config editor, or `config.ini` under `[keyboard]` using
+  `key_toggle_log=<SDL_SCANCODE>`.
 - The overlay shows recent `SDL_Log*` messages.
 - Long lines are wrapped to fit; the view tails the most recent output.
 
@@ -287,7 +292,7 @@ Enjoy making some nice music!
 
 ### Permission Issues
 
-* When starting the program, something like the following appears and the program does not start:
+* When starting the program, something like the following appears, and the program does not start:
 
 ```sh
 $ ./m8c

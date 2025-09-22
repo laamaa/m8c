@@ -413,37 +413,46 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
   if (!g_settings.is_open)
     return;
 
-  if (e->type == SDL_EVENT_KEY_DOWN) {
-    if (e->key.key == SDLK_ESCAPE || e->key.key == SDLK_F1) {
-      settings_handle_back();
-      return;
-    }
-    // Capture key remap
-    if (g_settings.capture_mode == CAPTURE_KEY) {
-      if (g_settings.capture_target != NULL) {
-        unsigned int *dst = g_settings.capture_target;
-        *dst = e->key.scancode;
-      }
-      g_settings.capture_mode = CAPTURE_NONE;
-      g_settings.capture_target = NULL;
-      g_settings.needs_redraw = 1;
-      return;
-    }
-    if (e->key.key == SDLK_UP) {
-      settings_move(&ctx->conf, -1);
-      return;
-    }
-    if (e->key.key == SDLK_DOWN) {
-      settings_move(&ctx->conf, 1);
-      return;
-    }
-    if (e->key.key == SDLK_LEFT || e->key.key == SDLK_RIGHT) {
-      if (settings_adjust_selected(&ctx->conf, e->key.key == SDLK_LEFT ? -1 : 1))
+  /**
+   * iOS sends both keyboard and gamepad events on gamepad button presses.
+   * Workaround here is to ignore the keyboard events on iOS, if a gamepad is connected.
+   */
+  int gamepad_count = 0;
+  SDL_GetGamepads(&gamepad_count);
+
+  if (TARGET_OS_IOS == 0 || gamepad_count == 0) {
+    if (e->type == SDL_EVENT_KEY_DOWN) {
+      if (e->key.key == SDLK_ESCAPE || e->key.key == SDLK_F1) {
+        settings_handle_back();
         return;
-    }
-    if (e->key.key == SDLK_RETURN || e->key.key == SDLK_SPACE) {
-      settings_handle_enter(ctx);
-      return;
+      }
+      // Capture key remap
+      if (g_settings.capture_mode == CAPTURE_KEY) {
+        if (g_settings.capture_target != NULL) {
+          unsigned int *dst = g_settings.capture_target;
+          *dst = e->key.scancode;
+        }
+        g_settings.capture_mode = CAPTURE_NONE;
+        g_settings.capture_target = NULL;
+        g_settings.needs_redraw = 1;
+        return;
+      }
+      if (e->key.key == SDLK_UP) {
+        settings_move(&ctx->conf, -1);
+        return;
+      }
+      if (e->key.key == SDLK_DOWN) {
+        settings_move(&ctx->conf, 1);
+        return;
+      }
+      if (e->key.key == SDLK_LEFT || e->key.key == SDLK_RIGHT) {
+        if (settings_adjust_selected(&ctx->conf, e->key.key == SDLK_LEFT ? -1 : 1))
+          return;
+      }
+      if (e->key.key == SDLK_RETURN || e->key.key == SDLK_SPACE) {
+        settings_handle_enter(ctx);
+        return;
+      }
     }
   }
 
