@@ -126,11 +126,15 @@ static void midi_callback(double delta_time, const unsigned char *message, size_
 
 static void close_and_free_midi_ports(void) {
   SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Freeing MIDI ports");
-  rtmidi_in_cancel_callback(midi_in);
-  rtmidi_close_port(midi_in);
-  rtmidi_close_port(midi_out);
-  rtmidi_in_free(midi_in);
-  rtmidi_out_free(midi_out);
+  if (midi_in != NULL) {
+    rtmidi_in_cancel_callback(midi_in);
+    rtmidi_close_port(midi_in);
+    rtmidi_in_free(midi_in);
+  }
+  if (midi_out != NULL) {
+    rtmidi_close_port(midi_out);
+    rtmidi_out_free(midi_out);
+  }
   midi_in = NULL;
   midi_out = NULL;
   midi_sysex_received = false;
@@ -147,6 +151,11 @@ static int initialize_rtmidi(void) {
 }
 
 static int detect_m8_midi_device(const int verbose, const char *preferred_device) {
+  if (midi_in->ptr == NULL) {
+    midi_in = NULL;
+    midi_out = NULL;
+    return -1;
+  }
   int m8_midi_port_number = -1;
   const unsigned int ports_total_in = rtmidi_get_port_count(midi_in);
   if (verbose)
@@ -172,7 +181,7 @@ static int detect_m8_midi_device(const int verbose, const char *preferred_device
 }
 
 static int device_still_exists(void) {
-  if (midi_in == NULL || midi_out == NULL) {
+  if (midi_in->ptr == NULL || midi_out->ptr == NULL) {
     return 0;
   };
 
