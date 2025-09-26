@@ -321,7 +321,9 @@ sudo adduser $USER dialout
 ```
 
 You may need to log out and back in or even fully reboot the system for this change to take effect, but this will
-hopefully fix the problem. Please see [this issue for more details](https://github.com/laamaa/m8c/issues/20).
+hopefully fix the problem.
+
+Some distributions have also had conflicts with the kernel version and libserialport packaging, please see [this issue for more details](https://github.com/laamaa/m8c/issues/20).
 
 ### Device Not Found
 
