@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(m8c LANGUAGES C VERSION 2.0.0)
+project(m8c LANGUAGES C VERSION 2.2.0)
 
 set(APP_NAME m8c)
 
