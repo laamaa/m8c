@@ -2,6 +2,7 @@
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 #ifndef USE_LIBUSB
 #include "audio.h"
+#include "../recorder.h"
 #include <SDL3/SDL.h>
 
 SDL_AudioStream *audio_stream_in, *audio_stream_out;
@@ -59,6 +60,13 @@ static void SDLCALL audio_cb_out(void *userdata, SDL_AudioStream *stream, int ad
     }
     if (got == 0) {
       break; // no data currently available
+    }
+
+    // Send audio to recorder if recording is active
+    if (recorder_is_recording() && got > 0) {
+      // Audio is in S16LE stereo format, 2 channels, 2 bytes per sample
+      const int num_samples = got / (2 * sizeof(int16_t));
+      recorder_add_audio_samples((const int16_t *)temp, num_samples);
     }
 
     if (!SDL_PutAudioStreamData(stream, temp, got)) {

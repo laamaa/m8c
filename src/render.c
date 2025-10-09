@@ -11,6 +11,7 @@
 #include "fx_cube.h"
 #include "log_overlay.h"
 #include "settings.h"
+#include "recorder.h"
 
 #include "fonts/fonts.h"
 
@@ -213,6 +214,7 @@ void renderer_set_font_mode(int mode) {
 
 void renderer_close(void) {
   SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "Closing renderer");
+  recorder_close();
   inline_font_close();
   if (main_texture != NULL) {
     SDL_DestroyTexture(main_texture);
@@ -223,6 +225,16 @@ void renderer_close(void) {
   log_overlay_destroy();
   SDL_DestroyRenderer(rend);
   SDL_DestroyWindow(win);
+}
+
+// Get current render width (used by recorder)
+int get_render_width(void) {
+  return texture_width;
+}
+
+// Get current render height (used by recorder)
+int get_render_height(void) {
+  return texture_height;
 }
 
 int toggle_fullscreen(config_params_s *conf) {
@@ -442,6 +454,9 @@ int renderer_initialize(config_params_s *conf) {
 
   dirty = 1;
 
+  // Initialize recorder
+  recorder_init();
+
   SDL_PumpEvents();
   render_screen(conf);
 
@@ -563,6 +578,29 @@ void render_screen(config_params_s *conf) {
     } else {
       // Window and texture aspect ratios match
       SDL_RenderTexture(rend, hd_texture, NULL, NULL);
+    }
+  }
+
+  // Capture frame for recording if active (before present)
+  if (recorder_is_recording()) {
+    // Set render target to main_texture to read from it
+    if (!SDL_SetRenderTarget(rend, main_texture)) {
+      SDL_LogError(SDL_LOG_CATEGORY_RENDER, "Couldn't set render target for recording: %s", 
+                   SDL_GetError());
+    } else {
+      // Read pixels from main_texture
+      SDL_Surface *surface = SDL_RenderReadPixels(rend, NULL);
+      if (surface) {
+        // Convert to BGRA32 for FFmpeg
+        SDL_Surface *bgra_surface = SDL_ConvertSurface(surface, SDL_PIXELFORMAT_BGRA32);
+        if (bgra_surface) {
+          recorder_add_video_frame((const uint8_t *)bgra_surface->pixels, 
+                                   texture_width, texture_height, 
+                                   bgra_surface->pitch);
+          SDL_DestroySurface(bgra_surface);
+        }
+        SDL_DestroySurface(surface);
+      }
     }
   }
 

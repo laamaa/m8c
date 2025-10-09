@@ -31,4 +31,8 @@ int screensaver_init(void);
 void screensaver_draw(void);
 void screensaver_destroy(void);
 
+// Get render dimensions for recorder
+int get_render_width(void);
+int get_render_height(void);
+
 #endif

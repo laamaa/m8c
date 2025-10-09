@@ -37,9 +37,36 @@ find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3)
 
 pkg_check_modules(SDL3 REQUIRED sdl3)
 
+# Find FFmpeg libraries for recording support
+pkg_check_modules(LIBAVCODEC REQUIRED libavcodec)
+pkg_check_modules(LIBAVFORMAT REQUIRED libavformat)
+pkg_check_modules(LIBAVUTIL REQUIRED libavutil)
+pkg_check_modules(LIBSWSCALE REQUIRED libswscale)
+pkg_check_modules(LIBSWRESAMPLE REQUIRED libswresample)
+
 target_link_options(${APP_NAME} PRIVATE ${SDL3_LDFLAGS})
 target_include_directories(${APP_NAME} PRIVATE ${SDL3_INCLUDE_DIRS})
 target_compile_options(${APP_NAME} PRIVATE ${SDL3_CFLAGS_OTHER})
+
+# Link FFmpeg libraries
+target_link_options(${APP_NAME} PRIVATE 
+    ${LIBAVCODEC_LDFLAGS}
+    ${LIBAVFORMAT_LDFLAGS}
+    ${LIBAVUTIL_LDFLAGS}
+    ${LIBSWSCALE_LDFLAGS}
+    ${LIBSWRESAMPLE_LDFLAGS})
+target_include_directories(${APP_NAME} PRIVATE 
+    ${LIBAVCODEC_INCLUDE_DIRS}
+    ${LIBAVFORMAT_INCLUDE_DIRS}
+    ${LIBAVUTIL_INCLUDE_DIRS}
+    ${LIBSWSCALE_INCLUDE_DIRS}
+    ${LIBSWRESAMPLE_INCLUDE_DIRS})
+target_compile_options(${APP_NAME} PRIVATE 
+    ${LIBAVCODEC_CFLAGS_OTHER}
+    ${LIBAVFORMAT_CFLAGS_OTHER}
+    ${LIBAVUTIL_CFLAGS_OTHER}
+    ${LIBSWSCALE_CFLAGS_OTHER}
+    ${LIBSWRESAMPLE_CFLAGS_OTHER})
 
 if (USE_LIBSERIALPORT)
     pkg_check_modules(LIBSERIALPORT REQUIRED libserialport)

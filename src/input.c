@@ -7,6 +7,7 @@
 #include "common.h"
 #include "render.h"
 #include "log_overlay.h"
+#include "recorder.h"
 #include <SDL3/SDL.h>
 
 static unsigned char keyjazz_enabled = 0;
@@ -209,6 +210,20 @@ void input_handle_key_down_event(struct app_context *ctx, const SDL_Event *event
 
   if (event->key.scancode == ctx->conf.key_reset && ctx->device_connected && !keyjazz_enabled) {
     m8_reset_display();
+    return;
+  }
+
+  // Toggle recording with F9
+  if (event->key.scancode == SDL_SCANCODE_F9 && ctx->device_connected) {
+    // Get the current rendering dimensions (will be retrieved from render system)
+    extern int get_render_width(void);
+    extern int get_render_height(void);
+    recorder_toggle(get_render_width(), get_render_height(), 60);
+    if (recorder_is_recording()) {
+      SDL_Log("Recording started");
+    } else {
+      SDL_Log("Recording stopped");
+    }
     return;
   }
 

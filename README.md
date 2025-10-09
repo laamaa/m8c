@@ -163,6 +163,23 @@ name from Device Manager, if `--list` does not give you any results, for example
 
 -----------
 
+## Screen Recording
+
+m8c includes built-in screen recording functionality that captures both video and audio. Press **F9** to start/stop recording. Recordings are saved as MP4 files with H.264 video and AAC audio in the current directory.
+
+**Features:**
+- High-quality H.264 video encoding at 60 FPS
+- AAC audio encoding at 192 kbps
+- Automatic timestamped filenames (e.g., `m8c_recording_20250109_143022.mp4`)
+- Records both M8 display and audio simultaneously
+
+**Requirements:**
+The recording feature requires FFmpeg development libraries (libavcodec, libavformat, libavutil, libswscale, libswresample). These are typically available in your distribution's package manager.
+
+For detailed information, troubleshooting, and technical details, see [RECORDING.md](RECORDING.md).
+
+-----------
+
 ## Keyboard mappings
 
 Default keys for controlling the program:
@@ -185,6 +202,7 @@ Additional controls:
 * r / select+start+opt+edit = reset display (if glitches appear on the screen, use this)
 * F1 = open config editor
 * F2 = toggle in-app log overlay
+* F9 = toggle screen recording on/off (records video + audio to MP4)
 * F12 = toggle audio routing on / off
 
 ### Keyjazz
