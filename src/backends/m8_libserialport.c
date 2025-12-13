@@ -273,6 +273,18 @@ int m8_initialize(const int verbose, const char *preferred_device) {
   return initialize_serial_thread();
 }
 
+static int send_ping() {
+  SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Sending ping");
+  const unsigned char buf[1] = {'X'};
+  const size_t nbytes = 1;
+  const int result = sp_blocking_write(m8_port, buf, nbytes, 5);
+  if (result != nbytes) {
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Error sending ping, code %d", result);
+    return 0;
+  }
+  return 1;
+}
+
 int m8_send_msg_controller(const uint8_t input) {
   SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Sending controller input %d", input);
   const unsigned char buf[2] = {'C', input};
@@ -399,6 +411,12 @@ int m8_process_data(const config_params_s *conf) {
     if (empty_cycles >= conf->wait_packets) {
       // try opening the serial port to check if it's alive
       if (serial_port_connected()) {
+        // check if the device responds to display reset
+        if (!send_ping()) {
+          SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to ping device on reconnect");
+          disconnect();
+          return DEVICE_DISCONNECTED;
+        }
         // the device is still there, carry on
         empty_cycles = 0;
         return DEVICE_PROCESSING;
