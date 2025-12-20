@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(m8c LANGUAGES C VERSION 2.2.0)
+project(m8c LANGUAGES C VERSION 2.2.1)
 
 set(APP_NAME m8c)
 
@@ -82,7 +82,7 @@ if (APPLE)
             MACOSX_BUNDLE TRUE
             MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/package/macos/m8c.app/Contents/Info.plist"
             MACOSX_BUNDLE_BUNDLE_NAME "m8c"
-            MACOSX_BUNDLE_COPYRIGHT "Copyright © 2021 laamaa. All rights reserved."
+            MACOSX_BUNDLE_COPYRIGHT "Copyright © 2025 laamaa. All rights reserved."
             MACOSX_BUNDLE_GUI_IDENTIFIER "fi.laamaa.m8c"
             MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
             MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
