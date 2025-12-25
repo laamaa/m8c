@@ -58,7 +58,13 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     break;
 
   case SDL_EVENT_KEY_DOWN:
-    // Toggle settings with F1
+    // Settings view toggles handled here to avoid being able to get stuck in the config view
+    // Toggle settings with Command/Win+comma (for keyboards without function keys)
+    if (event->key.key == SDLK_COMMA && event->key.repeat == 0 && (event->key.mod & SDL_KMOD_GUI)) {
+      settings_toggle_open();
+      return ret_val;
+    }
+    // Toggle settings with config defined key
     if (event->key.scancode == ctx->conf.key_toggle_settings && event->key.repeat == 0) {
       settings_toggle_open();
       return ret_val;
