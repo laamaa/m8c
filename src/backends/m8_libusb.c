@@ -21,7 +21,8 @@ static int ep_in_addr = 0x83;
 #define ACM_CTRL_RTS 0x02
 
 #define M8_VID 0x16c0
-#define M8_PID 0x048a
+#define M8_PID_STEREO 0x048a
+#define M8_PID_MULTICHANNEL 0x048b
 
 #define SERIAL_READ_SIZE 1024  // maximum amount of bytes to read from the serial in one pass
 
@@ -35,6 +36,10 @@ static int do_exit = 0;
 static int async_transfer_active = 0;
 static struct libusb_transfer *async_transfer = NULL;
 static int shutdown_in_progress = 0;
+
+static int is_m8_device(uint16_t pid) {
+  return (pid == M8_PID_STEREO || pid == M8_PID_MULTICHANNEL);
+}
 
 static int send_message_to_queue(uint8_t *data, const uint32_t size) {
   push_message(&queue, data, size);
@@ -61,7 +66,7 @@ int m8_list_devices() {
       return rc;
     }
 
-    if (desc.idVendor == M8_VID && desc.idProduct == M8_PID) {
+    if (desc.idVendor == M8_VID && is_m8_device(desc.idProduct)) {
       SDL_Log("Found M8 device: %d:%d\n", libusb_get_port_number(device),
               libusb_get_bus_number(device));
     }
@@ -395,7 +400,10 @@ int m8_initialize(int verbose, const char *preferred_device) {
     return 0;
   }
   if (preferred_device == NULL) {
-    devh = libusb_open_device_with_vid_pid(ctx, M8_VID, M8_PID);
+    devh = libusb_open_device_with_vid_pid(ctx, M8_VID, M8_PID_STEREO);
+    if (devh == NULL) {
+      devh = libusb_open_device_with_vid_pid(ctx, M8_VID, M8_PID_MULTICHANNEL);
+    }
   } else {
     char *port;
     char *saveptr = NULL;
@@ -420,7 +428,7 @@ int m8_initialize(int verbose, const char *preferred_device) {
         return 0;
       }
 
-      if (desc.idVendor == M8_VID && desc.idProduct == M8_PID) {
+      if (desc.idVendor == M8_VID && is_m8_device(desc.idProduct)) {
         SDL_Log("Searching for port %s and bus %s", port, bus);
         if (libusb_get_port_number(device) == SDL_atoi(port) &&
             libusb_get_bus_number(device) == SDL_atoi(bus)) {
@@ -439,7 +447,10 @@ int m8_initialize(int verbose, const char *preferred_device) {
     SDL_free(device_copy);  // Free the allocated copy
     if (devh == NULL) {
       SDL_Log("Preferred device %s not found, using first available", preferred_device);
-      devh = libusb_open_device_with_vid_pid(ctx, M8_VID, M8_PID);
+      devh = libusb_open_device_with_vid_pid(ctx, M8_VID, M8_PID_STEREO);
+      if (devh == NULL) {
+        devh = libusb_open_device_with_vid_pid(ctx, M8_VID, M8_PID_MULTICHANNEL);
+      }
     }
   }
   if (devh == NULL) {
