@@ -15,7 +15,7 @@
   outputs = { self, nixpkgs, systems, treefmt-nix, ... }:
     let
       pname = "m8c";
-      version = "2.2.1";
+      version = "2.2.2";
       m8c-package =
         { stdenv
         , cmake
