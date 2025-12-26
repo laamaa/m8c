@@ -82,7 +82,7 @@ static int detect_m8_serial_device(const struct sp_port *m8_port, const char *pr
     int usb_vid, usb_pid;
     sp_get_port_usb_vid_pid(m8_port, &usb_vid, &usb_pid);
 
-    if (usb_vid == 0x16C0 && usb_pid == 0x048A)
+    if (usb_vid == 0x16C0 && (usb_pid == 0x048A || usb_pid == 0x048B))
       return 1;
   }
 
