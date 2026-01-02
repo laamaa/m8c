@@ -380,6 +380,17 @@ static void log_fps_stats(void) {
   }
 }
 
+void rehydrate_window_position_and_size(const config_params_s *conf) {
+  SDL_Log("rehydrating window position and size");
+  SDL_Log("height: %d\n", conf->window.height);
+  SDL_Log("width: %d\n", conf->window.width);
+  SDL_Log("x: %d\n", conf->window.x);
+  SDL_Log("y: %d\n", conf->window.y);
+
+  SDL_SetWindowPosition(win, conf->window.x, conf->window.y);
+  SDL_SetWindowSize(win, conf->window.width, conf->window.height);
+}
+
 // Initializes SDL and creates a renderer and required surfaces
 int renderer_initialize(config_params_s *conf) {
 
@@ -435,6 +446,8 @@ int renderer_initialize(config_params_s *conf) {
   }
 
   renderer_set_font_mode(0);
+
+  rehydrate_window_position_and_size(conf);
 
   SDL_SetHint(SDL_HINT_IOS_HIDE_HOME_INDICATOR, "1");
   renderer_fix_texture_scaling_after_window_resize(
