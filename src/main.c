@@ -18,8 +18,8 @@
 #include "common.h"
 #include "config.h"
 #include "gamepads.h"
-#include "render.h"
 #include "log_overlay.h"
+#include "render.h"
 
 static void do_wait_for_device(struct app_context *ctx) {
   static Uint64 ticks_poll_device = 0;
@@ -94,7 +94,9 @@ static config_params_s initialize_config(int argc, char *argv[], char **preferre
   if (TARGET_OS_IOS == 1) {
     // Predefined settings for iOS
     conf.init_fullscreen = 1;
+    conf.persist_window_position_and_size = 0;
   }
+
   config_read(&conf);
 
   return conf;

@@ -6,10 +6,21 @@
 
 #include "ini.h"
 
+typedef struct window_position_and_size_s {
+  int height;
+  int width;
+  int x;
+  int y;
+} window_position_and_size_s;
+
 typedef struct config_params_s {
   char *filename;
   unsigned int init_fullscreen;
   unsigned int integer_scaling;
+
+  unsigned int persist_window_position_and_size;
+  window_position_and_size_s window;
+
   unsigned int wait_packets;
   unsigned int audio_enabled;
   unsigned int audio_buffer_size;
@@ -67,6 +78,8 @@ void read_key_config(const ini_t *ini, config_params_s *conf);
 void read_gamepad_config(const ini_t *ini, config_params_s *conf);
 
 // Expose write so settings UI can persist changes
+void update_and_write_window_position_and_size_config(
+    config_params_s *conf, const window_position_and_size_s *window_position_and_size);
 void write_config(const config_params_s *conf);
 
 #endif

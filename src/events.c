@@ -7,6 +7,7 @@
 #include "settings.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
+#include <limits.h>
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
   struct app_context *ctx = appstate;
@@ -23,6 +24,24 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
   case SDL_EVENT_WINDOW_MOVED:
     // If the window size is changed, some systems might need a little nudge to fix scaling
     renderer_fix_texture_scaling_after_window_resize(&ctx->conf);
+
+    if (ctx->conf.persist_window_position_and_size == 1) {
+      window_position_and_size_s window_position_and_size = {
+          .height = INT_MIN, .width = INT_MIN, .x = INT_MIN, .y = INT_MIN};
+
+      if (event->window.type == SDL_EVENT_WINDOW_MOVED) {
+        window_position_and_size.x = event->window.data1;
+        window_position_and_size.y = event->window.data2;
+      }
+
+      if (event->window.type == SDL_EVENT_WINDOW_RESIZED) {
+        window_position_and_size.height = event->window.data2;
+        window_position_and_size.width = event->window.data1;
+      }
+
+      update_and_write_window_position_and_size_config(&ctx->conf, &window_position_and_size);
+    }
+
     break;
 
   // --- iOS specific events ---
