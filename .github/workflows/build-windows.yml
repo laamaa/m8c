@@ -147,7 +147,7 @@ jobs:
         elif [ ${{ matrix.win }} == "win64-rtmidi" ]
         then
           cp C:/Libraries/bin/SDL3.dll .
-          cp C:/Libraries/bin/librtmidi-*.dll .
+          cp C:/Libraries/bin/librtmidi.dll .
           cp /mingw64/bin/libstdc++-6.dll .
           cp /mingw64/bin/libwinpthread-1.dll .
           cp /mingw64/bin/libgcc_s_seh-1.dll .
@@ -192,7 +192,7 @@ jobs:
         path: |
           m8c.exe
           SDL3.dll
-          librtmidi-*.dll
+          librtmidi.dll
           libstdc++-6.dll
           libwinpthread-1.dll
           libgcc_s_seh-1.dll
