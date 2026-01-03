@@ -128,7 +128,7 @@ jobs:
         if [ "${{ matrix.win }}" = "win64-rtmidi" ]; then
           # RtMidi needs to be at the very end of the link line for MinGW.
           # CMAKE_C_STANDARD_LIBRARIES is appended at the end by CMake's C linker rule.
-          export PKG_CONFIG_PATH="C:/Libraries/lib/pkgconfig:$PKG_CONFIG_PATH"
+          export PKG_CONFIG_PATH="/c/Libraries/lib/pkgconfig:$PKG_CONFIG_PATH"
           RTMIDI_LIBS="$(pkg-config --libs rtmidi)"
           # Preserve the standard Windows libs CMake appends by default for C targets:
           WIN_SYS_LIBS="-lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32"
