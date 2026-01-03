@@ -38,7 +38,7 @@ jobs:
       with:
         msystem: ${{ matrix.sys }}
         update: true
-        install: mingw-w64-${{ matrix.env }}-toolchain make mingw-w64-${{ matrix.env }}-cmake zip dos2unix autoconf automake-wrapper libtool make unzip mingw-w64-${{ matrix.env }}-rtmidi
+        install: mingw-w64-${{ matrix.env }}-toolchain make mingw-w64-${{ matrix.env }}-cmake zip dos2unix autoconf automake-wrapper libtool make unzip
 
     - name: 'Cache SDL3 files'
       id: cache-sdl3-files
@@ -91,6 +91,35 @@ jobs:
         make install
         popd
 
+    - name: 'Cache rtmidi files'
+      if: matrix.win == 'win64-rtmidi'
+      id: cache-rtmidi-files
+      uses: actions/cache@v4
+      with:
+        path: 'rtmidi'
+        key: win-rtmidi-files-${{ matrix.sys }}-bugfix-sysex
+
+    - name: 'Clone rtmidi'
+      if: matrix.win == 'win64-rtmidi' && steps.cache-rtmidi-files.outputs.cache-hit != 'true'
+      run: |
+        git clone --branch bugfix/sysex-race-condition https://github.com/laamaa/rtmidi.git
+
+    - name: 'Build rtmidi'
+      if: matrix.win == 'win64-rtmidi' && steps.cache-rtmidi-files.outputs.cache-hit != 'true'
+      run: |
+        pushd rtmidi
+        mkdir build
+        cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=C:/Libraries
+        cmake --build build --parallel
+        popd
+
+    - name: 'Install rtmidi'
+      if: matrix.win == 'win64-rtmidi'
+      run: |
+        pushd rtmidi
+        cmake --install build --prefix C:/Libraries
+        popd
+
     - name: Set current date as env variable
       run: echo "NOW=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
@@ -117,7 +146,7 @@ jobs:
         elif [ ${{ matrix.win }} == "win64-rtmidi" ]
         then
           cp C:/Libraries/bin/SDL3.dll .
-          cp /mingw64/bin/librtmidi-*.dll .
+          cp C:/Libraries/bin/librtmidi-*.dll .
           cp /mingw64/bin/libstdc++-6.dll .
           cp /mingw64/bin/libwinpthread-1.dll .
           cp /mingw64/bin/libgcc_s_seh-1.dll .
