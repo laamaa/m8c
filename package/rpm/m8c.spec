@@ -1,5 +1,5 @@
 Name:           m8c
-Version:        2.0.0
+Version:        2.2.2
 Release:        1%{?dist}
 Summary:        m8c is a client for Dirtywave M8 music tracker's headless mode
 
