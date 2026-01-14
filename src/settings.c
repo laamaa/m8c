@@ -460,12 +460,6 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
   if (e->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN) {
     SDL_GamepadButton btn = e->gbutton.button;
 
-    // Cancel capture or go back/close with B/Back
-    if (btn == SDL_GAMEPAD_BUTTON_EAST || btn == SDL_GAMEPAD_BUTTON_BACK) {
-      settings_handle_back();
-      return;
-    }
-
     // If capturing a button, let the capture handler below process it
     if (g_settings.capture_mode == CAPTURE_NONE) {
       // D-pad navigation
@@ -487,6 +481,14 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
         return;
       }
     }
+    
+    if (g_settings.capture_mode == CAPTURE_NONE || g_settings.capture_mode == CAPTURE_AXIS) {
+      // Go back/close with B/Back
+      if (btn == SDL_GAMEPAD_BUTTON_EAST || btn == SDL_GAMEPAD_BUTTON_BACK) {
+        settings_handle_back();
+        return;
+      }
+    }
   }
 
   // Capture gamepad button
@@ -500,6 +502,7 @@ void settings_handle_event(struct app_context *ctx, const SDL_Event *e) {
     g_settings.needs_redraw = 1;
     return;
   }
+  
   // Capture axis on significant motion
   if (g_settings.capture_mode == CAPTURE_AXIS && e->type == SDL_EVENT_GAMEPAD_AXIS_MOTION) {
     if (SDL_abs(e->gaxis.value) > 16000) {
