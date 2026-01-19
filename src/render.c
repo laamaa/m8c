@@ -24,7 +24,7 @@ static SDL_Color global_background_color = (SDL_Color){.r = 0x00, .g = 0x00, .b 
 static SDL_RendererLogicalPresentation window_scaling_mode = SDL_LOGICAL_PRESENTATION_INTEGER_SCALE;
 static SDL_ScaleMode texture_scaling_mode = SDL_SCALEMODE_NEAREST;
 
-static uint32_t ticks_fps;
+static Uint64 ticks_fps;
 static int fps;
 static int font_mode = -1;
 static unsigned int m8_hardware_model = 0;
@@ -38,11 +38,40 @@ static int texture_width = 320;
 static int texture_height = 240;
 static int hd_texture_width, hd_texture_height = 0;
 
+// Cached values for non-integer scaling (updated on window resize)
+static SDL_FRect cached_dest_rect = {0};
+static int cached_aspect_mode = 0; // 0=equal, 1=wider, -1=taller
+
 static int screensaver_initialized = 0;
 
 uint8_t fullscreen = 0;
 
 static uint8_t dirty = 0;
+
+// Update cached destination rectangle and aspect mode for non-integer scaling
+static void update_cached_scaling(int window_width, int window_height) {
+  const float texture_aspect_ratio = (float)texture_width / (float)texture_height;
+  const float window_aspect_ratio = (float)window_width / (float)window_height;
+
+  if (window_aspect_ratio > texture_aspect_ratio) {
+    // Window is relatively wider than the texture
+    cached_aspect_mode = 1;
+    cached_dest_rect.h = (float)window_height;
+    cached_dest_rect.w = cached_dest_rect.h * texture_aspect_ratio;
+    cached_dest_rect.x = ((float)window_width - cached_dest_rect.w) / 2.0f;
+    cached_dest_rect.y = 0;
+  } else if (window_aspect_ratio < texture_aspect_ratio) {
+    // Window is relatively taller than the texture
+    cached_aspect_mode = -1;
+    cached_dest_rect.w = (float)window_width;
+    cached_dest_rect.h = cached_dest_rect.w / texture_aspect_ratio;
+    cached_dest_rect.x = 0;
+    cached_dest_rect.y = ((float)window_height - cached_dest_rect.h) / 2.0f;
+  } else {
+    // Window and texture aspect ratios match
+    cached_aspect_mode = 0;
+  }
+}
 
 void setup_hd_texture_scaling(void) {
   // Fullscreen scaling: use an intermediate texture with the highest possible integer size factor
@@ -57,6 +86,9 @@ void setup_hd_texture_scaling(void) {
 
   // Determine the window aspect ratio
   const float window_aspect_ratio = (float)window_width / (float)window_height;
+
+  // Update cached scaling values for render_screen()
+  update_cached_scaling(window_width, window_height);
 
   SDL_Texture *og_texture = SDL_GetRenderTarget(rend);
   SDL_SetRenderTarget(rend, NULL);
@@ -324,8 +356,8 @@ void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
 
     SDL_SetRenderDrawColor(rend, command->color.r, command->color.g, command->color.b, 255);
 
-    // Create an SDL_Point array of the waveform pixels for batch drawing
-    SDL_FPoint waveform_points[command->waveform_size];
+    // Static buffer for waveform pixels (max 480 samples per M8 protocol)
+    static SDL_FPoint waveform_points[480];
 
     for (int i = 0; i < command->waveform_size; i++) {
       // Limit value to avoid random glitches
@@ -352,8 +384,9 @@ void draw_waveform(struct draw_oscilloscope_waveform_command *command) {
 void display_keyjazz_overlay(const uint8_t show, const uint8_t base_octave,
                              const uint8_t velocity) {
 
-  const Uint16 overlay_offset_x = texture_width - (fonts_get(font_mode)->glyph_x * 7 + 1);
-  const Uint16 overlay_offset_y = texture_height - (fonts_get(font_mode)->glyph_y + 1);
+  const struct inline_font *font = fonts_get(font_mode);
+  const Uint16 overlay_offset_x = texture_width - (font->glyph_x * 7 + 1);
+  const Uint16 overlay_offset_y = texture_height - (font->glyph_y + 1);
   const Uint32 bg_color =
       global_background_color.r << 16 | global_background_color.g << 8 | global_background_color.b;
 
@@ -361,7 +394,7 @@ void display_keyjazz_overlay(const uint8_t show, const uint8_t base_octave,
     char overlay_text[7];
     SDL_snprintf(overlay_text, sizeof(overlay_text), "%02X %u", velocity, base_octave);
     inprint(rend, overlay_text, overlay_offset_x, overlay_offset_y, 0xC8C8C8, bg_color);
-    inprint(rend, "*", overlay_offset_x + (fonts_get(font_mode)->glyph_x * 5 + 5), overlay_offset_y,
+    inprint(rend, "*", overlay_offset_x + (font->glyph_x * 5 + 5), overlay_offset_y,
             0xFF0000, bg_color);
   } else {
     inprint(rend, "      ", overlay_offset_x, overlay_offset_y, 0xC8C8C8, bg_color);
@@ -373,8 +406,9 @@ void display_keyjazz_overlay(const uint8_t show, const uint8_t base_octave,
 static void log_fps_stats(void) {
   fps++;
 
-  if (SDL_GetTicks() - ticks_fps > 5000) {
-    ticks_fps = SDL_GetTicks();
+  const Uint64 now = SDL_GetTicks();
+  if (now - ticks_fps > 5000) {
+    ticks_fps = now;
     SDL_LogDebug(SDL_LOG_CATEGORY_VIDEO, "%.1f fps\n", (float)fps / 5);
     fps = 0;
   }
@@ -476,8 +510,6 @@ void render_screen(config_params_s *conf) {
   }
 
   if (conf->integer_scaling) {
-    SDL_SetRenderTarget(rend, NULL);
-
     // Direct rendering with integer scaling
     if (!SDL_RenderTexture(rend, main_texture, NULL, NULL)) {
       SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't render texture: %s", SDL_GetError());
@@ -492,17 +524,6 @@ void render_screen(config_params_s *conf) {
     }
 
   } else {
-    int window_width, window_height;
-    if (!SDL_GetWindowSizeInPixels(win, &window_width, &window_height)) {
-      SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't get window size: %s", SDL_GetError());
-    }
-
-    // Determine the texture aspect ratio
-    const float texture_aspect_ratio = (float)texture_width / (float)texture_height;
-
-    // Determine the window aspect ratio
-    const float window_aspect_ratio = (float)window_width / (float)window_height;
-
     // Ensure that HD texture exists
     if (hd_texture == NULL) {
       create_hd_texture(); // Create the texture dynamically based on window size
@@ -540,26 +561,9 @@ void render_screen(config_params_s *conf) {
                       SDL_GetError());
     }
 
-    float texture_width_hd, texture_height_hd;
-    SDL_GetTextureSize(hd_texture, &texture_width_hd, &texture_height_hd);
-
-    SDL_FRect dest_rect;
-
-    if (window_aspect_ratio > texture_aspect_ratio) {
-      // Window is relatively wider than the texture
-      dest_rect.h = (float)window_height;
-      dest_rect.w = dest_rect.h * texture_aspect_ratio;
-      dest_rect.x = ((float)window_width - dest_rect.w) / 2.0f;
-      dest_rect.y = 0;
-      SDL_RenderTexture(rend, hd_texture, NULL, &dest_rect);
-    } else if (window_aspect_ratio < texture_aspect_ratio) {
-      // Window is relatively taller than the texture
-      dest_rect.w = (float)window_width;
-      dest_rect.h = dest_rect.w / texture_aspect_ratio;
-      dest_rect.x = 0;
-      dest_rect.y = ((float)window_height - dest_rect.h) / 2.0f;
-      // Render the HD texture with the calculated destination rectangle
-      SDL_RenderTexture(rend, hd_texture, NULL, &dest_rect);
+    // Use cached destination rectangle (updated on window resize)
+    if (cached_aspect_mode != 0) {
+      SDL_RenderTexture(rend, hd_texture, NULL, &cached_dest_rect);
     } else {
       // Window and texture aspect ratios match
       SDL_RenderTexture(rend, hd_texture, NULL, NULL);
