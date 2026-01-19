@@ -83,12 +83,15 @@ static void build_menu(const config_params_s *conf, setting_item_s *items, int *
   *count = 0;
   switch (g_settings.view) {
   case VIEW_ROOT:
-    add_item(items, count, "Graphics       ", ITEM_HEADER, NULL, 0, 0, 0);
-    add_item(items, count, "Integer scaling", ITEM_TOGGLE_BOOL, (void *)&conf->integer_scaling, 0,0, 0);
+    add_item(items, count, "Graphics                         ", ITEM_HEADER, NULL, 0, 0, 0);
+    add_item(items, count, "Integer scaling                   ", ITEM_TOGGLE_BOOL, (void *)&conf->integer_scaling, 0,0, 0);
+
     // SDL apps are always full screen on iOS, hide the option
     if (TARGET_OS_IOS == 0) {
-      add_item(items, count, "Fullscreen     ", ITEM_TOGGLE_BOOL, (void *)&conf->init_fullscreen, 0,0, 0);
+      add_item(items, count, "Fullscreen                        ", ITEM_TOGGLE_BOOL, (void *)&conf->init_fullscreen, 0,0, 0);
+      add_item(items, count, "Persist window position and size  ", ITEM_TOGGLE_BOOL, (void *)&conf->persist_window_position_and_size, 0,0, 0);
     }
+
     add_item(items, count, "", ITEM_HEADER, NULL, 0, 0, 0);
     // Audio routing does not work on iOS, hide the items when building for that
     if (TARGET_OS_IOS == 0) {

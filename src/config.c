@@ -6,6 +6,7 @@
 #include <SDL3/SDL.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <stdio.h>
 
 /* Case-insensitive string compare from ini.h library */
@@ -30,6 +31,14 @@ config_params_s config_initialize(char *filename) {
 
   c.init_fullscreen = 0; // default fullscreen state at load
   c.integer_scaling = 0; // use integer scaling for the user interface
+
+  // remember window size and position on next start
+  c.persist_window_position_and_size = 0;
+  c.window.height = 480;
+  c.window.width = 640;
+  c.window.x = 0;
+  c.window.y = 0;
+
   c.wait_packets = 256;  // amount of empty command queue reads before assuming device disconnected
   c.audio_enabled = 0;   // route M8 audio to default output
   c.audio_buffer_size = 0;    // requested audio buffer size in samples: 0 = let SDL decide
@@ -80,6 +89,29 @@ config_params_s config_initialize(char *filename) {
   return c;
 }
 
+void update_and_write_window_position_and_size_config(
+    config_params_s *conf, const window_position_and_size_s *window_position_and_size) {
+  // Moved event
+  if (INT_MIN == window_position_and_size->height && INT_MIN == window_position_and_size->width) {
+    SDL_Log("x%d\n", window_position_and_size->x);
+    SDL_Log("y%d\n", window_position_and_size->y);
+
+    conf->window.x = window_position_and_size->x;
+    conf->window.y = window_position_and_size->y;
+  }
+
+  // Resized event
+  if (INT_MIN == window_position_and_size->x && INT_MIN == window_position_and_size->y) {
+    SDL_Log("height%d\n", window_position_and_size->height);
+    SDL_Log("width%d\n", window_position_and_size->width);
+
+    conf->window.height = window_position_and_size->height;
+    conf->window.width = window_position_and_size->width;
+  }
+
+  write_config(conf);
+}
+
 // Write config to file
 void write_config(const config_params_s *conf) {
 
@@ -102,6 +134,12 @@ void write_config(const config_params_s *conf) {
   snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "wait_packets=%d\n", conf->wait_packets);
   snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "integer_scaling=%s\n",
            conf->integer_scaling ? "true" : "false");
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "persist_window_position_and_size=%s\n",
+           conf->persist_window_position_and_size ? "true" : "false");
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "window_height=%d\n", conf->window.height);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "window_width=%d\n", conf->window.width);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "window_x=%d\n", conf->window.x);
+  snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "window_y=%d\n", conf->window.y);
   snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "[audio]\n");
   snprintf(ini_values[initPointer++], INI_LINE_LENGTH, "audio_enabled=%s\n",
            conf->audio_enabled ? "true" : "false");
@@ -236,11 +274,38 @@ void read_graphics_config(const ini_t *ini, config_params_s *conf) {
   const char *param_fs = ini_get(ini, "graphics", "fullscreen");
   const char *wait_packets = ini_get(ini, "graphics", "wait_packets");
   const char *integer_scaling = ini_get(ini, "graphics", "integer_scaling");
+  const char *param_persist_window_position_and_size =
+      ini_get(ini, "graphics", "persist_window_position_and_size");
+  const char *window_height = ini_get(ini, "graphics", "window_height");
+  const char *window_width = ini_get(ini, "graphics", "window_width");
+  const char *window_x = ini_get(ini, "graphics", "window_x");
+  const char *window_y = ini_get(ini, "graphics", "window_y");
 
   if (param_fs != NULL && strcmpci(param_fs, "true") == 0) {
     conf->init_fullscreen = 1;
   } else {
     conf->init_fullscreen = 0;
+  }
+
+  if (param_persist_window_position_and_size != NULL &&
+      strcmpci(param_persist_window_position_and_size, "true") == 0) {
+    conf->persist_window_position_and_size = 1;
+  } else {
+    conf->persist_window_position_and_size = 0;
+  }
+
+  if (1 == conf->persist_window_position_and_size) {
+    if (window_height != NULL)
+      conf->window.height = SDL_atoi(window_height);
+
+    if (window_width != NULL)
+      conf->window.width = SDL_atoi(window_width);
+
+    if (window_x != NULL)
+      conf->window.x = SDL_atoi(window_x);
+
+    if (window_y != NULL)
+      conf->window.y = SDL_atoi(window_y);
   }
 
   if (wait_packets != NULL)
