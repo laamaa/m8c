@@ -166,11 +166,6 @@ static void change_font(const unsigned int index) {
 // Log overlay API wrappers
 void renderer_log_init(void) { log_overlay_init(); }
 
-void renderer_toggle_log_overlay(void) {
-  log_overlay_toggle();
-  dirty = 1;
-}
-
 static void check_and_adjust_window_and_texture_size(const int new_width, const int new_height) {
 
   if (texture_width == new_width && texture_height == new_height) {
@@ -635,3 +630,5 @@ void renderer_clear_screen(void) {
 
   SDL_RenderClear(rend);
 }
+
+void renderer_request_redraw(void) { dirty = 1; }

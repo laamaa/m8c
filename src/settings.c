@@ -405,6 +405,7 @@ void settings_toggle_open(void) {
   g_settings.capture_target = NULL;
   g_settings.scroll_offset = 0;
   g_settings.needs_redraw = 1;
+  renderer_request_redraw();
 }
 
 bool settings_is_open(void) { return g_settings.is_open != 0; }

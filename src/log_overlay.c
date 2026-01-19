@@ -7,6 +7,7 @@
 
 #include "SDL2_inprint.h"
 #include "fonts/fonts.h"
+#include "render.h"
 
 #define LOG_BUFFER_MAX_LINES 512
 #define LOG_LINE_MAX_CHARS 256
@@ -73,6 +74,7 @@ void log_overlay_init(void) {
 void log_overlay_toggle(void) {
   overlay_visible = !overlay_visible;
   overlay_needs_redraw = 1;
+  renderer_request_redraw();
 }
 
 int log_overlay_is_visible(void) { return overlay_visible; }

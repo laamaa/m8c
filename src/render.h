@@ -14,6 +14,7 @@ void renderer_close(void);
 void renderer_set_font_mode(int mode);
 void renderer_fix_texture_scaling_after_window_resize(config_params_s *conf);
 void renderer_clear_screen(void);
+void renderer_request_redraw(void);
 
 void draw_waveform(struct draw_oscilloscope_waveform_command *command);
 void draw_rectangle(struct draw_rectangle_command *command);
