@@ -5,7 +5,7 @@
    CFLAGS=-DDEBUG_MSG` */
 // #define DEBUG_MSG
 
-#define APP_VERSION "v2.2.3"
+#define APP_VERSION "v2.2.4"
 
 #include <SDL3/SDL.h>
 #define SDL_MAIN_USE_CALLBACKS
