@@ -19,6 +19,8 @@ RtMidiInPtr midi_in;
 RtMidiOutPtr midi_out;
 message_queue_s queue;
 
+static uint8_t midi_decode_buffer[2048];
+
 const unsigned char m8_sysex_header[5] = {0xF0, 0x00, 0x02, 0x61, 0x00};
 const unsigned int m8_sysex_header_size = sizeof(m8_sysex_header);
 const unsigned char sysex_message_end = 0xF7;
@@ -33,13 +35,10 @@ static bool message_is_m8_sysex(const unsigned char *message) {
   return false;
 }
 
-static void midi_decode(const uint8_t *encoded_data, size_t length, uint8_t **decoded_data,
-                        size_t *decoded_length) {
+static size_t midi_decode(const uint8_t *encoded_data, size_t length, uint8_t *out_buffer,
+                          size_t out_buffer_size) {
   if (length < m8_sysex_header_size) {
-    // Invalid data
-    *decoded_data = NULL;
-    *decoded_length = 0;
-    return;
+    return 0;
   }
 
   // Skip header "F0 00 02 61" and the first MSB byte
@@ -52,17 +51,15 @@ static void midi_decode(const uint8_t *encoded_data, size_t length, uint8_t **de
     length--; // Ignore the EOT byte
   }
 
-  // Allocate memory for decoded output
-  *decoded_data = (uint8_t *)SDL_malloc(expected_output_size);
-  if (*decoded_data == NULL) {
-    *decoded_length = 0;
-    return;
+  // Check if output buffer is large enough
+  if (expected_output_size > out_buffer_size) {
+    return 0;
   }
 
   uint8_t bit_counter = 0;
   uint8_t bit_byte_counter = 0;
-  uint8_t *out = *decoded_data;
-  *decoded_length = 0;
+  uint8_t *out = out_buffer;
+  size_t decoded_length = 0;
 
   while (pos < length) {
     // Extract MSB from the "bit field" position
@@ -74,7 +71,7 @@ static void midi_decode(const uint8_t *encoded_data, size_t length, uint8_t **de
     // Reconstruct original byte, skipping the MSB bytes in output
     *out = (msb << 7) | lsb;
     out++;
-    (*decoded_length)++;
+    decoded_length++;
 
     bit_counter++;
     pos++;
@@ -85,6 +82,8 @@ static void midi_decode(const uint8_t *encoded_data, size_t length, uint8_t **de
       pos++; // Skip the MSB byte
     }
   }
+
+  return decoded_length;
 }
 
 static void midi_callback(double delta_time, const unsigned char *message, size_t message_size,
@@ -100,9 +99,8 @@ static void midi_callback(double delta_time, const unsigned char *message, size_
     midi_sysex_received = true;
   }
 
-  unsigned char *decoded_data;
-  size_t decoded_length;
-  midi_decode(message, message_size, &decoded_data, &decoded_length);
+  size_t decoded_length =
+      midi_decode(message, message_size, midi_decode_buffer, sizeof(midi_decode_buffer));
 
   // If you need to debug incoming MIDI packets, you can uncomment the lines below:
 
@@ -111,14 +109,13 @@ static void midi_callback(double delta_time, const unsigned char *message, size_
     printf("%02X ", message[i]);
   } */
 
-  if (decoded_data) {
+  if (decoded_length > 0) {
     /* printf("\nDecoded MIDI Data: ");
     for (size_t i = 0; i < decoded_length; i++) {
-      printf("%02X ", decoded_data[i]);
+      printf("%02X ", midi_decode_buffer[i]);
     }
     printf("\n"); */
-    push_message(&queue, decoded_data, decoded_length);
-    SDL_free(decoded_data);
+    push_message(&queue, midi_decode_buffer, decoded_length);
   } else {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Decoding failed.\n");
   }
