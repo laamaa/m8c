@@ -390,21 +390,20 @@ int m8_enable_display(const unsigned char reset_display) {
 
 int m8_process_data(const config_params_s *conf) {
   static unsigned int empty_cycles = 0;
+  static message_batch_s batch;
 
   // Device likely has been disconnected
   if (m8_port == NULL) {
     return DEVICE_DISCONNECTED;
   }
 
-  if (queue_size(&queue) > 0) {
-    unsigned char *command;
+  if (pop_all_messages(&queue, &batch) > 0) {
     empty_cycles = 0;
-    size_t length = 0;
-    while ((command = pop_message(&queue, &length)) != NULL) {
-      if (length > 0) {
-        process_command(command, length);
+    for (unsigned int i = 0; i < batch.count; i++) {
+      if (batch.lengths[i] > 0) {
+        process_command(batch.messages[i], batch.lengths[i]);
       }
-      SDL_free(command);
+      SDL_free(batch.messages[i]);
     }
   } else {
     empty_cycles++;

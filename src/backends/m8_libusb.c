@@ -270,15 +270,15 @@ void async_read_stop() {
 
 int m8_process_data(const config_params_s *conf) {
   (void)conf; // Suppress unused parameter warning
+  static message_batch_s batch;
+
   // Process any queued messages
-  if (queue_size(&queue) > 0) {
-    unsigned char *command;
-    size_t length = 0;
-    while ((command = pop_message(&queue, &length)) != NULL) {
-      if (length > 0) {
-        process_command(command, length);
+  if (pop_all_messages(&queue, &batch) > 0) {
+    for (unsigned int i = 0; i < batch.count; i++) {
+      if (batch.lengths[i] > 0) {
+        process_command(batch.messages[i], batch.lengths[i]);
       }
-      SDL_free(command);
+      SDL_free(batch.messages[i]);
     }
   }
   return DEVICE_PROCESSING;

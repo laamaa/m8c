@@ -18,6 +18,12 @@ typedef struct {
   SDL_Condition *cond;
 } message_queue_s;
 
+typedef struct {
+  unsigned char *messages[MAX_QUEUE_SIZE];
+  size_t lengths[MAX_QUEUE_SIZE];
+  unsigned int count;
+} message_batch_s;
+
 /**
  * Initializes the message queue structure.
  *
@@ -59,5 +65,14 @@ void push_message(message_queue_s *queue, const unsigned char *message, size_t l
  * @return The number of messages currently in the queue.
  */
 unsigned int queue_size(const message_queue_s *queue);
+
+/**
+ * Pops all messages from the queue in a single lock acquisition.
+ *
+ * @param queue A pointer to the message queue structure.
+ * @param batch A pointer to a batch structure that will receive the messages.
+ * @return The number of messages popped.
+ */
+unsigned int pop_all_messages(message_queue_s *queue, message_batch_s *batch);
 
 #endif // QUEUE_H

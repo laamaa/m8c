@@ -325,14 +325,13 @@ int m8_send_msg_keyjazz(const unsigned char note, unsigned char velocity) {
 
 int m8_process_data(const config_params_s *conf) {
   static unsigned int empty_cycles = 0;
+  static message_batch_s batch;
 
-  if (queue_size(&queue) > 0) {
-    unsigned char *command;
+  if (pop_all_messages(&queue, &batch) > 0) {
     empty_cycles = 0;
-    size_t length = 0;
-    while ((command = pop_message(&queue, &length)) != NULL) {
-      process_command(command, length);
-      SDL_free(command);
+    for (unsigned int i = 0; i < batch.count; i++) {
+      process_command(batch.messages[i], batch.lengths[i]);
+      SDL_free(batch.messages[i]);
     }
   } else {
     empty_cycles++;

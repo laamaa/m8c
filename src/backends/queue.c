@@ -68,3 +68,18 @@ unsigned int queue_size(const message_queue_s *queue) {
   SDL_UnlockMutex(queue->mutex);
   return size;
 }
+
+unsigned int pop_all_messages(message_queue_s *queue, message_batch_s *batch) {
+  SDL_LockMutex(queue->mutex);
+
+  batch->count = 0;
+  while (queue->front != queue->rear) {
+    batch->lengths[batch->count] = queue->lengths[queue->front];
+    batch->messages[batch->count] = queue->messages[queue->front];
+    queue->front = (queue->front + 1) % MAX_QUEUE_SIZE;
+    batch->count++;
+  }
+
+  SDL_UnlockMutex(queue->mutex);
+  return batch->count;
+}
