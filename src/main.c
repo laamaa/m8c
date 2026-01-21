@@ -118,6 +118,10 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     break;
 
   case RUN: {
+    // Handle app suspension
+    if (ctx->app_suspended) {
+      return SDL_APP_CONTINUE;
+    }
     const int result = m8_process_data(&ctx->conf);
     if (result == DEVICE_DISCONNECTED) {
       ctx->device_connected = 0;
