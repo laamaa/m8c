@@ -147,17 +147,18 @@ static int initialize_rtmidi(void) {
   return 1;
 }
 
-// Find M8 MIDI output port by matching the port name
-static int find_m8_output_port(const char *input_port_name) {
+// Find M8 MIDI output port by looking for port name starting with "M8"
+static int find_m8_output_port(void) {
   const unsigned int ports_total_out = rtmidi_get_port_count(midi_out);
   for (unsigned int port_number = 0; port_number < ports_total_out; port_number++) {
     int port_name_length;
     rtmidi_get_port_name(midi_out, port_number, NULL, &port_name_length);
     char port_name[port_name_length];
     rtmidi_get_port_name(midi_out, port_number, &port_name[0], &port_name_length);
-    // Match by name (port numbers may differ on Windows)
-    if (SDL_strcmp(input_port_name, port_name) == 0) {
-      SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Found matching M8 Output in MIDI port %d", port_number);
+    // Match any port starting with "M8" (input/output names may differ on Windows)
+    if (SDL_strncmp("M8", port_name, 2) == 0) {
+      SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Found M8 Output in MIDI port %d: %s", port_number,
+                   port_name);
       return port_number;
     }
   }
@@ -173,7 +174,6 @@ static int detect_m8_midi_device(const int verbose, const char *preferred_device
   }
   int m8_input_port = -1;
   int m8_output_port = -1;
-  char matched_port_name[256] = {0};
 
   const unsigned int ports_total_in = rtmidi_get_port_count(midi_in);
   if (verbose)
@@ -187,7 +187,6 @@ static int detect_m8_midi_device(const int verbose, const char *preferred_device
       SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "MIDI IN port %d, name: %s", port_number, port_name);
     if (SDL_strncmp("M8", port_name, 2) == 0) {
       m8_input_port = port_number;
-      SDL_strlcpy(matched_port_name, port_name, sizeof(matched_port_name));
       if (verbose)
         SDL_Log("Found M8 Input in MIDI port %d", port_number);
       if (preferred_device != NULL && SDL_strcmp(preferred_device, port_name) == 0) {
@@ -197,12 +196,12 @@ static int detect_m8_midi_device(const int verbose, const char *preferred_device
     }
   }
 
-  // If we found an input port, find the matching output port by name
+  // If we found an input port, find an output port starting with "M8"
   if (m8_input_port >= 0) {
-    m8_output_port = find_m8_output_port(matched_port_name);
+    m8_output_port = find_m8_output_port();
     if (m8_output_port < 0) {
       SDL_LogError(SDL_LOG_CATEGORY_SYSTEM,
-                   "Found M8 input port but no matching output port for '%s'", matched_port_name);
+                   "Found M8 input port but no output port starting with 'M8'");
       return -1;
     }
     if (verbose && m8_input_port != m8_output_port) {
