@@ -139,6 +139,13 @@ int winmidi_init(void) {
         SDL_Log("Windows MIDI subsystem initialized");
         return 1;
     } catch (const winrt::hresult_error &ex) {
+        // RPC_E_CHANGED_MODE (0x80010106) means COM was already initialized with
+        // a different apartment type (likely STA by SDL). WinRT will still work
+        // with the existing apartment, so we can continue.
+        if (ex.code() == HRESULT(0x80010106)) {
+            SDL_Log("Windows MIDI subsystem initialized (using existing COM apartment)");
+            return 1;
+        }
         SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to initialize WinRT: %s",
                      wstring_to_utf8(ex.message().c_str()).c_str());
         g_initialized = false;

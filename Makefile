@@ -47,7 +47,7 @@ CPP_OBJ := $(CPP_SRC:.cpp=.o)
 
 winmidi: INCLUDES = $(shell pkg-config --libs sdl3) -lole32 -lruntimeobject -lwindowsapp
 winmidi: local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl3) -Wall -Wextra -O2 -pipe -I. -DUSE_WINMIDI -DNDEBUG
-winmidi: local_CXXFLAGS = $(CXXFLAGS) -std=c++17 $(shell pkg-config --cflags sdl3) -Wall -Wextra -O2 -pipe -I. -DUSE_WINMIDI -DNDEBUG
+winmidi: local_CXXFLAGS = $(CXXFLAGS) -std=c++17 $(shell pkg-config --cflags sdl3) -Wall -Wextra -O2 -pipe -I. -DUSE_WINMIDI -DNDEBUG -std=c++20
 winmidi: $(OBJ) $(CPP_OBJ)
 	$(CXX) -o m8c $^ $(local_CXXFLAGS) $(INCLUDES)
 
