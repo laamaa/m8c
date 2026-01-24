@@ -7,10 +7,11 @@ set(APP_NAME m8c)
 option(USE_LIBSERIALPORT "Use libserialport as a backend" OFF)
 option(USE_LIBUSB "Use libusb as a backend" OFF)
 option(USE_RTMIDI "Use RtMidi as a backend" OFF)
+option(USE_WINMIDI "Use Windows native MIDI as a backend" OFF)
 
-# Enable USE_LIBSERIALPORT by default if neither USE_LIBUSB nor USE_RTMIDI are defined
-if (NOT USE_LIBUSB AND NOT USE_RTMIDI)
-    message(STATUS "Neither USE_LIBUSB nor USE_RTMIDI are enabled. Enabling USE_LIBSERIALPORT by default.")
+# Enable USE_LIBSERIALPORT by default if no backend is specified
+if (NOT USE_LIBUSB AND NOT USE_RTMIDI AND NOT USE_WINMIDI)
+    message(STATUS "No backend enabled. Enabling USE_LIBSERIALPORT by default.")
     set(USE_LIBSERIALPORT ON)
 endif ()
 
@@ -63,6 +64,18 @@ if (USE_RTMIDI)
     target_include_directories(${APP_NAME} PRIVATE ${RTMIDI_INCLUDE_DIRS})
     target_compile_options(${APP_NAME} PRIVATE ${RTMIDI_CFLAGS_OTHER})
     target_compile_definitions(${APP_NAME} PRIVATE USE_RTMIDI)
+endif ()
+
+if (USE_WINMIDI)
+    if (NOT WIN32)
+        message(FATAL_ERROR "USE_WINMIDI is only available on Windows")
+    endif()
+    enable_language(CXX)
+    set(CMAKE_CXX_STANDARD 17)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+    target_sources(${APP_NAME} PRIVATE src/backends/winmidi_wrapper.cpp)
+    target_compile_definitions(${APP_NAME} PRIVATE USE_WINMIDI)
+    target_link_libraries(${APP_NAME} ole32 runtimeobject windowsapp)
 endif ()
 
 if (WIN32)

@@ -40,6 +40,20 @@ rtmidi: INCLUDES = $(shell pkg-config --libs sdl3 rtmidi)
 rtmidi: local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl3 rtmidi) -Wall -Wextra -O2 -pipe -I. -DUSE_RTMIDI -DNDEBUG
 rtmidi: m8c
 
+# Windows native MIDI backend (Windows 10 1703+)
+CXX ?= g++
+CPP_SRC := $(shell find $(SOURCE_DIR) -type f -name "*.cpp")
+CPP_OBJ := $(CPP_SRC:.cpp=.o)
+
+winmidi: INCLUDES = $(shell pkg-config --libs sdl3) -lole32 -lruntimeobject -lwindowsapp
+winmidi: local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl3) -Wall -Wextra -O2 -pipe -I. -DUSE_WINMIDI -DNDEBUG
+winmidi: local_CXXFLAGS = $(CXXFLAGS) -std=c++17 $(shell pkg-config --cflags sdl3) -Wall -Wextra -O2 -pipe -I. -DUSE_WINMIDI -DNDEBUG
+winmidi: $(OBJ) $(CPP_OBJ)
+	$(CXX) -o m8c $^ $(local_CXXFLAGS) $(INCLUDES)
+
+%.o: %.cpp $(DEPS)
+	$(CXX) -c -o $@ $< $(local_CXXFLAGS)
+
 #Cleanup
 .PHONY: clean
 
