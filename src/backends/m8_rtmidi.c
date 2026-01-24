@@ -147,13 +147,34 @@ static int initialize_rtmidi(void) {
   return 1;
 }
 
-static int detect_m8_midi_device(const int verbose, const char *preferred_device) {
+// Find M8 MIDI output port by matching the port name
+static int find_m8_output_port(const char *input_port_name) {
+  const unsigned int ports_total_out = rtmidi_get_port_count(midi_out);
+  for (unsigned int port_number = 0; port_number < ports_total_out; port_number++) {
+    int port_name_length;
+    rtmidi_get_port_name(midi_out, port_number, NULL, &port_name_length);
+    char port_name[port_name_length];
+    rtmidi_get_port_name(midi_out, port_number, &port_name[0], &port_name_length);
+    // Match by name (port numbers may differ on Windows)
+    if (SDL_strcmp(input_port_name, port_name) == 0) {
+      SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Found matching M8 Output in MIDI port %d", port_number);
+      return port_number;
+    }
+  }
+  return -1;
+}
+
+static int detect_m8_midi_device(const int verbose, const char *preferred_device,
+                                 int *out_input_port, int *out_output_port) {
   if (midi_in->ptr == NULL) {
     midi_in = NULL;
     midi_out = NULL;
     return -1;
   }
-  int m8_midi_port_number = -1;
+  int m8_input_port = -1;
+  int m8_output_port = -1;
+  char matched_port_name[256] = {0};
+
   const unsigned int ports_total_in = rtmidi_get_port_count(midi_in);
   if (verbose)
     SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Number of MIDI in ports: %d", ports_total_in);
@@ -165,7 +186,8 @@ static int detect_m8_midi_device(const int verbose, const char *preferred_device
     if (verbose)
       SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "MIDI IN port %d, name: %s", port_number, port_name);
     if (SDL_strncmp("M8", port_name, 2) == 0) {
-      m8_midi_port_number = port_number;
+      m8_input_port = port_number;
+      SDL_strlcpy(matched_port_name, port_name, sizeof(matched_port_name));
       if (verbose)
         SDL_Log("Found M8 Input in MIDI port %d", port_number);
       if (preferred_device != NULL && SDL_strcmp(preferred_device, port_name) == 0) {
@@ -174,7 +196,24 @@ static int detect_m8_midi_device(const int verbose, const char *preferred_device
       }
     }
   }
-  return m8_midi_port_number;
+
+  // If we found an input port, find the matching output port by name
+  if (m8_input_port >= 0) {
+    m8_output_port = find_m8_output_port(matched_port_name);
+    if (m8_output_port < 0) {
+      SDL_LogError(SDL_LOG_CATEGORY_SYSTEM,
+                   "Found M8 input port but no matching output port for '%s'", matched_port_name);
+      return -1;
+    }
+    if (verbose && m8_input_port != m8_output_port) {
+      SDL_Log("Note: M8 input port (%d) differs from output port (%d)", m8_input_port,
+              m8_output_port);
+    }
+  }
+
+  *out_input_port = m8_input_port;
+  *out_output_port = m8_output_port;
+  return m8_input_port;
 }
 
 static int device_still_exists(void) {
@@ -182,12 +221,11 @@ static int device_still_exists(void) {
     return 0;
   };
 
-  int m8_midi_port_number = 0;
+  int input_port = -1, output_port = -1;
 
   SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Checking if opened MIDI port still exists");
 
-  m8_midi_port_number = detect_m8_midi_device(0, NULL);
-  if (m8_midi_port_number >= 0) {
+  if (detect_m8_midi_device(0, NULL, &input_port, &output_port) >= 0) {
     return 1;
   }
   return 0;
@@ -206,17 +244,16 @@ static int disconnect(void) {
 }
 
 int m8_initialize(const int verbose, const char *preferred_device) {
-  int m8_midi_port_number = 0;
+  int input_port = -1, output_port = -1;
 
   SDL_LogDebug(SDL_LOG_CATEGORY_SYSTEM, "Initialize M8 via RTMIDI called");
   if (midi_in == NULL || midi_out == NULL) {
     initialize_rtmidi();
   };
-  m8_midi_port_number = detect_m8_midi_device(verbose, preferred_device);
-  if (m8_midi_port_number >= 0) {
+  if (detect_m8_midi_device(verbose, preferred_device, &input_port, &output_port) >= 0) {
     rtmidi_in_ignore_types(midi_in, false, true, true); // Allow sysex
-    rtmidi_open_port(midi_in, m8_midi_port_number, "M8");
-    rtmidi_open_port(midi_out, m8_midi_port_number, "M8");
+    rtmidi_open_port(midi_in, input_port, "M8");
+    rtmidi_open_port(midi_out, output_port, "M8");
     init_queue(&queue);
     return 1;
   }
