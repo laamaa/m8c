@@ -40,6 +40,10 @@ rtmidi: INCLUDES = $(shell pkg-config --libs sdl3 rtmidi)
 rtmidi: local_CFLAGS = $(CFLAGS) $(shell pkg-config --cflags sdl3 rtmidi) -Wall -Wextra -O2 -pipe -I. -DUSE_RTMIDI -DNDEBUG
 rtmidi: m8c
 
+.PHONY: xcode-ios
+xcode-ios:
+	./tools/generate-xcode-ios.sh
+
 #Cleanup
 .PHONY: clean
 

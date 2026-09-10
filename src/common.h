@@ -15,6 +15,7 @@ struct app_context {
     enum app_state app_state;
     char *preferred_device;
     unsigned char device_connected;
+    unsigned char device_initializing;
     unsigned char app_suspended;
   };
   

@@ -12,6 +12,10 @@
 #include "log_overlay.h"
 #include "settings.h"
 
+#if TARGET_OS_IOS
+#include "ios_window.h"
+#endif
+
 #include "fonts/fonts.h"
 
 #include <stdlib.h>
@@ -37,6 +41,7 @@ static int waveform_max_height = 24;
 static int texture_width = 320;
 static int texture_height = 240;
 static int hd_texture_width, hd_texture_height = 0;
+static int scaling_output_width, scaling_output_height = 0;
 
 // Cached values for non-integer scaling (updated on window resize)
 static SDL_FRect cached_dest_rect = {0};
@@ -73,13 +78,8 @@ static void update_cached_scaling(int window_width, int window_height) {
   }
 }
 
-void setup_hd_texture_scaling(void) {
+static void setup_hd_texture_scaling(const int window_width, const int window_height) {
   // Fullscreen scaling: use an intermediate texture with the highest possible integer size factor
-
-  int window_width, window_height;
-  if (!SDL_GetWindowSizeInPixels(win, &window_width, &window_height)) {
-    SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't get window size: %s", SDL_GetError());
-  }
 
   // Determine the texture aspect ratio
   const float texture_aspect_ratio = (float)texture_width / (float)texture_height;
@@ -109,8 +109,17 @@ void setup_hd_texture_scaling(void) {
 static void create_hd_texture(void) {
   int window_width, window_height;
 
-  // Get the current window size
-  SDL_GetWindowSizeInPixels(win, &window_width, &window_height);
+  // Use the drawable size, which can settle after the UIKit window size during launch.
+  if (!SDL_GetRenderOutputSize(rend, &window_width, &window_height)) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't get renderer output size: %s",
+                    SDL_GetError());
+    return;
+  }
+  if (window_width <= 0 || window_height <= 0) {
+    SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "Renderer output is not ready: %dx%d", window_width,
+                 window_height);
+    return;
+  }
 
   // Calculate the maximum integer scaling factor
   int scale_factor = SDL_min(window_width / texture_width, window_height / texture_height);
@@ -121,40 +130,44 @@ static void create_hd_texture(void) {
   // Calculate the HD texture size
   const int new_hd_texture_width = texture_width * scale_factor;
   const int new_hd_texture_height = texture_height * scale_factor;
-  if (hd_texture != NULL && new_hd_texture_width == hd_texture_width &&
+  if (hd_texture != NULL && window_width == scaling_output_width &&
+      window_height == scaling_output_height && new_hd_texture_width == hd_texture_width &&
       new_hd_texture_height == hd_texture_height) {
-    // Texture exists, and there is no change in the size, carry on
-    SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "HD texture size not changed, skipping");
     return;
   }
 
-  hd_texture_width = new_hd_texture_width;
-  hd_texture_height = new_hd_texture_height;
+  if (hd_texture != NULL && new_hd_texture_width == hd_texture_width &&
+      new_hd_texture_height == hd_texture_height) {
+    SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "HD texture size not changed, skipping");
+    setup_hd_texture_scaling(window_width, window_height);
+    scaling_output_width = window_width;
+    scaling_output_height = window_height;
+    return;
+  }
 
   SDL_LogDebug(SDL_LOG_CATEGORY_RENDER, "Creating HD texture, scale factor: %d, size: %dx%d",
-               scale_factor, hd_texture_width, hd_texture_height);
+               scale_factor, new_hd_texture_width, new_hd_texture_height);
 
-  // Destroy any existing HD texture
+  // Create a new HD texture with the calculated size
+  SDL_Texture *new_hd_texture =
+      SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
+                        new_hd_texture_width, new_hd_texture_height);
+  if (!new_hd_texture) {
+    SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't create HD texture: %s", SDL_GetError());
+    return;
+  }
+
+  SDL_SetTextureBlendMode(new_hd_texture, SDL_BLENDMODE_BLEND);
   if (hd_texture != NULL) {
     SDL_DestroyTexture(hd_texture);
   }
+  hd_texture = new_hd_texture;
+  hd_texture_width = new_hd_texture_width;
+  hd_texture_height = new_hd_texture_height;
 
-  // Create a new HD texture with the calculated size
-  hd_texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
-                                 hd_texture_width, hd_texture_height);
-  if (!hd_texture) {
-    SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't create HD texture: %s", SDL_GetError());
-  }
-
-  // Set a linear scaling mode for smoother rendering
-  if (!SDL_SetTextureScaleMode(hd_texture, SDL_SCALEMODE_LINEAR)) {
-    SDL_LogCritical(SDL_LOG_CATEGORY_RENDER, "Couldn't set HD texture scale mode: %s",
-                    SDL_GetError());
-  }
-
-  SDL_SetTextureBlendMode(hd_texture,SDL_BLENDMODE_BLEND);
-
-  setup_hd_texture_scaling();
+  setup_hd_texture_scaling(window_width, window_height);
+  scaling_output_width = window_width;
+  scaling_output_height = window_height;
 }
 
 static void change_font(const unsigned int index) {
@@ -184,9 +197,7 @@ static void check_and_adjust_window_and_texture_size(const int new_width, const 
   }
 
   if (hd_texture != NULL) {
-    SDL_DestroyTexture(hd_texture);
     create_hd_texture(); // Create the texture dynamically based on window size
-    setup_hd_texture_scaling();
   }
 
   if (main_texture != NULL) {
@@ -422,12 +433,16 @@ int renderer_initialize(config_params_s *conf) {
 
   if (!SDL_CreateWindowAndRenderer("M8C", texture_width * 2, texture_height * 2,
                                    SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY |
-                                       SDL_WINDOW_OPENGL | conf->init_fullscreen,
+                                       conf->init_fullscreen,
                                    &win, &rend)) {
     SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create window and renderer: %s",
                     SDL_GetError());
     return false;
   }
+
+#if TARGET_OS_IOS
+  ios_sync_window_geometry(win);
+#endif
 
   SDL_SetRenderVSync(rend, 1);
 
@@ -444,11 +459,6 @@ int renderer_initialize(config_params_s *conf) {
   if (main_texture == NULL) {
     SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create texture: %s", SDL_GetError());
     return false;
-  }
-
-  if (conf->integer_scaling == 0) {
-    // Create the HD texture dynamically based on window size
-    create_hd_texture();
   }
 
   SDL_SetTextureScaleMode(main_texture, texture_scaling_mode);
@@ -522,6 +532,10 @@ void render_screen(config_params_s *conf) {
     // Ensure that HD texture exists
     if (hd_texture == NULL) {
       create_hd_texture(); // Create the texture dynamically based on window size
+      if (hd_texture == NULL) {
+        dirty = 1;
+        return;
+      }
     }
 
     if (!SDL_SetRenderTarget(rend, hd_texture)) {
@@ -598,27 +612,33 @@ void screensaver_draw(void) { dirty = fx_cube_update(); }
 void screensaver_destroy(void) {
   fx_cube_destroy();
   renderer_set_font_mode(0);
+  SDL_SetRenderTarget(rend, main_texture);
   SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Screensaver destroyed");
   screensaver_initialized = 0;
 }
 
 void renderer_fix_texture_scaling_after_window_resize(config_params_s *conf) {
   SDL_SetRenderTarget(rend, NULL);
+#if TARGET_OS_IOS
+  ios_sync_window_geometry(win);
+#endif
   if (conf->integer_scaling) {
     // SDL internal integer scaling works well for this purpose
     SDL_SetRenderLogicalPresentation(rend, texture_width, texture_height,
                                      SDL_LOGICAL_PRESENTATION_INTEGER_SCALE);
+    scaling_output_width = 0;
+    scaling_output_height = 0;
   } else {
-    if (hd_texture != NULL) {
-      create_hd_texture(); // Recreate hd texture if necessary
-    }
-    setup_hd_texture_scaling();
+    create_hd_texture(); // Recreate hd texture if necessary
   }
   SDL_SetTextureScaleMode(main_texture, texture_scaling_mode);
+  dirty = 1;
 }
 
 void show_error_message(const char *message) {
-  SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "m8c error", message, win);
+  if (!SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "m8c error", message, win)) {
+    SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Cannot show error message: %s", SDL_GetError());
+  }
 }
 
 void renderer_clear_screen(void) {

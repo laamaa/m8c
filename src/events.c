@@ -21,6 +21,9 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     break;
   case SDL_EVENT_WINDOW_RESIZED:
   case SDL_EVENT_WINDOW_MOVED:
+  case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+  case SDL_EVENT_WINDOW_METAL_VIEW_RESIZED:
+  case SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED:
     // If the window size is changed, some systems might need a little nudge to fix scaling
     renderer_fix_texture_scaling_after_window_resize(&ctx->conf);
     break;

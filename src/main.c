@@ -36,38 +36,38 @@ static void do_wait_for_device(struct app_context *ctx) {
   screensaver_draw();
   render_screen(&ctx->conf);
 
-  // Poll for M8 device every second
-  if (ctx->device_connected == 0 && SDL_GetTicks() - ticks_poll_device > 1000) {
-    ticks_poll_device = SDL_GetTicks();
-    if (m8_initialize(0, ctx->preferred_device)) {
+  // Discovery is throttled; an open MIDI handshake is polled once per frame.
+  if (!ctx->device_initializing) {
+    if (SDL_GetTicks() < ticks_poll_device) {
+      return;
+    }
+    ticks_poll_device = SDL_GetTicks() + 1000;
+    ctx->device_initializing = m8_initialize(0, ctx->preferred_device);
+    if (!ctx->device_initializing) {
+      return;
+    }
+  }
 
-      if (ctx->conf.audio_enabled) {
-        if (!audio_initialize(ctx->conf.audio_device_name, ctx->conf.audio_buffer_size)) {
-          SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Cannot initialize audio");
-          ctx->conf.audio_enabled = 0;
-        }
-      }
+  const int result = m8_enable_display(1);
+  if (result == DEVICE_CONNECTING) {
+    return;
+  }
+  ctx->device_initializing = 0;
+  if (result != 1) {
+    SDL_LogError(SDL_LOG_CATEGORY_ERROR, "M8 remote display did not respond; will retry.");
+    m8_close();
+    ticks_poll_device = SDL_GetTicks() + 3000;
+    return;
+  }
 
-      const int m8_enabled = m8_enable_display(1);
-      // Device was found; enable display and proceed to the main loop
-      if (m8_enabled == 1) {
-        ctx->app_state = RUN;
-        ctx->device_connected = 1;
-        SDL_Delay(100); // Give the display time to initialize
-        screensaver_destroy();
-        screensaver_initialized = 0;
-        m8_reset_display(); // Avoid display glitches.
-      } else {
-        SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected.");
-        ctx->app_state = QUIT;
-        screensaver_destroy();
-        screensaver_initialized = 0;
-#ifdef USE_RTMIDI
-        show_error_message(
-            "Cannot initialize M8 remote display. Make sure you're running "
-            "firmware 6.0.0 or newer. Please close and restart the application to try again.");
-#endif
-      }
+  ctx->device_connected = 1;
+  ctx->app_state = RUN;
+  screensaver_destroy();
+  screensaver_initialized = 0;
+  if (ctx->conf.audio_enabled) {
+    if (!audio_initialize(ctx->conf.audio_device_name, ctx->conf.audio_buffer_size)) {
+      SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Cannot initialize audio");
+      ctx->conf.audio_enabled = 0;
     }
   }
 }
@@ -178,25 +178,14 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
     return SDL_APP_FAILURE;
   }
 
-  ctx->device_connected =
-      m8_initialize(1, ctx->preferred_device);
+  ctx->device_initializing = m8_initialize(1, ctx->preferred_device);
 
   if (gamepads_initialize() < 0) {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to initialize game controllers.");
     return SDL_APP_FAILURE;
   }
 
-  if (ctx->device_connected && m8_enable_display(1)) {
-    if (ctx->conf.audio_enabled) {
-      audio_initialize(ctx->conf.audio_device_name, ctx->conf.audio_buffer_size);
-    }
-    ctx->app_state = RUN;
-    render_screen(&ctx->conf);
-  } else {
-    SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device not detected.");
-    ctx->device_connected = 0;
-    ctx->app_state = WAIT_FOR_DEVICE;
-  }
+  ctx->app_state = WAIT_FOR_DEVICE;
 
   return SDL_APP_CONTINUE;
 }
@@ -216,9 +205,13 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     gamepads_close();
     renderer_close();
     inline_font_close();
-    if (app->device_connected) {
+#ifdef USE_RTMIDI
+    m8_close(); // Discovery can own MIDI clients even when no port was found.
+#else
+    if (app->device_connected || app->device_initializing) {
       m8_close();
     }
+#endif
     SDL_free(app);
 
     SDL_Log("Shutting down.");

@@ -16,3 +16,5 @@ cmake-build-*
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
+/m8c-ios.xcodeproj/
+/package/ios/Local.xcconfig

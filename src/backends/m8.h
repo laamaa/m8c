@@ -8,12 +8,14 @@
 enum return_codes {
   DEVICE_DISCONNECTED = 0,
   DEVICE_PROCESSING = 1,
+  DEVICE_CONNECTING = 2,
   DEVICE_FATAL_ERROR = -1
 };
 
 int m8_initialize(int verbose, const char *preferred_device);
 int m8_list_devices(void);
 int m8_reset_display(void);
+// Returns 1 when enabled, 0 on failure, or DEVICE_CONNECTING; poll again next frame.
 int m8_enable_display(unsigned char reset_display);
 int m8_send_msg_controller(unsigned char input);
 int m8_send_msg_keyjazz(unsigned char note, unsigned char velocity);

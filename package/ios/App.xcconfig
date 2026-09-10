@@ -1,0 +1,6 @@
+PRODUCT_BUNDLE_IDENTIFIER = xxx
+MARKETING_VERSION = xxx
+CURRENT_PROJECT_VERSION = 1
+
+// Personal signing and version settings survive project regeneration.
+#include? "Local.xcconfig"

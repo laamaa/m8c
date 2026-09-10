@@ -50,6 +50,21 @@ Click "More info" and then "Run anyway" to proceed.
 There are prebuilt binaries available in the [releases section](https://github.com/laamaa/m8c/releases/) for recent
 versions of macOS.
 
+### iPhone and iPad
+
+Build the iOS app with Xcode and [XcodeGen](https://github.com/yonaskolb/XcodeGen):
+
+```sh
+brew install xcodegen
+make xcode-ios
+open m8c-ios.xcodeproj
+```
+
+The generator initializes the pinned SDL3 submodule and includes the launch screen, app icon,
+controller database, and RtMidi/CoreMIDI backend. Select the `m8c-ios` scheme and your device or
+simulator. Device installation requires your signing team; see the
+[iOS build guide](package/ios/README.md) for setup, signing, and archive instructions.
+
 ### Linux
 
 There are packages available for NixOS, an AppImage for easy installation, or you can build the program from source.

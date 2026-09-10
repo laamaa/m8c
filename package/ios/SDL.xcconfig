@@ -1,0 +1,4 @@
+// SDL is embedded in the app, not installed as a separate archive product.
+SKIP_INSTALL = YES
+// Match the app and avoid SDKs that no longer accept SDL's iOS 11 default.
+IPHONEOS_DEPLOYMENT_TARGET = 15.6
